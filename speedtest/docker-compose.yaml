@@ -1,0 +1,62 @@
+# APEN Speed Test — Docker Compose stack.
+#
+# Bring up the server:
+#   docker compose up -d --build
+#
+# The service exposes the WebUI + API on host port 8090 (override via the
+# SPEEDTEST_PORT environment variable on the host, e.g. SPEEDTEST_PORT=9000).
+#
+# Volumes:
+#   - ./logs                    → /app/logs            (persistent log files)
+#   - ./frontend/favicon.ico    → /app/frontend/favicon.ico
+#       Bind-mounted so you can swap the favicon on the host without rebuilding
+#       the image. Replace ./frontend/favicon.ico with your own .ico and
+#       `docker compose restart speedtest` to pick it up.
+
+services:
+  speedtest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: apen/speedtest:0.1.0
+    container_name: speedtest
+    restart: unless-stopped
+    ports:
+      - "${SPEEDTEST_PORT:-8090}:8090"
+    networks:
+      - nginx
+    environment:
+      SPEEDTEST_HOST: "0.0.0.0"
+      SPEEDTEST_PORT: "8090"
+      # Redirect log output into the bind-mounted volume below. Without this,
+      # the installed package would try to create logs/ inside site-packages,
+      # which the non-root runtime user cannot write to.
+      SPEEDTEST_LOG_DIR: "/app/logs"
+      # Point the packaged backend at the bundled static files copied into
+      # /app/frontend. Without this, the site-packages install would derive
+      # FRONTEND_DIR = /usr/local/.../site-packages/frontend (nonexistent)
+      # and every static route would 404.
+      SPEEDTEST_FRONTEND_DIR: "/app/frontend"
+      SPEEDTEST_PING_COUNT: "${SPEEDTEST_PING_COUNT:-10}"
+      SPEEDTEST_CHUNK_SIZE: "${SPEEDTEST_CHUNK_SIZE:-1048576}"
+      SPEEDTEST_TIMEOUT:    "${SPEEDTEST_TIMEOUT:-15.0}"
+    volumes:
+      # Persistent logs: access / errors / test_runs / test_results.
+      - ./logs:/app/logs
+      # Swappable favicon — edit ./frontend/favicon.ico on the host to rebrand.
+      - ./frontend/favicon.ico:/app/frontend/favicon.ico:ro
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/speedtest/api/config', timeout=3).status==200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  nginx:
+    external: true
+    name: nginx-shared

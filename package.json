@@ -1,0 +1,67 @@
+{
+  "name": "apen-support-site",
+  "version": "1.0.0",
+  "private": true,
+  "author": "FCC CESC (cesc@army.mil)",
+  "license": "UNLICENSED",
+  "packageManager": "npm@12.0.2",
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run validate:images && NEXT_TELEMETRY_DISABLED=1 next build && node scripts/build-search-index.mjs",
+    "start": "next start",
+    "proxy:voltron": "node proxy/voltron-proxy.mjs",
+    "stats": "node proxy/site-stats.mjs",
+    "dev:all": "concurrently --names \"NEXT,STATS\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"npm run dev\" \"npm run stats\"",
+    "dev:full": "concurrently --names \"NEXT,STATS,VOLTRON\" --prefix-colors \"cyan,magenta,yellow\" --kill-others-on-fail \"npm run dev\" \"npm run stats\" \"npm run proxy:voltron\"",
+    "lint": "eslint .",
+    "favicons": "node scripts/build-favicon.mjs",
+    "validate:images": "node scripts/validate-image-registry.mjs",
+    "upgrade": "npx @next/codemod@canary upgrade latest",
+    "clean": "rm -rf .next node_modules package-lock.json",
+    "reinstall": "npm run clean && npm install",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import ./scripts/register-test-loader.mjs --test tests/**/*.test.ts",
+    "validate": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
+    "@radix-ui/react-icons": "^1.3.2",
+    "@radix-ui/react-slot": "^1.3.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.1",
+    "ldapts": "^9.0.0",
+    "lucide-react": "^1.33.0",
+    "next": "^16.3.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/parser": "^8.0.4",
+    "@babel/plugin-transform-react-jsx": "^8.0.1",
+    "@babel/plugin-transform-typescript": "^8.0.1",
+    "@babel/traverse": "^8.0.4",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "concurrently": "^10.0.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.2",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=24.18.0",
+    "npm": ">=12.0.0"
+  },
+  "browserslist": [
+    "Chrome >= 100",
+    "Edge >= 100",
+    "Firefox >= 100"
+  ]
+}

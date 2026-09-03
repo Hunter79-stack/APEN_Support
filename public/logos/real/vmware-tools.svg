@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="64" fill="#0d2240"/>
+  <!-- Outer ring -->
+  <circle cx="200" cy="180" r="100" fill="none" stroke="#0091da" stroke-width="12"/>
+  <!-- Inner gear teeth using arc path -->
+  <circle cx="200" cy="180" r="68" fill="#0091da" opacity="0.15"/>
+  <circle cx="200" cy="180" r="28" fill="#0091da"/>
+  <!-- Gear teeth (8 teeth) -->
+  <rect x="186" y="68" width="28" height="36" rx="6" fill="#0091da"/>
+  <rect x="186" y="256" width="28" height="36" rx="6" fill="#0091da"/>
+  <rect x="88" y="166" width="36" height="28" rx="6" fill="#0091da"/>
+  <rect x="276" y="166" width="36" height="28" rx="6" fill="#0091da"/>
+  <rect transform="rotate(45,200,180)" x="186" y="68" width="28" height="36" rx="6" fill="#0091da"/>
+  <rect transform="rotate(45,200,180)" x="186" y="256" width="28" height="36" rx="6" fill="#0091da"/>
+  <rect transform="rotate(45,200,180)" x="88" y="166" width="36" height="28" rx="6" fill="#0091da"/>
+  <rect transform="rotate(45,200,180)" x="276" y="166" width="36" height="28" rx="6" fill="#0091da"/>
+  <!-- VMware v-chevron bottom -->
+  <path d="M136 322 L200 344 L264 322" stroke="#78be20" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

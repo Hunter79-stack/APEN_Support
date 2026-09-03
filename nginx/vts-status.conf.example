@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────
+#  vts-status.conf.example — NGINX live status endpoint for the /admin/ NGINX tab
+#
+#  ⚠️  EXAMPLE ONLY — do NOT `include` this until the VTS module is installed.
+#      The `vhost_traffic_status_*` directives are unknown to stock nginx, so
+#      adding them before the module is loaded makes `nginx -t` FAIL and a
+#      reload will refuse — taking the whole site with it. Apply these blocks
+#      only as part of the runbook (proxy/NGINX_VTS_RUNBOOK.md), in lockstep
+#      with the module build.
+#
+#  Once live, the backend (proxy/site-stats.mjs) reads the JSON over loopback
+#  at NGINX_VTS_JSON_URL (default http://127.0.0.1/status/format/json) and the
+#  admin "NGINX status" tab fills in automatically.
+# ─────────────────────────────────────────────────────────────────────────
+
+# ── 1) MAIN context — /etc/nginx/nginx.conf, at the very top (before `events`)
+#    Loads the dynamic module. Path is wherever `make modules` put the .so
+#    (commonly /usr/lib/nginx/modules or /etc/nginx/modules).
+#
+#   load_module modules/ngx_http_vhost_traffic_status_module.so;
+#   # (+ load_module modules/ngx_stream_vhost_traffic_status_module.so;  for TCP/UDP zones)
+
+
+# ── 2) HTTP context — inside the http { } block (nginx.conf), or at the top of
+#    server.conf alongside the existing limit_req_zone lines (those are also
+#    http-context). Declares the shared counter zone; this turns VTS on for
+#    every server/upstream automatically.
+#
+#   vhost_traffic_status_zone shared:vhost_traffic_status:32m;
+#
+#    Optional: also count the per-upstream/zone filter by Host so each vhost
+#    shows up separately (recommended for this multi-vhost gateway):
+#   vhost_traffic_status_filter_by_host on;
+
+
+# ── 3) The loopback-only JSON display location.
+#    Put this in the PORT-80 server block (the one with `location / { return 301 ... }`)
+#    so the backend can read it over plain-HTTP loopback with no TLS hop. The
+#    exact-match (=) location wins over the `location /` 301, so it is reachable
+#    at http://127.0.0.1/status/format/json without being redirected.
+#
+#    location = /status/format/json {
+#        vhost_traffic_status_display;
+#        vhost_traffic_status_display_format json;
+#        allow 127.0.0.1;
+#        deny all;
+#        access_log off;            # don't pollute cui_nginx_access.log (site-stats parses it)
+#    }
+#
+#    (Optional human HTML dashboard, admin-IP-gated, mirrors the /admin pattern:)
+#    location = /status/ {
+#        vhost_traffic_status_display;
+#        vhost_traffic_status_display_format html;
+#        include /etc/nginx/conf.d/apen_support/admin-acl.inc;
+#        error_page 403 =404 /404.html;
+#        access_log off;
+#    }
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  ALTERNATIVE: Angie (drop-in nginx fork with a native status API)
+#  No module build — Angie ships the API. After installing Angie, expose:
+#
+#    location = /status/ {
+#        api /status/;            # Angie's JSON status tree
+#        allow 127.0.0.1;
+#        deny all;
+#        access_log off;
+#    }
+#
+#  Then set in .env.local:  NGINX_ANGIE_API_URL=http://127.0.0.1/status/
+#  (leave NGINX_VTS_JSON_URL pointing at a closed port, or unset it). The
+#  backend auto-detects the Angie JSON shape.
+# ─────────────────────────────────────────────────────────────────────────

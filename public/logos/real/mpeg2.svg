@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0d0d1a"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="20" fill="url(#bg)"/>
+  <!-- Film strip holes top -->
+  <rect x="12" y="12" width="8" height="10" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <rect x="26" y="12" width="8" height="10" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <rect x="40" y="12" width="8" height="10" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <rect x="54" y="12" width="8" height="10" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <rect x="68" y="12" width="8" height="10" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <!-- Film strip body -->
+  <rect x="10" y="22" width="76" height="38" rx="2" fill="rgba(99,102,241,0.08)" stroke="rgba(99,102,241,0.2)" stroke-width="1.5"/>
+  <!-- Film frames -->
+  <rect x="16" y="27" width="20" height="28" rx="2" fill="rgba(99,102,241,0.15)"/>
+  <rect x="38" y="27" width="20" height="28" rx="2" fill="rgba(0,212,255,0.1)"/>
+  <rect x="60" y="27" width="20" height="28" rx="2" fill="rgba(99,102,241,0.12)"/>
+  <!-- Sound wave -->
+  <path d="M22 37 Q26 32 26 41 Q26 50 30 41" fill="none" stroke="url(#g)" stroke-width="2" stroke-linecap="round"/>
+  <!-- MPEG-2 label -->
+  <rect x="12" y="74" width="72" height="16" rx="4" fill="rgba(99,102,241,0.12)" stroke="rgba(99,102,241,0.25)" stroke-width="1"/>
+  <text x="48" y="86" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="9" letter-spacing="0.5" fill="#6366f1">MPEG-2 VIDEO</text>
+</svg>

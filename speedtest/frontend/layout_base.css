@@ -1,0 +1,172 @@
+/* ---------------------------------------------------------------------------
+ * layout_base.css — reset, typography, and the fully procedural backdrop.
+ * No image assets are referenced; the background is generated from animated
+ * radial gradients ("blobs") on top of a subtle grid overlay.
+ * ------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  color: #e6edf3;
+  background: #05060a;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 3rem);
+}
+
+/* --- Procedural backdrop ------------------------------------------------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% -10%, #10162a 0%, #05060a 55%, #020306 100%);
+}
+
+.backdrop .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.blob-a {
+  width: 48vmax; height: 48vmax;
+  left: -12vmax; top: -10vmax;
+  background: radial-gradient(circle at 30% 30%, #22d3ee 0%, transparent 60%);
+  animation: drift-a 22s ease-in-out infinite;
+}
+
+.blob-b {
+  width: 52vmax; height: 52vmax;
+  right: -18vmax; top: 10vmax;
+  background: radial-gradient(circle at 60% 40%, #818cf8 0%, transparent 60%);
+  animation: drift-b 28s ease-in-out infinite;
+}
+
+.blob-c {
+  width: 40vmax; height: 40vmax;
+  left: 20vmax; bottom: -14vmax;
+  background: radial-gradient(circle at 50% 50%, #f472b6 0%, transparent 60%);
+  animation: drift-c 34s ease-in-out infinite;
+}
+
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(6vmax, 4vmax, 0) scale(1.08); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5vmax, 6vmax, 0) scale(1.05); }
+}
+@keyframes drift-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4vmax, -5vmax, 0) scale(1.1); }
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, #000 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 40%, transparent 80%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-a, .blob-b, .blob-c { animation: none; }
+}
+
+/* --- Typography ---------------------------------------------------------- */
+
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+p          { margin: 0; }
+
+kbd {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78em;
+  padding: 0.1em 0.45em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Reusable glass surface --------------------------------------------- */
+
+.glass {
+  background: linear-gradient(180deg, rgba(18, 22, 36, 0.78) 0%, rgba(10, 12, 22, 0.82) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+/* --- Embed mode (?embed=1) ------------------------------------------------
+ * Active when the page is framed inside the support site at /tools/speedtest.
+ * The parent page supplies the background (aurora canvas) and spacing, so
+ * this page goes transparent, drops its own backdrop, and collapses to its
+ * natural content height (the parent sizes the iframe to match — no inner
+ * scrollbar). */
+html.embed,
+html.embed body {
+  /* `!important` + `color-scheme: normal` defeat the UA dark canvas the
+     <meta name="color-scheme" content="dark"> would otherwise paint, so the
+     parent page's background shows through instead of a black box. */
+  background: transparent !important;
+  background-color: transparent !important;
+  color-scheme: normal;
+  min-height: 0;
+}
+
+html.embed {
+  overflow: hidden;
+}
+
+html.embed .backdrop {
+  display: none;
+}
+
+html.embed body {
+  /* Keep horizontal centering, but DROP vertical centering: centered flex
+     content that overflows clips at the top and makes scrollHeight
+     under-report, which cut off the bottom of the test. Top-aligned content
+     flows downward so the parent measures the true height. No padding — the
+     parent page owns the margins. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+}
+
+/* Drop the heavy drop-shadow halo in embed mode; against the site's dark
+   aurora it read as a padded black box around the card. */
+html.embed #app {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}

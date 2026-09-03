@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2b8cf8"/>
+      <stop offset="100%" stop-color="#0052cc"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffbf0"/>
+      <stop offset="100%" stop-color="#fdf0c0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="96" height="96" rx="20" fill="url(#bg)"/>
+  <!-- Spiral binding -->
+  <rect x="30" y="14" width="36" height="6" rx="3" fill="rgba(255,255,255,0.3)"/>
+  <!-- Binding holes -->
+  <circle cx="38" cy="17" r="2.5" fill="rgba(0,0,0,0.2)"/>
+  <circle cx="48" cy="17" r="2.5" fill="rgba(0,0,0,0.2)"/>
+  <circle cx="58" cy="17" r="2.5" fill="rgba(0,0,0,0.2)"/>
+  <!-- Page -->
+  <rect x="22" y="20" width="52" height="62" rx="4" fill="url(#page)"/>
+  <!-- Text lines -->
+  <line x1="30" y1="34" x2="66" y2="34" stroke="#7ca9e0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="30" y1="43" x2="66" y2="43" stroke="#7ca9e0" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="30" y1="52" x2="66" y2="52" stroke="#7ca9e0" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="30" y1="61" x2="56" y2="61" stroke="#7ca9e0" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+  <line x1="30" y1="70" x2="60" y2="70" stroke="#7ca9e0" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+</svg>

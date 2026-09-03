@@ -1,0 +1,36 @@
+APEN Service & Support  (apensupport.blcse.mil)
+================================================
+
+Owning organization : Futures and Concepts Center (FCC), Army Futures Command
+                      CESC Helpdesk  <cesc@army.mil>  DSN 706-791-5858
+Environment         : Army Persistent Experimentation Environment (APEN)
+Maintainer          : dod_admin (J. Webber, CESCDREN14)
+Source of record    : this git repository on the production host
+                      /var/www/apen_support_nextjs  (branch main, tagged releases)
+Backup replica      : apensupport2.blcse.mil (172.16.2.18), fed by
+                      customsh/replicate-to-backup.sh — a mirror, not a fork.
+
+This repository and its tagged releases are the authoritative source for the
+APEN Support platform. A copy that is not this repository, its recorded
+backup, or an air-gap bundle produced by scripts/make-airgap-bundle.sh
+(which records the git tag and commit in VERSION and BUNDLE-INFO.txt) is not
+an authorized deployment.
+
+Ownership record (fill in; this is what settles "who owns the system")
+----------------------------------------------------------------------
+System Owner           : ______________________________
+ISSO / ISSM            : ______________________________
+Authorization (ATO) ID : ______________________________
+CM baseline            : git tag (see `git tag`), first baseline v1.0.0-baseline
+Distribution statement : ______________________________ (set by System Owner)
+
+Access control
+--------------
+Authorized admin workstations : nginx/admin-acl.inc
+Barred workstations           : nginx/blocked-hosts.inc
+                                (enforced in nginx, proxy/site-stats.mjs, sshd,
+                                and nftables via customsh/lockdown/apply-lockdown.sh)
+Deploy provenance             : every $SITEUPDATE run writes a sha256 manifest
+                                of out/ to /mnt/storage/logs/apen-deploy-manifests/;
+                                scripts/verify-deploy.sh checks the live tree
+                                against it.

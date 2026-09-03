@@ -1,0 +1,90 @@
+{
+  "repos/landing/cards": {
+    "value": {
+      "rpm": {
+        "description": "Mirrored RPM-based repositories for AlmaLinux, RockyLinux, and CentOS."
+      }
+    },
+    "updatedAt": "2026-06-02T19:15:20.182Z",
+    "updatedBy": "admin-ui"
+  },
+  "isos/landing/groups": {
+    "value": {
+      "el": {
+        "title": "Enterprise Linux Info"
+      }
+    },
+    "updatedAt": "2026-06-02T20:00:19.518Z",
+    "updatedBy": "admin-ui"
+  },
+  "vmware/landing/cards": {
+    "value": {
+      "tools": {
+        "title": "VMware Utilities",
+        "description": "VMware ecosystem tools, utilities and applications downloads for Windows and Linux.",
+        "itemCount": "3 downloads",
+        "id": "vmware-utilities"
+      }
+    },
+    "updatedAt": "2026-08-14T15:49:57.241Z",
+    "updatedBy": "admin-ui"
+  },
+  "vmware/tools": {
+    "value": {
+      "vmrc": {
+        "downloads": [
+          {
+            "label": "VMRC 13.1.0 for Windows (.zip)",
+            "href": "/vmware/vmrc/VMware-VMRC-13.1.0.25236164_x64.zip"
+          },
+          {
+            "label": "VMRC 13.1.0 for Windows (.exe)",
+            "href": "/vmware/vmrc/VMware-VMRC-13.1.0_x64.exe"
+          },
+          {
+            "label": "VMRC 13.1.0 for Linux (.bundle)",
+            "href": "/vmware/vmrc/VMware-Remote-Console-13.1.0.25236164.x86_64.bundle"
+          }
+        ]
+      }
+    },
+    "updatedAt": "2026-08-18T18:49:17.335Z",
+    "updatedBy": "admin-ui"
+  },
+  "docs/vmware/cards": {
+    "value": {
+      "upgrade": {
+        "description": "Step-by-step instructions for upgrading vCenter Server using the Appliance Management Interface (VAMI).",
+        "links": [
+          {
+            "label": "Upgrade vCenter using the Appliance Management Interface "
+          }
+        ]
+      }
+    },
+    "updatedAt": "2026-08-18T19:32:36.667Z",
+    "updatedBy": "admin-ui"
+  },
+  "vmware/v8/products": {
+    "value": {
+      "vcenter8": {
+        "description": "vCenter Server Appliance 8.0 — latest: Update 3k (Build 25600417, 2026-07-29).",
+        "installer": {
+          "label": "VMware-VCSA-all-8.0.3-25600417 (ISO)",
+          "href": "/vmware/8/VMware-VCSA-all-8.0.3-25600417.iso",
+          "desc": ""
+        }
+      },
+      "esxi8": {
+        "description": "ESXi 8.0 — latest: Update 3j (Build 25429389, 2026-05-27).",
+        "installer": {
+          "label": "VMware-VMvisor-Installer-8.0U3j-25429389.x86_64 (ISO)",
+          "href": "/vmware/8/VMware-VMvisor-Installer-8.0U3j-25429389.x86_64.iso",
+          "desc": ""
+        }
+      }
+    },
+    "updatedAt": "2026-08-24T16:02:51.348Z",
+    "updatedBy": "admin-ui"
+  }
+}

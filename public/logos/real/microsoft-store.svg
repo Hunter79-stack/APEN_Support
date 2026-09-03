@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0078d4"/>
+      <stop offset="60%" stop-color="#005ea6"/>
+      <stop offset="100%" stop-color="#003a6e"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="96" height="96" rx="20" fill="url(#bg)"/>
+  <!-- Shopping bag shape -->
+  <path d="M26 42 L30 74 Q30 78 34 78 L62 78 Q66 78 66 74 L70 42 Z" fill="white" opacity="0.92"/>
+  <!-- Bag handle -->
+  <path d="M34 42 C34 30 62 30 62 42" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <!-- Windows logo on bag -->
+  <rect x="36" y="52" width="10" height="10" rx="1.5" fill="#0078d4"/>
+  <rect x="50" y="52" width="10" height="10" rx="1.5" fill="#00b4f1"/>
+  <rect x="36" y="65" width="10" height="10" rx="1.5" fill="#7fba00"/>
+  <rect x="50" y="65" width="10" height="10" rx="1.5" fill="#ffb900"/>
+</svg>

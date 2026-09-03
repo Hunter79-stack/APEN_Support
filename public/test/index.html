@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>NGINX Live Activity — UI Mock (simulated)</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     UI MOCK ONLY — simulated data. Faithful reproduction of the
+     NGINX "live activity monitoring" dashboard layout, as it
+     would look on live nginx.
+     Two themes: "dark" (admin console) and "light" (NGINX Plus
+     classic green). Served under /test/ for UI-behavior testing.
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --bg:        #090d13;  --bg-2:    #0d121b;
+    --panel:     rgba(255,255,255,0.025); --panel-2: rgba(255,255,255,0.045);
+    --border:    rgba(255,255,255,0.08);  --border-2: rgba(255,255,255,0.05);
+    --text:      #e2e8f0;  --muted:   #94a3b8; --muted-2: #5b6b80;
+    --accent:    #22d3ee;  --accent-2: #818cf8; --accent-on: #04121a;
+    --ok:        #34d399;  --warn:    #fbbf24; --err: #f87171;
+    --row-hover: rgba(255,255,255,0.022);
+  }
+  html[data-theme="light"] {
+    --bg:        #eef1f4;  --bg-2:    #ffffff;
+    --panel:     #ffffff;  --panel-2: #f6f8fa;
+    --border:    #e2e7ec;  --border-2: #eef1f4;
+    --text:      #2b3a42;  --muted:   #61727c; --muted-2: #93a1a8;
+    --accent:    #009639;  --accent-2: #00702a; --accent-on: #ffffff;
+    --ok:        #009639;  --warn:    #c47f00; --err: #c0261b;
+    --row-hover: rgba(0,0,0,0.025);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px; line-height: 1.45; min-height: 100vh; -webkit-font-smoothing: antialiased;
+    transition: background .25s ease, color .25s ease;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(1100px 520px at 12% -8%, rgba(34,211,238,0.10), transparent 60%),
+      radial-gradient(900px 480px at 100% 0%, rgba(129,140,248,0.10), transparent 55%);
+    transition: opacity .25s ease;
+  }
+  html[data-theme="light"] body::before { opacity: 0; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 20px 60px; }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  code, .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+
+  /* mock banner */
+  .mockbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    border: 1px solid rgba(196,127,0,0.4); background: rgba(251,191,36,0.10);
+    color: var(--warn); border-radius: 12px; padding: 10px 15px; margin-bottom: 16px; font-size: 12.5px;
+  }
+  .mockbar b { letter-spacing: .04em; }
+  .mockbar .muted { color: var(--muted); }
+  html[data-theme="light"] .mockbar .muted { color: #6b5b2a; }
+
+  /* top status bar (Plus style) */
+  .statusbar {
+    border: 1px solid var(--border); background: var(--panel); border-radius: 14px;
+    padding: 13px 16px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap; justify-content: space-between;
+  }
+  .sb-id { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .logo { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; flex: 0 0 auto;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-on); font-weight: 800; font-size: 17px; }
+  .sb-id .host { font-weight: 700; font-size: 15px; }
+  .sb-id .ver { color: var(--muted); font-size: 11.5px; margin-top: 1px; }
+  .sb-id .ver code { color: var(--accent); }
+  .sb-metrics { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; }
+  .metric { padding: 0 16px; border-left: 1px solid var(--border); }
+  .metric:first-child { border-left: 0; }
+  .metric .mlabel { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-2); }
+  .metric .mval { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .metric .msub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .sb-ctl { display: flex; align-items: center; gap: 10px; }
+  select, .btn {
+    appearance: none; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 9px; padding: 7px 11px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover, select:hover { border-color: var(--accent); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); }
+  .pill.live { color: var(--ok); background: rgba(52,211,153,0.10); border-color: rgba(52,211,153,0.30); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.live .dot { animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.5);} 70% { box-shadow: 0 0 0 7px rgba(52,211,153,0);} 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0);} }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab { appearance: none; border: 0; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600;
+    padding: 9px 13px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s ease, border-color .15s ease; white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .cnt { font-size: 10px; opacity: .7; margin-left: 4px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fade .22s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(3px);} to { opacity: 1; transform: none; } }
+
+  .grid { display: grid; gap: 13px; }
+  .stat-grid { grid-template-columns: repeat(4, 1fr); margin-bottom: 13px; }
+  @media (max-width: 880px) { .stat-grid { grid-template-columns: repeat(2, 1fr);} .metric { padding: 4px 12px; } }
+  .card { position: relative; border: 1px solid var(--border); background: var(--panel); border-radius: 14px; padding: 15px 16px; overflow: hidden; }
+  .card.tablecard { padding: 15px 8px 16px; }
+  .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 6px; }
+  .stat .value { font-size: 29px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; }
+  .stat .delta { font-size: 11.5px; margin-top: 3px; color: var(--muted-2); }
+  .ic { width: 14px; height: 14px; }
+
+  .row { display: grid; grid-template-columns: 1.55fr 1fr; gap: 13px; margin-bottom: 13px; }
+  @media (max-width: 880px) { .row { grid-template-columns: 1fr; } }
+  .card h2 { margin: 0; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card .hint { color: var(--muted-2); font-size: 11.5px; margin: 2px 0 12px; }
+  .secthead { padding: 0 8px 11px; }
+  .secthead h2 { margin: 0; }
+  .secthead .hint { margin: 2px 0 0; }
+
+  /* sparkline */
+  .spark { width: 100%; height: 92px; display: block; }
+  .spark-meta { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
+  .spark-now { font-size: 24px; font-weight: 700; }
+  .spark-now small { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+  /* connection bars */
+  .conn-row { display: grid; grid-template-columns: 66px 1fr 56px; align-items: center; gap: 10px; margin: 9px 0; }
+  .conn-row .k { font-size: 12px; color: var(--muted); }
+  .conn-row .v { text-align: right; font-size: 12.5px; font-weight: 600; }
+  .track { height: 8px; border-radius: 6px; background: rgba(127,127,127,0.18); overflow: hidden; }
+  .track > span { display: block; height: 100%; border-radius: 6px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+  .b-read { background: var(--accent); } .b-write { background: var(--accent-2); } .b-wait { background: var(--muted-2); }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th { text-align: left; color: var(--muted-2); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 0 10px 8px; white-space: nowrap; }
+  thead tr.grouphdr th { padding-bottom: 4px; border-bottom: 1px solid var(--border-2); text-align: center; color: var(--muted); }
+  thead tr.grouphdr th.l { text-align: left; border-bottom: 0; }
+  th.r, td.r { text-align: right; } th.c, td.c { text-align: center; }
+  tbody td { padding: 10px; border-top: 1px solid var(--border-2); vertical-align: middle; white-space: nowrap; }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr.grouprow td { padding: 13px 10px 5px; color: var(--accent-2); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; border-top: 0; }
+  html[data-theme="light"] tbody tr.grouprow td { color: var(--accent); }
+  .zone-name { font-weight: 600; } .zone-sub { color: var(--muted-2); font-size: 11px; }
+  .hl { color: var(--accent); }
+
+  .codes { display: inline-flex; height: 8px; width: 110px; border-radius: 5px; overflow: hidden; background: rgba(127,127,127,0.18); vertical-align: middle; }
+  .codes > span { height: 100%; transition: width .6s ease; }
+  .c1 { background: var(--muted-2); } .c2 { background: var(--ok); } .c3 { background: var(--accent); } .c4 { background: var(--warn); } .c5 { background: var(--err); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 12px 10px 0; font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+  .badge .dot { width: 6px; height: 6px; }
+  .s-up { color: var(--ok); background: rgba(52,211,153,0.13); } .s-down { color: var(--err); background: rgba(248,113,113,0.13); }
+  .s-drain { color: var(--warn); background: rgba(251,191,36,0.13); } .s-checking { color: var(--accent); background: rgba(34,211,238,0.13); }
+  html[data-theme="light"] .s-up { background: rgba(0,150,57,0.10);} html[data-theme="light"] .s-down { background: rgba(192,38,27,0.10);} html[data-theme="light"] .s-drain { background: rgba(196,127,0,0.12);}
+
+  .meter { width: 104px; height: 7px; border-radius: 5px; background: rgba(127,127,127,0.18); overflow: hidden; display: inline-block; vertical-align: middle; }
+  .meter > span { display: block; height: 100%; border-radius: 5px; transition: width .6s ease, background .3s ease; }
+  .statusdot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .empty { padding: 26px 12px; text-align: center; color: var(--muted-2); font-size: 12.5px; }
+
+  footer { margin-top: 24px; color: var(--muted-2); font-size: 11.5px; text-align: center; line-height: 1.7; }
+  footer code { color: var(--muted); }
+  .flash { animation: flash .6s ease; }
+  @keyframes flash { 0% { color: var(--accent); } 100% { color: inherit; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mockbar">
+    <b>◆ UI MOCK — SIMULATED DATA</b>
+    <span class="muted">Layout of the NGINX Live-Activity dashboard. All numbers are fabricated client-side; nothing reads the real nginx.</span>
+  </div>
+
+  <!-- top status bar -->
+  <div class="statusbar">
+    <div class="sb-id">
+      <span class="logo">N</span>
+      <div>
+        <div class="host">apensupport.blcse.mil</div>
+        <div class="ver">nginx <code>1.30.3</code> + <code id="engine">vts (mock)</code> · up <span class="tnum" id="uptime">—</span></div>
+      </div>
+    </div>
+    <div class="sb-metrics">
+      <div class="metric"><div class="mlabel">Connections</div><div class="mval tnum" id="m-conn">—</div><div class="msub tnum" id="m-conn-sub">accepted — · dropped —</div></div>
+      <div class="metric"><div class="mlabel">Requests</div><div class="mval tnum" id="m-req">—</div><div class="msub tnum" id="m-req-sub">— req/s</div></div>
+      <div class="metric"><div class="mlabel">SSL</div><div class="mval tnum" id="m-ssl">—</div><div class="msub tnum" id="m-ssl-sub">handshakes/s</div></div>
+    </div>
+    <div class="sb-ctl">
+      <span class="pill live"><span class="dot"></span> Live</span>
+      <select id="refresh" title="Refresh interval">
+        <option value="1000">1s</option>
+        <option value="5000">5s</option>
+        <option value="10000">10s</option>
+        <option value="30000">30s</option>
+      </select>
+      <button class="btn" id="theme-btn" title="Toggle theme">☀ Plus theme</button>
+    </div>
+  </div>
+
+  <!-- tabs -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="zones">HTTP Zones<span class="cnt" id="c-zones"></span></button>
+    <button class="tab" data-tab="ups">HTTP Upstreams<span class="cnt" id="c-ups"></span></button>
+    <button class="tab" data-tab="szones">TCP/UDP Zones<span class="cnt" id="c-szones"></span></button>
+    <button class="tab" data-tab="sups">TCP/UDP Upstreams<span class="cnt" id="c-sups"></span></button>
+    <button class="tab" data-tab="caches">Caches<span class="cnt" id="c-caches"></span></button>
+    <button class="tab" data-tab="shared">Shared Zones<span class="cnt" id="c-shared"></span></button>
+    <button class="tab" data-tab="resolvers">Resolvers</button>
+    <button class="tab" data-tab="workers">Workers<span class="cnt" id="c-workers"></span></button>
+  </div>
+
+  <!-- Dashboard overview -->
+  <div class="panel active" data-panel="dash">
+    <div class="grid stat-grid">
+      <div class="card stat">
+        <div class="label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Active connections</div>
+        <div class="value tnum" id="s-active">—</div><div class="delta" id="s-active-d">idle —</div>
+      </div>
+      <div class="card stat">
+        <div class="label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent-2)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Requests / sec</div>
+        <div class="value tnum" id="s-rps">—</div><div class="delta" id="s-rps-d">all server zones</div>
+      </div>
+      <div class="card stat">
+        <div class="label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> SSL handshakes/s</div>
+        <div class="value tnum" id="s-ssl">—</div><div class="delta" id="s-ssl-d">reuse —</div>
+      </div>
+      <div class="card stat">
+        <div class="label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--err)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 5xx rate</div>
+        <div class="value tnum" id="s-5xx">—</div><div class="delta" id="s-5xx-d">of responses</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="card">
+        <h2>Requests / sec <span class="pill" style="color:var(--accent);background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.22)">last 60 samples</span></h2>
+        <p class="hint">Derived per-second throughput — VTS exposes this directly; open-source <code>stub_status</code> would need sample-diffing.</p>
+        <svg class="spark" id="spark" viewBox="0 0 600 92" preserveAspectRatio="none">
+          <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(34,211,238,0.3)"/><stop offset="100%" stop-color="rgba(34,211,238,0)"/></linearGradient></defs>
+          <path id="spark-area" fill="url(#sg)" d=""/><path id="spark-line" fill="none" stroke="var(--accent)" stroke-width="2" d=""/>
+        </svg>
+        <div class="spark-meta"><span class="spark-now tnum" id="spark-now">—<small> req/s</small></span><span class="hint" id="spark-range">peak — · min —</span></div>
+      </div>
+      <div class="card">
+        <h2>Connection states</h2>
+        <p class="hint">Reading / writing / waiting — the only part open-source <code>stub_status</code> can produce.</p>
+        <div class="conn-row"><span class="k">Reading</span><span class="track"><span class="b-read" id="bar-read" style="width:0%"></span></span><span class="v tnum" id="v-read">—</span></div>
+        <div class="conn-row"><span class="k">Writing</span><span class="track"><span class="b-write" id="bar-write" style="width:0%"></span></span><span class="v tnum" id="v-write">—</span></div>
+        <div class="conn-row"><span class="k">Waiting</span><span class="track"><span class="b-wait" id="bar-wait" style="width:0%"></span></span><span class="v tnum" id="v-wait">—</span></div>
+        <div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--border-2);display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
+          <span>Accepted <b class="tnum" id="v-acc" style="color:var(--text)">—</b></span>
+          <span>Handled <b class="tnum" id="v-han" style="color:var(--text)">—</b></span>
+          <span>Dropped <b class="tnum" id="v-drop" style="color:var(--err)">—</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HTTP Zones -->
+  <div class="panel" data-panel="zones">
+    <div class="card tablecard">
+      <div class="secthead"><h2>HTTP server zones</h2><p class="hint">Per-vhost traffic and response-code mix — <b>not available on open-source stub_status</b>; the headline VTS feature.</p></div>
+      <table>
+        <thead>
+          <tr class="grouphdr"><th class="l"></th><th class="l"></th><th colspan="2">Requests</th><th colspan="6">Responses</th><th colspan="2">Traffic</th></tr>
+          <tr><th>Zone</th><th class="c">Status</th><th class="r">Total</th><th class="r">Req/s</th><th class="r">1xx</th><th class="r">2xx</th><th class="r">3xx</th><th class="r">4xx</th><th class="r">5xx</th><th class="c">Mix</th><th class="r">Sent/s</th><th class="r">Rcvd/s</th></tr>
+        </thead>
+        <tbody id="tb-zones"></tbody>
+      </table>
+      <div class="legend"><span><i class="c1"></i>1xx</span><span><i class="c2"></i>2xx</span><span><i class="c3"></i>3xx</span><span><i class="c4"></i>4xx</span><span><i class="c5"></i>5xx</span></div>
+    </div>
+  </div>
+
+  <!-- HTTP Upstreams -->
+  <div class="panel" data-panel="ups">
+    <div class="card tablecard">
+      <div class="secthead"><h2>HTTP upstreams</h2><p class="hint">Per-backend health, connections and response time — mapped to your real loopback backends.</p></div>
+      <table>
+        <thead>
+          <tr class="grouphdr"><th class="l"></th><th class="l"></th><th colspan="2">Requests</th><th colspan="2">Responses</th><th class="l"></th><th colspan="3">Health monitors</th></tr>
+          <tr><th>Server</th><th class="c">State</th><th class="r">Req/s</th><th class="r">Active</th><th class="r">4xx</th><th class="r">5xx</th><th class="r">Resp&nbsp;time</th><th class="r">Checks</th><th class="r">Fails</th><th class="r">Downtime</th></tr>
+        </thead>
+        <tbody id="tb-ups"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TCP/UDP Zones -->
+  <div class="panel" data-panel="szones">
+    <div class="card tablecard">
+      <div class="secthead"><h2>TCP/UDP (stream) zones</h2><p class="hint">stream {} server zones — present only if you proxy raw TCP/UDP.</p></div>
+      <table>
+        <thead><tr><th>Zone</th><th class="c">Status</th><th class="r">Connections</th><th class="r">Conn/s</th><th class="r">Bytes In/s</th><th class="r">Bytes Out/s</th></tr></thead>
+        <tbody id="tb-szones"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TCP/UDP Upstreams -->
+  <div class="panel" data-panel="sups">
+    <div class="card tablecard">
+      <div class="secthead"><h2>TCP/UDP (stream) upstreams</h2><p class="hint">stream {} upstream servers.</p></div>
+      <table>
+        <thead><tr><th>Server</th><th class="c">State</th><th class="r">Active</th><th class="r">Conn/s</th><th class="r">Sent/s</th><th class="r">Rcvd/s</th><th class="r">Resp&nbsp;time</th></tr></thead>
+        <tbody id="tb-sups"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Caches -->
+  <div class="panel" data-panel="caches">
+    <div class="card tablecard">
+      <div class="secthead"><h2>Caches</h2><p class="hint">proxy_cache zones — hit ratio and disk usage.</p></div>
+      <table>
+        <thead><tr><th>Cache zone</th><th class="c">State</th><th class="r">Hit ratio</th><th>Used</th><th class="r">Max size</th><th class="r">Served</th><th class="r">Written</th><th class="r">Bypassed</th></tr></thead>
+        <tbody id="tb-cache"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Shared Zones -->
+  <div class="panel" data-panel="shared">
+    <div class="card tablecard">
+      <div class="secthead"><h2>Shared memory zones</h2><p class="hint">SSL session cache + the <code>limit_req</code> zones from your server.conf.</p></div>
+      <table>
+        <thead><tr><th>Zone</th><th>Purpose</th><th class="r">Pages used</th><th class="r">Memory</th><th>Utilisation</th></tr></thead>
+        <tbody id="tb-shared"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Resolvers -->
+  <div class="panel" data-panel="resolvers">
+    <div class="card tablecard">
+      <div class="secthead"><h2>Resolvers</h2><p class="hint">DNS resolver statistics (for resolver-backed upstreams / SNI).</p></div>
+      <table>
+        <thead>
+          <tr class="grouphdr"><th class="l"></th><th colspan="3">Requests</th><th colspan="3">Responses</th><th class="l"></th></tr>
+          <tr><th>Resolver</th><th class="r">Name</th><th class="r">SRV</th><th class="r">Addr</th><th class="r">NOERROR</th><th class="r">NXDOMAIN</th><th class="r">SERVFAIL</th><th class="r">Timed&nbsp;out</th></tr>
+        </thead>
+        <tbody id="tb-resolvers"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Workers -->
+  <div class="panel" data-panel="workers">
+    <div class="card tablecard">
+      <div class="secthead"><h2>Worker processes</h2><p class="hint">Per-worker connection &amp; request distribution (worker_processes auto).</p></div>
+      <table>
+        <thead><tr><th>Worker PID</th><th class="r">Active conns</th><th class="r">Accepted</th><th class="r">Dropped</th><th class="r">Requests</th><th class="r">Req/s</th></tr></thead>
+        <tbody id="tb-workers"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <b style="color:var(--warn)">Mock-up only — no live nginx data.</b> The per-zone / per-upstream / cache tables require rebuilding nginx with <code>nginx-module-vts</code> (binary change = change-control event).<br/>
+    On your current open-source nginx 1.30.3, only the <b>Connection states</b> + Accepted/Handled/Requests numbers are obtainable (via <code>stub_status</code>). Served gated under <code>/test/</code>.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var rnd = function (a, b) { return a + Math.random() * (b - a); };
+  var jit = function (v, p) { return v * (1 + rnd(-p, p)); };
+  var clamp = function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); };
+  function nf(n) { return Math.round(n).toLocaleString("en-US"); }
+  function nfk(n) { if (n >= 1e6) return (n/1e6).toFixed(1)+"M"; if (n >= 1e3) return (n/1e3).toFixed(1)+"k"; return Math.round(n).toString(); }
+  function bytes(n) { if (n < 1024) return n.toFixed(0)+" B"; var u=["KB","MB","GB","TB"],i=-1; do { n/=1024; i++; } while (n>=1024 && i<u.length-1); return n.toFixed(n<10?1:0)+" "+u[i]; }
+  function dur(s) { var d=Math.floor(s/86400); s-=d*86400; var h=Math.floor(s/3600); s-=h*3600; var m=Math.floor(s/60); var ss=Math.floor(s-m*60); return d+"d "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0"); }
+  function set(id, t) { var e=document.getElementById(id); if (e && e.textContent!==t) e.textContent=t; }
+  function flash(id, t) { var e=document.getElementById(id); if (!e) return; if (e.textContent!==t) { e.textContent=t; e.classList.remove("flash"); void e.offsetWidth; e.classList.add("flash"); } }
+
+  // ── state, modelled on this deployment's real backends ──
+  var zones = [
+    { name: "apensupport.blcse.mil", note: "main site (static export)", rps: 64, mix: [0.001, 0.929, 0.05, 0.018, 0.002], sent: 4.6e9, rcvd: 3.1e8 },
+    { name: "/speedtest/",            note: "→ 127.0.0.1:8085 uvicorn", rps: 22, mix: [0.002, 0.968, 0.01, 0.018, 0.002], sent: 9.1e10, rcvd: 8.4e10 },
+    { name: "/api/ (voltron+stats)",  note: "→ 8787 / 8788", rps: 18, mix: [0.001, 0.899, 0.02, 0.07, 0.01], sent: 7.2e8, rcvd: 5.5e8 },
+    { name: "/winget/",               note: "→ apenwingetrepo (SNI)", rps: 9, mix: [0.001, 0.879, 0.09, 0.025, 0.005], sent: 2.3e10, rcvd: 1.1e8 },
+    { name: "mirror panels",          note: "/cran /pip /iso → 8080-8082", rps: 5, mix: [0.001, 0.949, 0.02, 0.027, 0.003], sent: 1.4e9, rcvd: 9.0e7 }
+  ];
+  zones.forEach(function (z) { z.reqTotal = rnd(2e5, 9e6); z.c = z.mix.map(function (m) { return z.reqTotal * m; }); });
+
+  var upstreams = [
+    { group: "stats_backend (apen-stats-api)", servers: [ { addr: "127.0.0.1:8788", base: 18, rt: 26, state: "up" } ] },
+    { group: "voltron_llm", servers: [
+      { addr: "127.0.0.1:8787", base: 9, rt: 480, state: "up" },
+      { addr: "10.0.2.21:8000", base: 6, rt: 610, state: "up" },
+      { addr: "10.0.2.22:8000", base: 0, rt: 0, state: "down" } ] },
+    { group: "speedtest_py", servers: [ { addr: "127.0.0.1:8085", base: 22, rt: 41, state: "up" } ] },
+    { group: "mirror_ctl", servers: [
+      { addr: "127.0.0.1:8080", base: 2, rt: 58, state: "up" },
+      { addr: "127.0.0.1:8081", base: 2, rt: 63, state: "up" },
+      { addr: "127.0.0.1:8082", base: 1, rt: 71, state: "drain" } ] }
+  ];
+  upstreams.forEach(function (g) { g.servers.forEach(function (s) { s.c4=Math.floor(rnd(0,120)); s.c5=Math.floor(rnd(0,40)); s.checks=Math.floor(rnd(2e3,9e4)); s.fails=Math.floor(rnd(0,12)); s.downtime=s.state==="down"?rnd(40,900):0; }); });
+
+  var szones = [
+    { name: "syslog_udp", note: "udp → 127.0.0.1:514", conns: 0, in: 9.2e7, out: 4e5, base: 7 },
+    { name: "postgres_tcp", note: "tcp → 10.0.2.40:5432", conns: 0, in: 1.4e9, out: 2.2e9, base: 3 }
+  ];
+  var supstreams = [
+    { group: "pg_pool", servers: [ { addr: "10.0.2.40:5432", base: 3, rt: 4, state: "up" }, { addr: "10.0.2.41:5432", base: 0, rt: 0, state: "down" } ] }
+  ];
+  var caches = [
+    { name: "winget_cache", state: "warm", hit: 0.94, used: 0.62, size: 8*1073741824, served: 2.1e10, written: 3.4e9, bypassed: 1.1e8 },
+    { name: "static_cache", state: "warm", hit: 0.88, used: 0.34, size: 2*1073741824, served: 5.4e9, written: 8.1e8, bypassed: 4e7 }
+  ];
+  var shared = [
+    { name: "ssl_session_cache", purpose: "TLS session reuse", used: 0.48, total: 50*1048576, pages: 12800 },
+    { name: "speedtest_upload_limit", purpose: "limit_req 120r/s", used: 0.12, total: 20*1048576, pages: 5120 },
+    { name: "speedtest_download_limit", purpose: "limit_req 30r/s", used: 0.08, total: 20*1048576, pages: 5120 },
+    { name: "voltron_limit", purpose: "limit_req (LLM)", used: 0.04, total: 10*1048576, pages: 2560 }
+  ];
+  var resolvers = [ { name: "127.0.0.53:53", rName: rnd(4e4,2e5), rSrv: rnd(1e3,9e3), rAddr: rnd(2e4,1e5), noerror: rnd(5e4,2e5), nxdomain: rnd(80,900), servfail: rnd(0,60), timedout: rnd(0,30) } ];
+  var workers = [];
+  for (var w = 0; w < 4; w++) workers.push({ pid: 1014700 + w*37, active: 0, accepted: rnd(2e5,9e5), dropped: Math.floor(rnd(0,6)), reqTotal: rnd(1e6,8e6), rps: 0 });
+
+  var counters = { accepted: rnd(8e5,2e6), handled: 0, requests: rnd(5e6,2e7), ssl: rnd(2e5,9e5) };
+  counters.handled = counters.accepted - Math.floor(rnd(0,40));
+  var uptime = 6*86400 + 3*3600 + 12*60 + 41;
+  var spark = []; for (var i=0;i<60;i++) spark.push(70);
+  var cur = { rps: 0, active: 0, reading: 0, writing: 0, waiting: 0, accRate: 0, sslRate: 0, fivexxPct: 0 };
+
+  // ── data tick (rate-dependent) ──
+  function tick() {
+    var total = 0;
+    zones.forEach(function (z) {
+      z.curRps = clamp(jit(z.rps, 0.28), 0, 1e6); total += z.curRps;
+      z.reqTotal += z.curRps;
+      var m = z.mix.slice();
+      m[4] = clamp(jit(z.mix[4], 0.4), 0, 0.05); m[3] = clamp(jit(z.mix[3], 0.25), 0, 0.12);
+      var s = m[0]+m[1]+m[2]+m[3]+m[4]; m = m.map(function (x) { return x/s; });
+      z.curMix = m;
+      for (var k=0;k<5;k++) z.c[k] += z.curRps * m[k];
+      z.sentRate = z.curRps * rnd(6e3, 5e4); z.rcvdRate = z.curRps * rnd(4e2, 4e3);
+      z.sent += z.sentRate; z.rcvd += z.rcvdRate;
+    });
+    cur.rps = total;
+    cur.accRate = total * rnd(0.35, 0.55);
+    counters.accepted += cur.accRate;
+    counters.handled += cur.accRate - (Math.random() < 0.08 ? rnd(0,3) : 0);
+    counters.requests += total;
+    cur.sslRate = cur.accRate * rnd(0.55, 0.8); counters.ssl += cur.sslRate;
+    cur.active = Math.round(clamp(jit(180 + total*1.4, 0.12), 20, 4000));
+    cur.reading = Math.round(cur.active * rnd(0.04, 0.1));
+    cur.writing = Math.round(cur.active * rnd(0.18, 0.34));
+    cur.waiting = Math.max(0, cur.active - cur.reading - cur.writing);
+
+    var totResp=0, fivexx=0; zones.forEach(function (z){ totResp+=z.curRps; fivexx+=z.curRps*z.curMix[4]; });
+    cur.fivexxPct = totResp>0 ? fivexx/totResp*100 : 0;
+
+    // distribute to workers
+    var shares = workers.map(function(){ return rnd(0.6,1.4); });
+    var sum = shares.reduce(function(a,b){return a+b;},0);
+    workers.forEach(function (wk, idx) {
+      var f = shares[idx]/sum;
+      wk.active = Math.round(cur.active * f);
+      wk.rps = total * f; wk.reqTotal += wk.rps;
+      wk.accepted += cur.accRate * f;
+    });
+
+    szones.forEach(function (z){ z.connRate = clamp(jit(z.base,0.4),0,1e4); z.conns = Math.round(rnd(0,z.base)); z.inRate = z.connRate*rnd(2e3,9e4); z.outRate = z.connRate*rnd(1e3,4e4); z.in+=z.inRate; z.out+=z.outRate; });
+
+    spark.push(total); if (spark.length>60) spark.shift();
+    uptime += (refreshMs/1000);
+
+    renderTop(); renderActive();
+  }
+
+  // ── top bar ──
+  function renderTop() {
+    set("uptime", dur(uptime));
+    flash("m-conn", nf(cur.active));
+    set("m-conn-sub", "accepted "+nfk(counters.accepted)+" · dropped "+nf(Math.max(0,counters.accepted-counters.handled)));
+    flash("m-req", nfk(counters.requests));
+    set("m-req-sub", nf(cur.rps)+" req/s");
+    flash("m-ssl", nfk(counters.ssl));
+    set("m-ssl-sub", nf(cur.sslRate)+" /s");
+    // dashboard tiles
+    flash("s-active", nf(cur.active)); set("s-active-d", "idle "+nf(cur.waiting));
+    flash("s-rps", nf(cur.rps));
+    flash("s-ssl", nf(cur.sslRate)); set("s-ssl-d", "reuse "+Math.round(rnd(62,78))+"%");
+    var f=document.getElementById("s-5xx"); flash("s-5xx", cur.fivexxPct.toFixed(2)+"%");
+    if (f) f.style.color = cur.fivexxPct>1?"var(--err)":cur.fivexxPct>0.4?"var(--warn)":"var(--ok)";
+    // tab counts
+    set("c-zones","("+zones.length+")"); set("c-ups","("+upCount()+")"); set("c-szones","("+szones.length+")");
+    set("c-sups","("+supCount()+")"); set("c-caches","("+caches.length+")"); set("c-shared","("+shared.length+")");
+    set("c-workers","("+workers.length+")");
+  }
+  function upCount(){ var n=0; upstreams.forEach(function(g){n+=g.servers.length;}); return n; }
+  function supCount(){ var n=0; supstreams.forEach(function(g){n+=g.servers.length;}); return n; }
+
+  // ── dashboard sparkline + conn states ──
+  function renderDash() {
+    drawSpark(); flash("spark-now", nf(cur.rps));
+    var pk=Math.max.apply(null,spark), mn=Math.min.apply(null,spark);
+    set("spark-range","peak "+nf(pk)+" · min "+nf(mn));
+    var mx=Math.max(cur.reading,cur.writing,cur.waiting,1);
+    document.getElementById("bar-read").style.width=(cur.reading/mx*100)+"%";
+    document.getElementById("bar-write").style.width=(cur.writing/mx*100)+"%";
+    document.getElementById("bar-wait").style.width=(cur.waiting/mx*100)+"%";
+    set("v-read",nf(cur.reading)); set("v-write",nf(cur.writing)); set("v-wait",nf(cur.waiting));
+    set("v-acc",nf(counters.accepted)); set("v-han",nf(counters.handled)); set("v-drop",nf(Math.max(0,counters.accepted-counters.handled)));
+  }
+  function drawSpark() {
+    var W=600,H=92,n=spark.length, mx=Math.max.apply(null,spark)*1.15||1, step=W/(n-1);
+    var pts=spark.map(function(v,i){return [i*step, H-(v/mx)*(H-8)-4];});
+    var line=pts.map(function(p,i){return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1);}).join(" ");
+    document.getElementById("spark-line").setAttribute("d",line);
+    document.getElementById("spark-area").setAttribute("d",line+" L"+W+" "+H+" L0 "+H+" Z");
+  }
+
+  function statusDot(ratio) {
+    var c = ratio>0.01?"var(--err)":ratio>0.004?"var(--warn)":"var(--ok)";
+    return '<span class="statusdot" style="background:'+c+'"></span>';
+  }
+  function codesBar(m) {
+    return '<div class="codes">'+
+      '<span class="c1" style="width:'+(m[0]*100)+'%"></span>'+
+      '<span class="c2" style="width:'+(m[1]*100)+'%"></span>'+
+      '<span class="c3" style="width:'+(m[2]*100)+'%"></span>'+
+      '<span class="c4" style="width:'+(m[3]*100)+'%"></span>'+
+      '<span class="c5" style="width:'+Math.max(m[4]*100, m[4]>0?0.6:0)+'%"></span></div>';
+  }
+
+  function renderZones() {
+    document.getElementById("tb-zones").innerHTML = zones.map(function (z) {
+      return '<tr>'+
+        '<td><div class="zone-name">'+z.name+'</div><div class="zone-sub">'+z.note+'</div></td>'+
+        '<td class="c">'+statusDot(z.curMix?z.curMix[4]:z.mix[4])+'</td>'+
+        '<td class="r tnum">'+nf(z.reqTotal)+'</td>'+
+        '<td class="r tnum hl">'+nf(z.curRps)+'</td>'+
+        '<td class="r tnum">'+nfk(z.c[0])+'</td>'+
+        '<td class="r tnum">'+nfk(z.c[1])+'</td>'+
+        '<td class="r tnum">'+nfk(z.c[2])+'</td>'+
+        '<td class="r tnum">'+nfk(z.c[3])+'</td>'+
+        '<td class="r tnum" style="color:'+(z.c[4]>0?"var(--err)":"inherit")+'">'+nfk(z.c[4])+'</td>'+
+        '<td class="c">'+codesBar(z.curMix||z.mix)+'</td>'+
+        '<td class="r tnum">'+bytes(z.sentRate||0)+'/s</td>'+
+        '<td class="r tnum">'+bytes(z.rcvdRate||0)+'/s</td>'+
+      '</tr>';
+    }).join("");
+  }
+
+  function badge(s) {
+    if (s==="up") return '<span class="badge s-up"><span class="dot"></span>up</span>';
+    if (s==="down") return '<span class="badge s-down"><span class="dot"></span>down</span>';
+    if (s==="checking") return '<span class="badge s-checking"><span class="dot"></span>checking</span>';
+    return '<span class="badge s-drain"><span class="dot"></span>draining</span>';
+  }
+  function renderUps() {
+    var html="";
+    upstreams.forEach(function (g) {
+      html += '<tr class="grouprow"><td colspan="10">'+g.group+'</td></tr>';
+      g.servers.forEach(function (s) {
+        if (s.state!=="drain" && Math.random()<0.015) { s.state = s.state==="up"?"down":"up"; if (s.state==="up") s.checks++; }
+        var live = s.state==="up";
+        if (!live && s.state==="down") s.downtime += refreshMs/1000;
+        var rps = live?clamp(jit(s.base,0.3),0,1e5):0;
+        var rt = live?Math.round(jit(s.rt,0.35)):0;
+        if (live) { s.checks += Math.random()<0.3?1:0; if (Math.random()<0.05) s.c5+=Math.floor(rnd(0,2)); if (Math.random()<0.1) s.c4+=Math.floor(rnd(0,3)); }
+        var rtc = rt>800?"var(--err)":rt>400?"var(--warn)":"var(--text)";
+        html += '<tr>'+
+          '<td><code style="color:var(--text)">'+s.addr+'</code></td>'+
+          '<td class="c">'+badge(s.state)+'</td>'+
+          '<td class="r tnum hl">'+(live?nf(rps):"—")+'</td>'+
+          '<td class="r tnum">'+(live?Math.round(rnd(0,6)):"—")+'</td>'+
+          '<td class="r tnum">'+nf(s.c4)+'</td>'+
+          '<td class="r tnum" style="color:'+(s.c5>30?"var(--err)":"inherit")+'">'+nf(s.c5)+'</td>'+
+          '<td class="r tnum" style="color:'+rtc+'">'+(live?rt+" ms":"—")+'</td>'+
+          '<td class="r tnum">'+nf(s.checks)+'</td>'+
+          '<td class="r tnum" style="color:'+(s.fails>5?"var(--warn)":"inherit")+'">'+nf(s.fails)+'</td>'+
+          '<td class="r tnum">'+(s.downtime>0?dur(s.downtime).replace(/^0d /,""):"—")+'</td>'+
+        '</tr>';
+      });
+    });
+    document.getElementById("tb-ups").innerHTML = html;
+  }
+
+  function renderSZones() {
+    document.getElementById("tb-szones").innerHTML = szones.map(function (z) {
+      return '<tr><td><div class="zone-name mono">'+z.name+'</div><div class="zone-sub">'+z.note+'</div></td>'+
+        '<td class="c">'+statusDot(0)+'</td>'+
+        '<td class="r tnum">'+nf(z.conns)+'</td>'+
+        '<td class="r tnum hl">'+nf(z.connRate||0)+'</td>'+
+        '<td class="r tnum">'+bytes(z.inRate||0)+'/s</td>'+
+        '<td class="r tnum">'+bytes(z.outRate||0)+'/s</td></tr>';
+    }).join("");
+  }
+  function renderSUps() {
+    var html="";
+    supstreams.forEach(function (g) {
+      html += '<tr class="grouprow"><td colspan="7">'+g.group+'</td></tr>';
+      g.servers.forEach(function (s) {
+        var live=s.state==="up", c=live?clamp(jit(s.base,0.3),0,1e4):0, rt=live?Math.round(jit(s.rt,0.4)):0;
+        html += '<tr><td><code style="color:var(--text)">'+s.addr+'</code></td>'+
+          '<td class="c">'+badge(s.state)+'</td>'+
+          '<td class="r tnum">'+(live?Math.round(rnd(0,5)):"—")+'</td>'+
+          '<td class="r tnum hl">'+(live?nf(c):"—")+'</td>'+
+          '<td class="r tnum">'+(live?bytes(c*rnd(1e3,2e4))+"/s":"—")+'</td>'+
+          '<td class="r tnum">'+(live?bytes(c*rnd(2e3,3e4))+"/s":"—")+'</td>'+
+          '<td class="r tnum">'+(live?rt+" ms":"—")+'</td></tr>';
+      });
+    });
+    document.getElementById("tb-sups").innerHTML = html;
+  }
+
+  function renderCaches() {
+    document.getElementById("tb-cache").innerHTML = caches.map(function (c) {
+      c.hit=clamp(jit(c.hit,0.008),0.5,0.999); c.used=clamp(c.used+rnd(-0.004,0.006),0.05,0.98);
+      c.served+=rnd(1e5,8e6); c.written+=rnd(1e4,9e5); c.bypassed+=rnd(0,4e4);
+      var up=(c.used*100).toFixed(0), col=c.used>0.85?"var(--err)":c.used>0.7?"var(--warn)":"var(--accent)";
+      return '<tr><td><span class="zone-name mono">'+c.name+'</span></td>'+
+        '<td class="c"><span class="badge s-up"><span class="dot"></span>'+c.state+'</span></td>'+
+        '<td class="r tnum" style="color:var(--ok)">'+(c.hit*100).toFixed(1)+'%</td>'+
+        '<td><span class="meter"><span style="width:'+up+'%;background:'+col+'"></span></span> <span class="tnum" style="font-size:11px;color:var(--muted)">'+up+'%</span></td>'+
+        '<td class="r tnum">'+bytes(c.size)+'</td>'+
+        '<td class="r tnum">'+bytes(c.served)+'</td>'+
+        '<td class="r tnum">'+bytes(c.written)+'</td>'+
+        '<td class="r tnum">'+bytes(c.bypassed)+'</td></tr>';
+    }).join("");
+  }
+  function renderShared() {
+    document.getElementById("tb-shared").innerHTML = shared.map(function (z) {
+      z.used=clamp(jit(z.used,0.06),0.01,0.95); var p=(z.used*100).toFixed(0);
+      var col=z.used>0.85?"var(--err)":z.used>0.6?"var(--warn)":"var(--accent-2)";
+      return '<tr><td><span class="zone-name mono">'+z.name+'</span></td>'+
+        '<td style="color:var(--muted)">'+z.purpose+'</td>'+
+        '<td class="r tnum">'+nf(z.pages*z.used)+' / '+nf(z.pages)+'</td>'+
+        '<td class="r tnum">'+bytes(z.total*z.used)+' / '+bytes(z.total)+'</td>'+
+        '<td><span class="meter"><span style="width:'+p+'%;background:'+col+'"></span></span> <span class="tnum" style="font-size:11px;color:var(--muted)">'+p+'%</span></td></tr>';
+    }).join("");
+  }
+  function renderResolvers() {
+    document.getElementById("tb-resolvers").innerHTML = resolvers.map(function (r) {
+      r.rName+=rnd(0,40); r.rSrv+=rnd(0,4); r.rAddr+=rnd(0,20); r.noerror+=rnd(0,38); r.nxdomain+=rnd(0,1); if (Math.random()<0.1) r.servfail+=1; if (Math.random()<0.05) r.timedout+=1;
+      return '<tr><td><code style="color:var(--text)">'+r.name+'</code></td>'+
+        '<td class="r tnum">'+nf(r.rName)+'</td><td class="r tnum">'+nf(r.rSrv)+'</td><td class="r tnum">'+nf(r.rAddr)+'</td>'+
+        '<td class="r tnum" style="color:var(--ok)">'+nf(r.noerror)+'</td>'+
+        '<td class="r tnum">'+nf(r.nxdomain)+'</td>'+
+        '<td class="r tnum" style="color:'+(r.servfail>0?"var(--warn)":"inherit")+'">'+nf(r.servfail)+'</td>'+
+        '<td class="r tnum" style="color:'+(r.timedout>0?"var(--err)":"inherit")+'">'+nf(r.timedout)+'</td></tr>';
+    }).join("");
+  }
+  function renderWorkers() {
+    document.getElementById("tb-workers").innerHTML = workers.map(function (wk) {
+      return '<tr><td><code style="color:var(--text)">'+wk.pid+'</code></td>'+
+        '<td class="r tnum">'+nf(wk.active)+'</td>'+
+        '<td class="r tnum">'+nfk(wk.accepted)+'</td>'+
+        '<td class="r tnum" style="color:'+(wk.dropped>0?"var(--err)":"inherit")+'">'+nf(wk.dropped)+'</td>'+
+        '<td class="r tnum">'+nfk(wk.reqTotal)+'</td>'+
+        '<td class="r tnum hl">'+nf(wk.rps)+'</td></tr>';
+    }).join("");
+  }
+
+  var activeTab = "dash";
+  function renderActive() {
+    if (activeTab==="dash") renderDash();
+    else if (activeTab==="zones") renderZones();
+    else if (activeTab==="ups") renderUps();
+    else if (activeTab==="szones") renderSZones();
+    else if (activeTab==="sups") renderSUps();
+    else if (activeTab==="caches") renderCaches();
+    else if (activeTab==="shared") renderShared();
+    else if (activeTab==="resolvers") renderResolvers();
+    else if (activeTab==="workers") renderWorkers();
+  }
+
+  // ── controls ──
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var b=e.target.closest(".tab"); if (!b) return;
+    activeTab=b.getAttribute("data-tab");
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){ t.classList.toggle("active", t===b); });
+    Array.prototype.forEach.call(document.querySelectorAll(".panel"), function(p){ p.classList.toggle("active", p.getAttribute("data-panel")===activeTab); });
+    renderActive();
+  });
+
+  var refreshMs = 1000, dataTimer = null;
+  function startTimer() { if (dataTimer) clearInterval(dataTimer); dataTimer = setInterval(tick, refreshMs); }
+  document.getElementById("refresh").addEventListener("change", function () { refreshMs = parseInt(this.value,10)||1000; startTimer(); });
+
+  document.getElementById("theme-btn").addEventListener("click", function () {
+    var root=document.documentElement, light = root.getAttribute("data-theme")==="light";
+    root.setAttribute("data-theme", light?"dark":"light");
+    this.textContent = light ? "☀ Plus theme" : "🌙 Admin theme";
+  });
+
+  // ── boot ──
+  renderZones(); renderUps(); renderSZones(); renderSUps(); renderCaches(); renderShared(); renderResolvers(); renderWorkers();
+  tick(); startTimer();
+})();
+</script>
+</body>
+</html>

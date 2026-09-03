@@ -1,0 +1,10 @@
+# APEN Speed Test — dependencies.
+#
+# The server runs on the same async ASGI stack as the NetDiag apps so all three
+# apps share one optimal build/run method (uvicorn, HTTP/1.1 keep-alive).
+fastapi>=0.110
+uvicorn[standard]>=0.27
+
+# Test harness (drives the running server over HTTP).
+requests==2.32.3
+pytest==8.3.3

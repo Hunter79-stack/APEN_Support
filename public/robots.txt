@@ -1,0 +1,9 @@
+# APEN Support — internal DoD site, no public indexing
+User-agent: *
+Disallow: /
+
+# Explicitly block sensitive paths
+Disallow: /admin/
+Disallow: /dren/
+Disallow: /api/
+Disallow: /speedtest/backend/

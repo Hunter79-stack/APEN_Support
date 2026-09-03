@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 280" width="900" height="280">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#040c1e"/>
+      <stop offset="55%" stop-color="#081428"/>
+      <stop offset="100%" stop-color="#0d1d42"/>
+    </linearGradient>
+    <!-- Blue glow radial -->
+    <radialGradient id="glow1" cx="70%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#0091da" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#0091da" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Accent glow -->
+    <radialGradient id="glow2" cx="20%" cy="55%" r="40%">
+      <stop offset="0%" stop-color="#00c1d5" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#00c1d5" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Icon glow -->
+    <filter id="iconGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Subtle glow for lines -->
+    <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="clip"><rect width="900" height="280" rx="20"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#clip)">
+    <!-- Base background -->
+    <rect width="900" height="280" fill="url(#bg)"/>
+    <rect width="900" height="280" fill="url(#glow1)"/>
+    <rect width="900" height="280" fill="url(#glow2)"/>
+
+    <!-- Dot grid pattern (subtle) -->
+    <pattern id="dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="14" cy="14" r="0.8" fill="#ffffff" opacity="0.06"/>
+    </pattern>
+    <rect width="900" height="280" fill="url(#dots)"/>
+
+    <!-- ── RIGHT SIDE: Management topology diagram ── -->
+    <!-- Central hub node -->
+    <circle cx="710" cy="140" r="32" fill="none" stroke="#0091da" stroke-width="2" opacity="0.7" filter="url(#lineGlow)"/>
+    <circle cx="710" cy="140" r="22" fill="#0091da" opacity="0.18"/>
+    <circle cx="710" cy="140" r="12" fill="#0091da" opacity="0.6"/>
+
+    <!-- Spoke lines to satellite nodes -->
+    <line x1="710" y1="140" x2="820" y2="72"  stroke="#0091da" stroke-width="1.2" opacity="0.35"/>
+    <line x1="710" y1="140" x2="840" y2="140" stroke="#0091da" stroke-width="1.2" opacity="0.35"/>
+    <line x1="710" y1="140" x2="820" y2="208" stroke="#0091da" stroke-width="1.2" opacity="0.35"/>
+    <line x1="710" y1="140" x2="600" y2="72"  stroke="#00c1d5" stroke-width="1.2" opacity="0.30"/>
+    <line x1="710" y1="140" x2="600" y2="208" stroke="#00c1d5" stroke-width="1.2" opacity="0.30"/>
+    <line x1="710" y1="140" x2="580" y2="140" stroke="#78be20" stroke-width="1.2" opacity="0.25"/>
+
+    <!-- Satellite nodes right -->
+    <circle cx="820" cy="72"  r="14" fill="none" stroke="#0091da" stroke-width="1.5" opacity="0.55"/>
+    <circle cx="820" cy="72"  r="7"  fill="#0091da" opacity="0.4"/>
+    <circle cx="840" cy="140" r="14" fill="none" stroke="#0091da" stroke-width="1.5" opacity="0.55"/>
+    <circle cx="840" cy="140" r="7"  fill="#0091da" opacity="0.4"/>
+    <circle cx="820" cy="208" r="14" fill="none" stroke="#0091da" stroke-width="1.5" opacity="0.55"/>
+    <circle cx="820" cy="208" r="7"  fill="#0091da" opacity="0.4"/>
+
+    <!-- Satellite nodes left -->
+    <circle cx="600" cy="72"  r="10" fill="none" stroke="#00c1d5" stroke-width="1.2" opacity="0.45"/>
+    <circle cx="600" cy="72"  r="5"  fill="#00c1d5" opacity="0.35"/>
+    <circle cx="600" cy="208" r="10" fill="none" stroke="#00c1d5" stroke-width="1.2" opacity="0.45"/>
+    <circle cx="600" cy="208" r="5"  fill="#00c1d5" opacity="0.35"/>
+    <circle cx="580" cy="140" r="10" fill="none" stroke="#78be20" stroke-width="1.2" opacity="0.40"/>
+    <circle cx="580" cy="140" r="5"  fill="#78be20" opacity="0.35"/>
+
+    <!-- Outer ring on hub -->
+    <circle cx="710" cy="140" r="48" fill="none" stroke="#0091da" stroke-width="0.8" stroke-dasharray="4 8" opacity="0.30"/>
+
+    <!-- ── VERTICAL DIVIDER ── -->
+    <line x1="520" y1="40" x2="520" y2="240" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+    <!-- ── LEFT SIDE: Text content ── -->
+    <!-- VMware wordmark top-left -->
+    <text x="60" y="72" font-family="'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="500" fill="#ffffff" opacity="0.45" letter-spacing="4">VMWARE</text>
+
+    <!-- Horizontal rule under VMware -->
+    <line x1="60" y1="82" x2="200" y2="82" stroke="#0091da" stroke-width="1.5" opacity="0.5"/>
+
+    <!-- Product name -->
+    <text x="60" y="132" font-family="'Helvetica Neue', Arial, sans-serif" font-size="38" font-weight="700" fill="#ffffff" letter-spacing="-0.5">vCenter</text>
+    <text x="60" y="176" font-family="'Helvetica Neue', Arial, sans-serif" font-size="38" font-weight="300" fill="#ffffff" letter-spacing="-0.5" opacity="0.85">Server</text>
+
+    <!-- Version pill badge -->
+    <rect x="60" y="196" width="88" height="26" rx="13" fill="#0091da" opacity="0.18" stroke="#0091da" stroke-width="1" stroke-opacity="0.5"/>
+    <text x="104" y="214" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" fill="#00c1d5" text-anchor="middle" letter-spacing="1">APPLIANCE</text>
+
+    <!-- Sub-descriptor -->
+    <text x="60" y="248" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#ffffff" opacity="0.35" letter-spacing="1.5">VIRTUALIZATION MANAGEMENT PLATFORM</text>
+
+    <!-- Decorative left accent bar -->
+    <rect x="40" y="110" width="4" height="78" rx="2" fill="url(#accentBar)"/>
+    <linearGradient id="accentBar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00c1d5"/>
+      <stop offset="100%" stop-color="#0091da"/>
+    </linearGradient>
+  </g>
+</svg>

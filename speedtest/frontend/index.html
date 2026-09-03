@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>APEN Speed Test</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <!-- Disable all browser caching so the measurement path is never stale. -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma"        content="no-cache" />
+  <meta http-equiv="Expires"       content="0" />
+  <!-- Absolute asset paths: the backend only serves static files under
+       /speedtest/<asset> (and /favicon.ico). Relative references would
+       resolve to /speedtest.css when the page is loaded from /, which
+       has no static route and returns 403 via the auth gate. -->
+  <link rel="stylesheet" href="/speedtest/layout_base.css" />
+  <link rel="stylesheet" href="/speedtest/speedtest.css" />
+  <!-- Embed mode: when framed by the support site (/tools/speedtest loads
+       this page with ?embed=1), the html element gets the .embed class and
+       layout_base.css drops the backdrop + page background so the parent
+       site's background shows through. Runs in head, before first paint. -->
+  <script>
+    if (new URLSearchParams(location.search).get("embed") === "1") {
+      document.documentElement.classList.add("embed");
+    }
+  </script>
+</head>
+<body>
+  <!-- Animated gradient backdrop, rendered entirely in CSS (no image assets). -->
+  <div class="backdrop" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <main id="app" class="glass">
+    <header class="app-header">
+      <div class="brand">
+        <div class="pill" id="phase-pill">
+          <span class="pill-dot"></span>
+          <span id="phase-label">Idle</span>
+        </div>
+        <img class="brand-mark" src="favicon.png" alt="" aria-hidden="true" />
+        <div class="brand-text">
+          <h1>APEN Speed Test</h1>
+        </div>
+      </div>
+    </header>
+
+    <section class="stage">
+      <!-- Live gauge: a single SVG that animates stroke-dashoffset during a phase. -->
+      <div class="gauge-wrap" role="img" aria-label="Live speed gauge">
+        <svg class="gauge" viewBox="0 0 220 220">
+          <defs>
+            <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"  stop-color="#22d3ee" />
+              <stop offset="50%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#f472b6" />
+            </linearGradient>
+            <filter id="gauge-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <circle class="gauge-track" cx="110" cy="110" r="96" />
+          <circle class="gauge-arc"   cx="110" cy="110" r="96"
+                  filter="url(#gauge-glow)" />
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-value" id="gauge-value">0.00</div>
+          <div class="gauge-unit"  id="gauge-unit">Mbps</div>
+          <div class="gauge-sub"   id="gauge-sub">Ready</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="start-btn" class="btn-primary" type="button">
+          <span class="btn-label">Start Test</span>
+          <span class="btn-spark" aria-hidden="true"></span>
+        </button>
+        <div class="countdown" id="timer">&nbsp;</div>
+      </div>
+    </section>
+
+    <section class="panels" aria-label="Per-phase results">
+      <article class="panel" data-phase="latency">
+        <header class="panel-head">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.1-6.1-2.1 2.1M7.0 17l-2.1 2.1M17 17l2.1 2.1M7.0 7.0 4.9 4.9"
+                  stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+            <circle cx="12" cy="12" r="3.2" fill="currentColor"/>
+          </svg>
+          <h2>Latency</h2>
+        </header>
+        <div class="panel-grid">
+          <div><span class="k">min</span><span class="v" id="lat-min">--</span></div>
+          <div><span class="k">avg</span><span class="v" id="lat-avg">--</span></div>
+          <div><span class="k">max</span><span class="v" id="lat-max">--</span></div>
+          <div><span class="k">jit</span><span class="v" id="lat-jit">--</span></div>
+        </div>
+        <footer class="panel-foot">MS</footer>
+      </article>
+
+      <article class="panel" data-phase="download">
+        <header class="panel-head">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <h2>Download</h2>
+        </header>
+        <div class="big">
+          <span class="v" id="dl-mbps">--</span>
+          <span class="u">Mbps</span>
+        </div>
+        <footer class="panel-foot" id="dl-sub">&nbsp;</footer>
+      </article>
+
+      <article class="panel" data-phase="upload">
+        <header class="panel-head">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21V9m0 0-5 5m5-5 5 5M4 3h16"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <h2>Upload</h2>
+        </header>
+        <div class="big">
+          <span class="v" id="ul-mbps">--</span>
+          <span class="u">Mbps</span>
+        </div>
+        <footer class="panel-foot" id="ul-sub">&nbsp;</footer>
+      </article>
+    </section>
+
+    <footer class="app-foot">
+      <span id="status">Press <kbd>Start Test</kbd> to begin.</span>
+    </footer>
+  </main>
+
+  <script src="/speedtest/report_popup.js"></script>
+  <script src="/speedtest/speedtest.js"></script>
+</body>
+</html>
