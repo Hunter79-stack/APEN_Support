@@ -113,8 +113,8 @@ sudo mkdir -p /var/www/apen_support_nextjs
 
 ```bash
 sudo mkdir -p /etc/nginx/conf.d/apen_support
-sudo cp nginx/server.conf nginx/security-headers.inc nginx/admin-acl.inc nginx/proxy-headers.inc \
-        nginx/login-redirect.inc \
+sudo cp nginx/server.conf nginx/security-headers.inc nginx/admin-acl.inc nginx/blocked-hosts.inc \
+        nginx/proxy-headers.inc nginx/login-redirect.inc \
         /etc/nginx/conf.d/apen_support/
 # login-redirect.inc is included from four places in server.conf — omit it and
 # the `nginx -t` two lines down fails on the missing file. Keep this list in

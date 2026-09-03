@@ -203,6 +203,15 @@ say "Manifest"
 } > "$STAGE/BUNDLE-INFO.txt"
 cat "$STAGE/BUNDLE-INFO.txt"
 
+# Provenance: which commit this bundle is, so the far side can tie a running
+# site back to a git tag. Written before MANIFEST.txt and SHA256SUMS so both cover it.
+{
+  git -C "$REPO" describe --tags --always --dirty 2>/dev/null || echo "no-git"
+  echo "commit=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo n/a)"
+  echo "built=$(date -Is)"
+  echo "host=$(hostname)"
+} > "$STAGE/VERSION"
+
 (cd "$STAGE" && find . -type f -printf '%P\n' | sort > MANIFEST.txt)
 echo "    $(wc -l < "$STAGE/MANIFEST.txt") files"
 
@@ -213,15 +222,6 @@ echo "    $(wc -l < "$STAGE/MANIFEST.txt") files"
 (cd "$STAGE" && find . -type l -printf '%P\t%l\n' | sort > SYMLINKS.txt)
 (cd "$STAGE" && find . -type f -perm -u+x -printf '%P\n' | sort > EXECBITS.txt)
 echo "    $(wc -l < "$STAGE/SYMLINKS.txt") symlinks, $(wc -l < "$STAGE/EXECBITS.txt") executable files recorded"
-
-# Provenance: which commit this bundle is, so the far side can tie a running
-# site back to a git tag. Written before SHA256SUMS so it is covered by it.
-{
-  git -C "$REPO" describe --tags --always --dirty 2>/dev/null || echo "no-git"
-  echo "commit=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo n/a)"
-  echo "built=$(date -Is)"
-  echo "host=$(hostname)"
-} > "$STAGE/VERSION"
 
 # Per-file checksums, so a partial or corrupted sync is caught on arrival
 # rather than at 3am. Symlinks are excluded: their content is the target path.

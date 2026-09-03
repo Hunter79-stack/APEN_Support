@@ -127,7 +127,7 @@ restore_live_nginx() {
     done < "$BACKUP/live-nginx-created.txt"
   fi
 
-  for relative in server.conf security-headers.inc; do
+  for relative in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc; do
     [[ -f "$BACKUP/live-nginx/$relative" ]] && cp -a -- "$BACKUP/live-nginx/$relative" "$LIVE_NGINX_DIR/$relative"
   done
 }
@@ -147,7 +147,7 @@ if [[ -d "$LIVE_NGINX_DIR" && -w "$LIVE_NGINX_DIR" ]]; then
   mkdir -p "$BACKUP/live-nginx"
   : > "$BACKUP/live-nginx-created.txt"
 
-  for relative in server.conf security-headers.inc; do
+  for relative in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc; do
     if [[ -f "$LIVE_NGINX_DIR/$relative" ]]; then
       cp -a -- "$LIVE_NGINX_DIR/$relative" "$BACKUP/live-nginx/$relative"
     else
@@ -155,8 +155,11 @@ if [[ -d "$LIVE_NGINX_DIR" && -w "$LIVE_NGINX_DIR" ]]; then
     fi
   done
 
-  cp -a -- "$PROJECT_ROOT/nginx/server.conf" "$LIVE_NGINX_DIR/server.conf"
-  cp -a -- "$PROJECT_ROOT/nginx/security-headers.inc" "$LIVE_NGINX_DIR/security-headers.inc"
+  # server.conf and admin-acl.inc both include blocked-hosts.inc; copy the
+  # whole set or nginx -t fails on the missing include.
+  for relative in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc; do
+    cp -a -- "$PROJECT_ROOT/nginx/$relative" "$LIVE_NGINX_DIR/$relative"
+  done
   nginx -t
 else
   echo "Live nginx directory is not writable. Project nginx files were updated; copy them with sudo during deployment."

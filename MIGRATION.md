@@ -48,7 +48,9 @@ How to stand this project up on a new server from the backup archive
 5. **nginx:**
    ```bash
    sudo mkdir -p /etc/nginx/conf.d/apen_support
-   sudo cp nginx/server.conf nginx/admin-acl.inc nginx/proxy-headers.inc /etc/nginx/conf.d/apen_support/
+   sudo cp nginx/server.conf nginx/admin-acl.inc nginx/blocked-hosts.inc nginx/proxy-headers.inc \
+           nginx/security-headers.inc nginx/login-redirect.inc /etc/nginx/conf.d/apen_support/
+   # (same list as customsh/siteupdate.sh — server.conf includes every one of them)
    # ensure /etc/nginx/nginx.conf includes conf.d/*.conf (or add the loader.conf include)
    ./proxy/sync-nginx-admin-token.sh    # regenerates admin-token.inc from .env.local
    sudo nginx -t && sudo systemctl reload nginx
