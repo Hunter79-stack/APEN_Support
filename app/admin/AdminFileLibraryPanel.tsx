@@ -445,9 +445,14 @@ export function AdminFileLibraryPanel({
     setAttachState('idle')
     setAttachMessage('')
     setNewCardTitle(file.name.replace(/\.[^.]+$/, ''))
-    if (!attachScope && attachTargets.length > 0) {
-      setAttachScope(attachTargets[0].scope)
-      setAttachCardId(attachTargets[0].cards[0]?.id ?? '__new__')
+    // Step 1 may have pre-armed the section without a card, or the section
+    // may have changed since a card was picked — always land on a real card
+    // of the section that is actually open.
+    const target = attachTargets.find((t) => t.scope === attachScope) ?? attachTargets[0]
+    if (!target) return
+    setAttachScope(target.scope)
+    if (attachCardId !== '__new__' && !target.cards.some((card) => card.id === attachCardId)) {
+      setAttachCardId(target.cards[0]?.id ?? '__new__')
     }
   }
 
@@ -1103,7 +1108,7 @@ export function AdminFileLibraryPanel({
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => void submitAttach()}
-                disabled={attachState === 'saving' || !attachTarget || (attachCardId === '__new__' && !newCardTitle.trim())}
+                disabled={attachState === 'saving' || !attachTarget || !attachCardId || (attachCardId === '__new__' && !newCardTitle.trim())}
                 className="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-4 text-[10px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-400/20 disabled:opacity-40"
               >
                 {attachState === 'saving'

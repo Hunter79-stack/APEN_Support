@@ -282,7 +282,10 @@ const EDITABLE_SCOPE_DEFINITIONS: EditableScope[] = [
     label: 'Evaluate-STIG — document & viewer downloads',
     description: 'User Guide, ChangeLog, and the STIG-Manager guide on /docs/evaluate-stig/documents.',
     defaults: evalDocCards as unknown as EditableScope['defaults'],
-    fields: COMMON_CARD_FIELDS,
+    // The cards carry a `downloads` list like evaluate-stig/downloads below;
+    // with COMMON_CARD_FIELDS alone the PDF rows were neither editable nor
+    // offered by "Use in a card".
+    fields: [...COMMON_CARD_FIELDS, ...DOWNLOAD_LIST_FIELDS],
   },
   {
     scope: 'evaluate-stig/downloads',
@@ -688,15 +691,40 @@ const EDITABLE_SCOPES: EditableScope[] = EDITABLE_SCOPE_DEFINITIONS.map((scope) 
 /* ─── Download-attach targets ─── */
 
 /** Fields that carry a download URL, most specific first. */
-const URL_FIELD_KEYS = ['downloadHref', 'installerHref', 'installer.href', 'href', 'downloads.0.href', 'links.0.href']
+const URL_FIELD_KEYS = ['downloadHref', 'installerHref', 'installer.href', 'href', 'downloads.0.href', 'links.0.href', 'items.0.href']
 /** Fields that carry a bare filename alongside the URL. */
 const FILE_FIELD_KEYS = ['file', 'filename']
+/**
+ * URL fields that may hold a site route rather than a file: category cards use
+ * `href` for /downloads/iso/…, and doc rows link to pages as well as PDFs.
+ * Every other name in URL_FIELD_KEYS promises a download by its wording alone
+ * (installer.href, downloadHref…), so those sections qualify even while a
+ * default still points at a placeholder — VMware 9's "/support" until the
+ * media is mirrored.
+ */
+const ROUTE_CAPABLE_URL_KEYS = new Set(['href', 'links.0.href'])
 
 /**
- * Sections an uploaded file can be wired into. A section qualifies only when its
- * link field actually points at a downloadable file — category cards use `href`
- * for a site route (/downloads/iso/…), and pointing one of those at an ISO would
- * break navigation instead of publishing a download.
+ * The download folder a link resolves to — "/vmware/8" for "/vmware/8/x.iso" or
+ * "https://host/vmware/8/x.iso" — and "" for anything that is not a file: site
+ * routes (/downloads/…), card artwork (/logos/…), extensionless paths. Links are
+ * site-relative here (APENSUPPORT_BASE is ''), so this must never demand a
+ * scheme; requiring https:// once dropped every VMware section from the attach
+ * list.
+ */
+function downloadFolderOf(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const path = value.replace(/^https?:\/\/[^/]+/, '')
+  if (!path.startsWith('/') || path.startsWith('/downloads/') || path.startsWith('/logos/')) return ''
+  return /^(\/.*)\/[^/]+\.[A-Za-z0-9]{1,12}$/.exec(path)?.[1] ?? ''
+}
+
+/**
+ * Sections an uploaded file can be wired into. A section qualifies when its
+ * link field is a download slot by name, or when its defaults show that field
+ * holding a file — category cards use `href` for a site route
+ * (/downloads/iso/…), and pointing one of those at an ISO would break
+ * navigation instead of publishing a download. Exported for the test.
  */
 /**
  * Every dotted path a scope can address. A list field is edited a row at a
@@ -714,15 +742,19 @@ function addressableFieldKeys(fields: EditableField[]): string[] {
   ))
 }
 
-const DOWNLOAD_ATTACH_SCOPES = EDITABLE_SCOPES.flatMap((scope) => {
+export const DOWNLOAD_ATTACH_SCOPES = EDITABLE_SCOPES.flatMap((scope) => {
   const addressable = addressableFieldKeys(scope.fields)
   const urlField = URL_FIELD_KEYS.find((key) => addressable.includes(key))
   if (!urlField) return []
   const fileField = FILE_FIELD_KEYS.find((key) => addressable.includes(key))
-  const linksToFiles = Boolean(fileField) || scope.defaults.some((card) => {
-    const value = getDeep(card, urlField)
-    return typeof value === 'string' && /^https?:\/\//.test(value)
-  })
+  const linksToFiles = Boolean(fileField)
+    || !ROUTE_CAPABLE_URL_KEYS.has(urlField)
+    || scope.defaults.some((card) => {
+      const value = getDeep(card, urlField)
+      // Absolute links still count so the tiles that point off-site keep
+      // their (pre-existing) attach option.
+      return typeof value === 'string' && (/^https?:\/\//.test(value) || downloadFolderOf(value) !== '')
+    })
   if (!linksToFiles) return []
   return [{ scope, urlField, fileField }]
 })
@@ -740,13 +772,10 @@ function downloadPrefixVotes(cards: ReadonlyArray<Record<string, unknown>>): Map
   const votes = new Map<string, number>()
   const walk = (value: unknown, seen: Set<object>) => {
     if (typeof value === 'string') {
-      const path = value.replace(/^https?:\/\/[^/]+/, '')
-      // /downloads/... are site routes, /logos/... are card artwork — neither
-      // is a download folder, and logo votes could outnumber real links on a
-      // section with more logos than downloads.
-      if (!path.startsWith('/') || path.startsWith('/downloads/') || path.startsWith('/logos/')) return
-      const match = /^(\/.*)\/[^/]+\.[A-Za-z0-9]{1,12}$/.exec(path)
-      if (match) votes.set(match[1], (votes.get(match[1]) ?? 0) + 1)
+      // Same file-vs-route rule the attach list uses, so a section can never
+      // be offered for attaching yet map to no folder (or vice versa).
+      const folder = downloadFolderOf(value)
+      if (folder) votes.set(folder, (votes.get(folder) ?? 0) + 1)
       return
     }
     if (!value || typeof value !== 'object' || seen.has(value)) return

@@ -1033,6 +1033,34 @@ test('download-list cards expose their links to the attach and edit flows', () =
   assert.match(editor, /fields: \[\.\.\.COMMON_CARD_FIELDS, \.\.\.DOWNLOAD_LIST_FIELDS\]/)
 })
 
+test('sections whose download links are site-relative paths are still "Use in a card" targets', async () => {
+  const editor = await importComponentModule('../app/admin/AdminContentEditor.tsx')
+  const offered = (editor.DOWNLOAD_ATTACH_SCOPES as Array<{ scope: { scope: string } }>).map((entry) => entry.scope.scope)
+  // APENSUPPORT_BASE is '' so every VMware href is "/vmware/8/x.iso", not
+  // "https://…". The attach filter only accepted https links, so the whole
+  // VMware family vanished: an admin who uploaded a vCenter ISO under
+  // "VMware 8 (vCenter / ESXi)" found no VMware section to point at it.
+  // Office keeps its links in an `items` list and Evaluate-STIG documents had
+  // no download field at all — both were unreachable for the same admin flow.
+  for (const scope of ['vmware/v7/products', 'vmware/v8/products', 'vmware/v9/products', 'vmware/tools', 'docs/vmware/cards', 'microsoft/office', 'evaluate-stig/documents']) {
+    assert.ok(offered.includes(scope), `${scope} must be offered by "Use in a card"`)
+  }
+  // Category cards link to site routes, not files — pointing one at an ISO
+  // would break navigation, so they stay out.
+  assert.equal(offered.includes('vmware/landing/cards'), false)
+  assert.equal(offered.includes('isos/landing/groups'), false)
+})
+
+test('the attach editor never opens without a card selected', () => {
+  const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
+  // Step 1 pre-arms the section only; openAttach must pick a card of that
+  // section, and Update must stay disabled while none is chosen — otherwise
+  // the override was saved under the empty card id ''.
+  assert.match(libraryPanel, /const target = attachTargets\.find\(\(t\) => t\.scope === attachScope\) \?\? attachTargets\[0\]/)
+  assert.match(libraryPanel, /!target\.cards\.some\(\(card\) => card\.id === attachCardId\)/)
+  assert.match(libraryPanel, /disabled=\{attachState === 'saving' \|\| !attachTarget \|\| !attachCardId \|\|/)
+})
+
 test('home announcements carry product and document updates only', async () => {
   const mod = await importComponentModule('../components/home/AnnouncementList.tsx')
   const mergeAnnouncements = mod.mergeAnnouncements as (items: unknown[]) => Array<{ text: string }>
