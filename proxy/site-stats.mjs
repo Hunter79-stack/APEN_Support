@@ -61,19 +61,22 @@ const HOST = process.env.STATS_HOST || '127.0.0.1'
 const configuredPort = Number.parseInt(process.env.STATS_PORT || '8788', 10)
 const PORT = Number.isInteger(configuredPort) && configuredPort > 0 ? configuredPort : 8788
 const LOG_PATH = process.env.NGINX_ACCESS_LOG || '/var/log/nginx/cui_nginx_access.log'
-const FEEDBACK_FILE = resolve(import.meta.dirname ?? '.', 'feedback-history.json')
-const NOTIFICATION_SETTINGS_FILE = resolve(import.meta.dirname ?? '.', 'notification-settings.json')
-const ACKNOWLEDGED_ALERTS_FILE = resolve(import.meta.dirname ?? '.', 'acknowledged-alerts.json')
-const DISMISSED_ALERTS_FILE = resolve(import.meta.dirname ?? '.', 'dismissed-alerts.json')
-const CONTENT_OVERRIDES_FILE = resolve(import.meta.dirname ?? '.', 'content-overrides.json')
-const CUSTOM_PAGES_FILE = resolve(import.meta.dirname ?? '.', 'custom-pages.json')
-const CONTENT_AUDIT_FILE = resolve(import.meta.dirname ?? '.', 'content-audit.json')
-const NODES_FILE = resolve(import.meta.dirname ?? '.', 'infrastructure-nodes.json')
-const CHAT_HISTORY_FILE = resolve(import.meta.dirname ?? '.', 'chat-history.json')
+/** Where the JSON state files live. Overridable so a test can import this
+ *  module against a scratch directory instead of the live proxy/ state. */
+const STATE_DIR = process.env.SITE_STATS_STATE_DIR || (import.meta.dirname ?? '.')
+const FEEDBACK_FILE = resolve(STATE_DIR, 'feedback-history.json')
+const NOTIFICATION_SETTINGS_FILE = resolve(STATE_DIR, 'notification-settings.json')
+const ACKNOWLEDGED_ALERTS_FILE = resolve(STATE_DIR, 'acknowledged-alerts.json')
+const DISMISSED_ALERTS_FILE = resolve(STATE_DIR, 'dismissed-alerts.json')
+const CONTENT_OVERRIDES_FILE = resolve(STATE_DIR, 'content-overrides.json')
+const CUSTOM_PAGES_FILE = resolve(STATE_DIR, 'custom-pages.json')
+const CONTENT_AUDIT_FILE = resolve(STATE_DIR, 'content-audit.json')
+const NODES_FILE = resolve(STATE_DIR, 'infrastructure-nodes.json')
+const CHAT_HISTORY_FILE = resolve(STATE_DIR, 'chat-history.json')
 /** Admin-managed live-announcement scan roots. When this file exists it takes
  *  precedence over the LIVE_ANNOUNCEMENT_PATHS env var, so admins can manage
  *  upload locations from the dashboard instead of SSH-editing .env.local. */
-const ANNOUNCEMENT_PATHS_FILE = resolve(import.meta.dirname ?? '.', 'announcement-paths.json')
+const ANNOUNCEMENT_PATHS_FILE = resolve(STATE_DIR, 'announcement-paths.json')
 /**
  * Path to the Next.js app/ directory. The New Page Wizard generates a real
  * page.tsx under app/<category>/<slug>/ for every published page so the route
@@ -285,8 +288,8 @@ const ADMIN_SESSION_TTL_HOURS = Number.parseFloat(process.env.ADMIN_SESSION_TTL_
 // Renamed from ADMIN_SESSION_COOKIE_NAME — this cookie now covers both
 // general and admin sessions, not admin-only.
 const SESSION_COOKIE_NAME = (process.env.SESSION_COOKIE_NAME || 'apen_session').trim()
-const ADMIN_SESSIONS_FILE = resolve(import.meta.dirname ?? '.', 'admin-sessions.json')
-const GENERAL_SESSIONS_FILE = resolve(import.meta.dirname ?? '.', 'general-sessions.json')
+const ADMIN_SESSIONS_FILE = resolve(STATE_DIR, 'admin-sessions.json')
+const GENERAL_SESSIONS_FILE = resolve(STATE_DIR, 'general-sessions.json')
 const LDAP_CONFIGURED = LDAP_REALMS.length > 0
 
 /* ── External-URL redirect map ──
@@ -1518,11 +1521,13 @@ function buildServicesPayload() {
   })
 }
 
-// Run the first sweep immediately, then on the configured interval.
-probeAllNodes().catch((err) => console.error('[site-stats] Initial node probe failed:', err))
-setInterval(() => {
-  probeAllNodes().catch((err) => console.error('[site-stats] Node probe sweep failed:', err))
-}, NODE_POLL_INTERVAL_MS)
+/** First sweep immediately, then on the configured interval. Started by start(). */
+function startNodeProbes() {
+  probeAllNodes().catch((err) => console.error('[site-stats] Initial node probe failed:', err))
+  setInterval(() => {
+    probeAllNodes().catch((err) => console.error('[site-stats] Node probe sweep failed:', err))
+  }, NODE_POLL_INTERVAL_MS)
+}
 
 /** Slugs must be lowercase, hyphenated, 2-64 chars and free of path separators. */
 function isSafeSlug(value) {
@@ -1743,7 +1748,7 @@ function constantTimeEqualHex(a, b) {
  * who fat-fingers their password into that box would otherwise leave it
  * world-readable on this host. The password field itself is never recorded.
  */
-const AUTH_EVENTS_FILE = resolve(import.meta.dirname ?? '.', 'auth-events.json')
+const AUTH_EVENTS_FILE = resolve(STATE_DIR, 'auth-events.json')
 /** Ring size. Big enough to survive a scripted probe run without discarding
  *  the start of it, small enough to hand to the admin console in one go. */
 const AUTH_EVENTS_MAX = 500
@@ -2195,7 +2200,7 @@ function commitAssistantKnowledgeToDisk() {
   saveJson(ASSISTANT_KNOWLEDGE_FILE, { knowledge: assistantKnowledge, updatedAt: new Date().toISOString() }, 'Assistant knowledge')
 }
 
-const ASSISTANT_PROMPTS_FILE = resolve(import.meta.dirname ?? '.', 'assistant-prompts.json')
+const ASSISTANT_PROMPTS_FILE = resolve(STATE_DIR, 'assistant-prompts.json')
 const DEFAULT_ASSISTANT_PROMPTS = [
   'How do I add an RPM repo?',
   'Download Evaluate-STIG',
@@ -4420,4 +4425,21 @@ function reportStateFileProblems() {
 }
 reportStateFileProblems()
 
-server.listen(PORT, HOST, () => console.log(`[site-stats] API Online at http://${HOST}:${PORT}`))
+/**
+ * Bind the port and begin the node-probe sweeps. Importing this module loads
+ * state and builds the server but starts nothing, so tests can import it
+ * (with SITE_STATS_STATE_DIR pointing at a scratch directory) and call
+ * start({ port: 0, probes: false }) against an ephemeral port.
+ */
+export function start({ port = PORT, host = HOST, probes = true } = {}) {
+  if (probes) startNodeProbes()
+  server.listen(port, host, () => {
+    const addr = server.address()
+    const shown = typeof addr === 'object' && addr ? addr.port : port
+    console.log(`[site-stats] API Online at http://${host}:${shown}`)
+  })
+  return server
+}
+export { server }
+
+if (!process.env.SITE_STATS_NO_AUTOSTART) start()
