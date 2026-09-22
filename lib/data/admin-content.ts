@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { LOGOS } from '@/lib/data/logos'
+import { APENSUPPORT_ABSOLUTE } from '@/lib/data/constants'
 import { API_ENDPOINTS, ADMIN_TOKEN_STORAGE_KEY, ADMIN_CSRF_STORAGE_KEY, RUNTIME_INTERVALS } from '@/lib/data/runtime'
 import { normalizeAcknowledgedAlertIds, normalizeDismissals, type AdminDismissalRecord } from '@/lib/data/admin'
 import { deepMerge } from '@/lib/data/deep-patch'
@@ -1466,14 +1467,26 @@ export const PREDEFINED_TAGS: string[] = [
 
 /** Download URL "starts with" presets for the per-card download composer. */
 export const DOWNLOAD_BASE_PRESETS: { label: string; value: string }[] = [
-  { label: 'APEN file share — VMware',         value: 'https://apensupport.blcse.mil/vmware/' },
-  { label: 'APEN file share — ISOs',           value: 'https://apensupport.blcse.mil/isos/' },
-  { label: 'APEN file share — Microsoft',      value: 'https://apensupport.blcse.mil/mssoftware/' },
-  { label: 'APEN file share — Visual Studio',  value: 'https://apensupport.blcse.mil/VisualStudio/' },
-  { label: 'APEN file share — Trellix',        value: 'https://apensupport.blcse.mil/trellix/' },
-  { label: 'APEN file share — PDQ',            value: 'https://apensupport.blcse.mil/PDQ/' },
-  { label: 'APEN file share — Evaluate-STIG',  value: 'https://apensupport.blcse.mil/evaluate-stig/' },
-  { label: 'APEN file share — Videos',         value: 'https://apensupport.blcse.mil/videos/' },
-  { label: 'APEN file share — root',           value: 'https://apensupport.blcse.mil/' },
-  { label: 'Documentation page (PDF)',         value: 'https://apensupport.blcse.mil/docs/' },
+  { label: 'APEN file share — VMware',         value: `${APENSUPPORT_ABSOLUTE}/vmware/` },
+  { label: 'APEN file share — ISOs',           value: `${APENSUPPORT_ABSOLUTE}/isos/` },
+  { label: 'APEN file share — Microsoft',      value: `${APENSUPPORT_ABSOLUTE}/mssoftware/` },
+  { label: 'APEN file share — Visual Studio',  value: `${APENSUPPORT_ABSOLUTE}/VisualStudio/` },
+  { label: 'APEN file share — Trellix',        value: `${APENSUPPORT_ABSOLUTE}/trellix/` },
+  { label: 'APEN file share — PDQ',            value: `${APENSUPPORT_ABSOLUTE}/PDQ/` },
+  { label: 'APEN file share — Evaluate-STIG',  value: `${APENSUPPORT_ABSOLUTE}/evaluate-stig/` },
+  { label: 'APEN file share — Videos',         value: `${APENSUPPORT_ABSOLUTE}/videos/` },
+  { label: 'APEN file share — root',           value: `${APENSUPPORT_ABSOLUTE}/` },
+  { label: 'Documentation page (PDF)',         value: `${APENSUPPORT_ABSOLUTE}/docs/` },
 ]
+
+/**
+ * Split a download href into the longest preset base that prefixes it plus the
+ * remainder. No match (base '') means the href is a full external URL.
+ */
+export function splitDownloadHref(href: string, presets: { value: string }[]): { base: string; filename: string } {
+  const base = presets
+    .map((p) => p.value)
+    .filter((v) => href !== '' && href.startsWith(v))
+    .sort((x, y) => y.length - x.length)[0] ?? ''
+  return { base, filename: href.slice(base.length) }
+}

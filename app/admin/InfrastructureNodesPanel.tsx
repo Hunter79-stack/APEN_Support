@@ -8,7 +8,7 @@
  *              POST /api/admin/infrastructure-nodes/probe
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import {
   Activity,
@@ -496,7 +496,7 @@ export function InfrastructureNodesPanel({ services }: InfrastructureNodesPanelP
               <Activity size={11} /> {counts.probing} probing
             </span>
           )}
-          <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">{counts.total} total</span>
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{counts.total} total</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -533,7 +533,7 @@ export function InfrastructureNodesPanel({ services }: InfrastructureNodesPanelP
           <span className="flex-1 whitespace-pre-wrap break-words">{feedback.text}</span>
           <button
             onClick={() => setFeedback(null)}
-            className="shrink-0 text-slate-500 hover:text-white"
+            className="shrink-0 text-slate-400 hover:text-white"
             aria-label="Dismiss message"
           >
             <X size={12} />
@@ -573,7 +573,7 @@ export function InfrastructureNodesPanel({ services }: InfrastructureNodesPanelP
         {liveServices.length === 0 && (
           <GlowCard glowColor="indigo" className="p-6 text-center lg:col-span-2">
             <p className="text-sm text-slate-400">No nodes configured yet.</p>
-            <p className="text-xs text-slate-600 mt-1">Click <span className="text-cyan-300">Add node</span> to start monitoring something.</p>
+            <p className="text-xs text-slate-400 mt-1">Click <span className="text-cyan-300">Add node</span> to start monitoring something.</p>
           </GlowCard>
         )}
         {liveServices.map((service) => {
@@ -601,7 +601,7 @@ export function InfrastructureNodesPanel({ services }: InfrastructureNodesPanelP
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-white truncate">{service.name}</p>
-                    <p className="text-[10px] font-mono text-slate-600 truncate">{service.target || service.id}</p>
+                    <p className="text-[10px] font-mono text-slate-400 truncate">{service.target || service.id}</p>
                     {/* Inline probe-failure preview when the card is collapsed.
                         Surfaces *why* the dot is red without making the admin
                         click to expand. Hidden once the card is opened (the
@@ -629,7 +629,7 @@ export function InfrastructureNodesPanel({ services }: InfrastructureNodesPanelP
                 <div className="flex items-center gap-2 shrink-0 pt-0.5">
                   <StatusPill status={service.status} />
                   <span className="text-[10px] font-mono text-slate-400">{service.latency}</span>
-                  {isOpen ? <ChevronDown size={14} className="text-slate-500" /> : <ChevronRight size={14} className="text-slate-500" />}
+                  {isOpen ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
                 </div>
               </button>
 
@@ -797,7 +797,7 @@ function InlineTokenForm({ onAuthorized }: { onAuthorized: () => Promise<void> |
 function Stat({ label, value, hint, mono }: { label: string; value: string; hint?: string; mono?: boolean }) {
   return (
     <div title={hint}>
-      <dt className="text-[9px] font-bold uppercase tracking-widest text-slate-600">{label}</dt>
+      <dt className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{label}</dt>
       <dd className={`${mono ? 'font-mono break-all' : ''} text-slate-200 mt-0.5`}>{value}</dd>
     </div>
   )
@@ -813,7 +813,7 @@ function HistorySparkline({ history }: { history: NonNullable<AdminServiceItem['
   }, [reversed])
   return (
     <div>
-      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">
+      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">
         Recent probes ({reversed.length})
       </p>
       <div className="flex h-10 items-end gap-0.5">
@@ -834,7 +834,7 @@ function HistorySparkline({ history }: { history: NonNullable<AdminServiceItem['
           )
         })}
       </div>
-      <p className="mt-1 flex items-center gap-1 text-[9px] text-slate-600">
+      <p className="mt-1 flex items-center gap-1 text-[9px] text-slate-400">
         <Clock size={9} /> oldest → newest
       </p>
     </div>
@@ -859,6 +859,7 @@ function NodeForm({
   busy: boolean
   isEditing: boolean
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   return (
     <GlowCard glowColor="cyan" className="p-4">
       <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
@@ -866,7 +867,7 @@ function NodeForm({
           <p className="text-xs font-black uppercase tracking-widest text-cyan-200">
             {isEditing ? 'Edit node' : 'New infrastructure node'}
           </p>
-          <button type="button" onClick={onCancel} className="text-slate-500 hover:text-white" aria-label="Cancel">
+          <button type="button" onClick={onCancel} className="text-slate-400 hover:text-white" aria-label="Cancel">
             <X size={14} />
           </button>
         </div>
@@ -882,8 +883,9 @@ function NodeForm({
           </span>
         </p>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Display name *</label>
+          <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Display name *</label>
           <input
+            id={`${uid}-f0`}
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
             placeholder="e.g. APEN Nginx Edge"
@@ -892,8 +894,9 @@ function NodeForm({
           />
         </div>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Internal id *</label>
+          <label htmlFor={`${uid}-f1`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Internal id *</label>
           <input
+            id={`${uid}-f1`}
             value={draft.id}
             onChange={(e) => setDraft({ ...draft, id: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-') })}
             placeholder="web-edge"
@@ -901,11 +904,12 @@ function NodeForm({
             disabled={isEditing}
             className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white font-mono outline-none focus:border-cyan-400/60 disabled:opacity-50"
           />
-          <p className="mt-1 text-[10px] text-slate-600">Lowercase a-z, 0-9, hyphens. {isEditing ? 'Locked while editing.' : ''}</p>
+          <p className="mt-1 text-[10px] text-slate-400">Lowercase a-z, 0-9, hyphens. {isEditing ? 'Locked while editing.' : ''}</p>
         </div>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Probe type</label>
+          <label htmlFor={`${uid}-f2`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Probe type</label>
           <select
+            id={`${uid}-f2`}
             value={draft.kind}
             onChange={(e) => setDraft({ ...draft, kind: e.target.value as 'http' | 'tcp' })}
             className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
@@ -915,8 +919,9 @@ function NodeForm({
           </select>
         </div>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Probe timeout (ms)</label>
+          <label htmlFor={`${uid}-f3`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Probe timeout (ms)</label>
           <input
+            id={`${uid}-f3`}
             type="number"
             min={250}
             max={30_000}
@@ -927,31 +932,33 @@ function NodeForm({
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <label htmlFor={`${uid}-f4`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             {draft.kind === 'http' ? 'URL (link + default probe) *' : 'Host:port (link + default probe) *'}
           </label>
           <input
+            id={`${uid}-f4`}
             value={draft.target}
             onChange={(e) => setDraft({ ...draft, target: e.target.value })}
             placeholder={draft.kind === 'http' ? 'https://apensupport.blcse.mil/' : 'db.internal:5432'}
             required
             className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white font-mono outline-none focus:border-cyan-400/60"
           />
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-[10px] text-slate-400">
             The browser-facing address — used for the <span className="text-slate-400">Open URL</span> link and probed by
             default. Override what the server checks with a Health-check URL below.
           </p>
         </div>
         {draft.kind === 'http' && (
           <div className="sm:col-span-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Allowed HTTP statuses</label>
+            <label htmlFor={`${uid}-f5`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Allowed HTTP statuses</label>
             <input
+              id={`${uid}-f5`}
               value={draft.expectedStatusInput}
               onChange={(e) => setDraft({ ...draft, expectedStatusInput: e.target.value })}
               placeholder="200, 301, 302"
               className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
             />
-            <p className="mt-1 text-[10px] text-slate-600">Comma-separated. Anything outside this list is reported as <span className="text-amber-300">degraded</span>. Leave blank for sane defaults (2xx + 3xx).</p>
+            <p className="mt-1 text-[10px] text-slate-400">Comma-separated. Anything outside this list is reported as <span className="text-amber-300">degraded</span>. Leave blank for sane defaults (2xx + 3xx).</p>
           </div>
         )}
         {/* ── Network reachability options (#1 + #4) ───────────────────────
@@ -960,32 +967,34 @@ function NodeForm({
             non-network admins know they're advanced. */}
         <div className="sm:col-span-2 rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            Network options <span className="font-normal normal-case tracking-normal text-slate-600">— optional, for server-side reachability</span>
+            Network options <span className="font-normal normal-case tracking-normal text-slate-400">— optional, for server-side reachability</span>
           </p>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <label htmlFor={`${uid}-f6`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
               {draft.kind === 'http' ? 'Health-check URL' : 'Health-check host:port'}
             </label>
             <input
+              id={`${uid}-f6`}
               value={draft.healthCheckUrl}
               onChange={(e) => setDraft({ ...draft, healthCheckUrl: e.target.value })}
               placeholder={draft.kind === 'http' ? 'e.g. https://172.16.2.22/api/  (leave blank to use the URL above)' : 'e.g. 172.16.2.22:443'}
               className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white font-mono outline-none focus:border-cyan-400/60"
             />
-            <p className="mt-1 text-[10px] text-slate-600">
+            <p className="mt-1 text-[10px] text-slate-400">
               What the <span className="text-slate-400">server</span> actually probes, when it differs from the link above.
               Point it at an IP or same-origin path the server can reach. Blank = probe the URL above.
             </p>
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Source IP (NIC)</label>
+            <label htmlFor={`${uid}-f7`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Source IP (NIC)</label>
             <input
+              id={`${uid}-f7`}
               value={draft.localAddress}
               onChange={(e) => setDraft({ ...draft, localAddress: e.target.value })}
               placeholder="e.g. 172.16.2.18 — bind the probe to a specific interface"
               className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white font-mono outline-none focus:border-cyan-400/60"
             />
-            <p className="mt-1 text-[10px] text-slate-600">
+            <p className="mt-1 text-[10px] text-slate-400">
               For multi-homed servers: force the probe out a specific network interface. Blank = let the OS choose.
             </p>
           </div>
@@ -999,7 +1008,7 @@ function NodeForm({
               />
               <span>
                 Probe via this site&apos;s nginx (loopback)
-                <span className="block text-[10px] text-slate-600">
+                <span className="block text-[10px] text-slate-400">
                   Sends the check through 127.0.0.1 keeping the original Host/SNI — use when the target is only
                   reachable through this site&apos;s reverse proxy, not directly from the server.
                 </span>
@@ -1008,8 +1017,9 @@ function NodeForm({
           )}
         </div>
         <div className="sm:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Description</label>
+          <label htmlFor={`${uid}-f8`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Description</label>
           <textarea
+            id={`${uid}-f8`}
             rows={2}
             value={draft.description}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })}

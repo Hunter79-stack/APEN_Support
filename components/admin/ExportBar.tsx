@@ -26,7 +26,7 @@ export function ExportBar<T>({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Export</span>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Export</span>
       <button onClick={() => exportToMarkdown(rows, columns, filenameBase, title)} className={buttonClass} title="Export as Markdown">
         <FileText size={12} aria-hidden="true" /> MD
       </button>

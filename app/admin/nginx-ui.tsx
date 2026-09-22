@@ -15,7 +15,7 @@ export function Sparkline({ data, height = 72 }: { data: number[]; height?: numb
   const H = height
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center text-[11px] text-slate-600" style={{ height: H }}>
+      <div className="flex items-center justify-center text-[11px] text-slate-400" style={{ height: H }}>
         collecting samples…
       </div>
     )
@@ -42,11 +42,11 @@ export function StatTile({ label, value, sub, tone = 'text-white', tip }: { labe
   return (
     <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-3" title={tip}>
       <div className="flex items-center gap-1">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">{label}</p>
-        {tip ? <Info size={10} className="text-slate-600" aria-hidden="true" /> : null}
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">{label}</p>
+        {tip ? <Info size={10} className="text-slate-400" aria-hidden="true" /> : null}
       </div>
       <p className={`mt-1 text-2xl font-bold tabular-nums tracking-tight ${tone}`}>{value}</p>
-      {sub ? <p className="mt-0.5 text-[11px] text-slate-600">{sub}</p> : null}
+      {sub ? <p className="mt-0.5 text-[11px] text-slate-400">{sub}</p> : null}
     </div>
   )
 }
@@ -148,8 +148,8 @@ export function NginxOverview({
           className="rounded-xl border border-white/5 bg-black/20 p-4 lg:col-span-2"
           title="Recent requests/sec — one sample per refresh, newest on the right."
         >
-          <p className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Requests / sec — recent <Info size={10} className="text-slate-600" aria-hidden="true" />
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Requests / sec — recent <Info size={10} className="text-slate-400" aria-hidden="true" />
           </p>
           <Sparkline data={history} height={84} />
         </div>
@@ -157,8 +157,8 @@ export function NginxOverview({
           className="rounded-xl border border-white/5 bg-black/20 p-4"
           title="Reading = parsing request headers · Writing = sending a response · Waiting = idle keep-alive connections."
         >
-          <p className="mb-3 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Connection states <Info size={10} className="text-slate-600" aria-hidden="true" />
+          <p className="mb-3 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Connection states <Info size={10} className="text-slate-400" aria-hidden="true" />
           </p>
           <StateBars reading={conn.reading} writing={conn.writing} waiting={conn.waiting} />
         </div>

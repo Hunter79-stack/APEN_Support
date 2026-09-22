@@ -7,7 +7,7 @@
  * via /api/chat-history, one record per signed-in (realm, username).
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, RefreshCw, Trash2, X } from 'lucide-react'
 import { adminContentClient, type ChatTranscript } from '@/lib/data/admin-content'
@@ -43,9 +43,12 @@ export function AdminChatTranscriptsPanel() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
 
+  const refreshSeq = useRef(0) // latest request wins: an older list must not land after a newer one
   const refresh = useCallback(async () => {
+    const seq = ++refreshSeq.current
     setLoading(true)
     const data = await adminContentClient.fetchChatTranscripts()
+    if (seq !== refreshSeq.current) return
     setLoading(false)
     if (!data) {
       setFeedback({ kind: 'err', text: 'Could not reach the admin API. Is the site-stats proxy running?' })
@@ -108,7 +111,7 @@ export function AdminChatTranscriptsPanel() {
             : <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           }
           <span className="flex-1 whitespace-pre-wrap break-words">{feedback.text}</span>
-          <button onClick={() => setFeedback(null)} aria-label="Dismiss" className="shrink-0 text-slate-500 hover:text-white">
+          <button onClick={() => setFeedback(null)} aria-label="Dismiss" className="shrink-0 text-slate-400 hover:text-white">
             <X size={12} />
           </button>
         </div>
@@ -116,14 +119,14 @@ export function AdminChatTranscriptsPanel() {
 
       {loading && transcripts.length === 0 && (
         <GlowCard glowColor="indigo" className="p-6 text-center">
-          <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Loading transcripts…</p>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-widest">Loading transcripts…</p>
         </GlowCard>
       )}
 
       {!loading && sorted.length === 0 && (
         <GlowCard glowColor="indigo" className="p-6 text-center">
           <p className="text-sm text-slate-400">No chat transcripts yet.</p>
-          <p className="mt-1 text-xs text-slate-600">Transcripts appear here once a signed-in user starts a chat.</p>
+          <p className="mt-1 text-xs text-slate-400">Transcripts appear here once a signed-in user starts a chat.</p>
         </GlowCard>
       )}
 
@@ -139,13 +142,13 @@ export function AdminChatTranscriptsPanel() {
                     className="min-w-0 flex-1 text-left"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      {expanded ? <ChevronDown size={14} className="shrink-0 text-slate-500" /> : <ChevronRight size={14} className="shrink-0 text-slate-500" />}
+                      {expanded ? <ChevronDown size={14} className="shrink-0 text-slate-400" /> : <ChevronRight size={14} className="shrink-0 text-slate-400" />}
                       <p className="text-sm font-semibold text-white">{t.username}</p>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         {t.realm}
                       </span>
                     </div>
-                    <p className="mt-1 text-[10px] text-slate-600">
+                    <p className="mt-1 text-[10px] text-slate-400">
                       {t.messages.length} message{t.messages.length === 1 ? '' : 's'}
                       {' · '}
                       started {formatTimestamp(t.startedAt)}

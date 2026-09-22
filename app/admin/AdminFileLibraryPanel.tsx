@@ -158,9 +158,15 @@ export function AdminFileLibraryPanel({
     [attachTargets, attachScope],
   )
 
+  // Latest request wins. refresh() is called by the folder switch, the reload
+  // button and after every upload/delete; without this a slow response for the
+  // previous folder lands last and repaints the wrong folder's files.
+  const refreshSeq = useRef(0)
   const refresh = useCallback(async (key: string) => {
+    const seq = ++refreshSeq.current
     setLoading(true)
     const data = await adminContentClient.listFileLibrary(key)
+    if (seq !== refreshSeq.current) return
     setLoading(false)
     if (!data) {
       setLoadError('Could not reach the admin file API. Is the site-stats proxy running?')
@@ -510,7 +516,7 @@ export function AdminFileLibraryPanel({
         {/* Step 1 — where the file goes. */}
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500" htmlFor="admin-library-dir">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400" htmlFor="admin-library-dir">
               1. Choose what you are updating
             </label>
             <select
@@ -544,7 +550,7 @@ export function AdminFileLibraryPanel({
               ))}
             </select>
             {activeDir && (
-              <p className="mt-1.5 text-[11px] text-slate-500">
+              <p className="mt-1.5 text-[11px] text-slate-400">
                 Uploads to <span className="font-mono text-slate-400">{activeDir.path}</span> — chosen for you from
                 where this section&apos;s downloads already live.
               </p>
@@ -563,7 +569,7 @@ export function AdminFileLibraryPanel({
         </div>
 
         {activeDir && (
-          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
             {activeDir.hint} Accepted:{' '}
             <span className="font-mono text-slate-400">{activeDir.extensions.map((e) => `.${e}`).join(' ')}</span>
             {' · '}served from{' '}
@@ -604,7 +610,7 @@ export function AdminFileLibraryPanel({
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Name</label>
                 <input
                   type="text"
                   value={newDir.label}
@@ -614,7 +620,7 @@ export function AdminFileLibraryPanel({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Group heading</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Group heading</label>
                 <input
                   type="text"
                   value={newDir.family}
@@ -624,7 +630,7 @@ export function AdminFileLibraryPanel({
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Folder</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Folder</label>
                 <input
                   type="text"
                   value={newDir.dir}
@@ -632,12 +638,12 @@ export function AdminFileLibraryPanel({
                   placeholder="cisco  or  vmware/9"
                   className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 font-mono text-sm text-white outline-none focus:border-cyan-400/60"
                 />
-                <p className="mt-1 truncate text-[10px] font-mono text-slate-600">
+                <p className="mt-1 truncate text-[10px] font-mono text-slate-400">
                   {newDir.dir.trim() ? `${APENSUPPORT_BASE}/${newDir.dir.trim().replace(/^\/+|\/+$/g, '')}/` : 'relative to the download webroot'}
                 </p>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Allowed file types</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Allowed file types</label>
                 <input
                   type="text"
                   value={newDir.extensions}
@@ -645,7 +651,7 @@ export function AdminFileLibraryPanel({
                   placeholder="iso, zip, exe, bin"
                   className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
                 />
-                <p className="mt-1 text-[10px] text-slate-600">
+                <p className="mt-1 text-[10px] text-slate-400">
                   Comma separated. Web-executable types (.php, .html, .js, .svg…) are always refused.
                 </p>
               </div>
@@ -690,7 +696,7 @@ export function AdminFileLibraryPanel({
 
         {/* Nothing below this point renders until a location is picked. */}
         {!activeDir && !showNewDir && (
-          <p className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6 text-center text-xs text-slate-500">
+          <p className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6 text-center text-xs text-slate-400">
             Choose a location above to upload a file or browse what&apos;s already on the server.
           </p>
         )}
@@ -701,7 +707,7 @@ export function AdminFileLibraryPanel({
             is read off the (editable) name and checked against this location's
             allowlist, so a mistake shows up before a single byte is sent. */}
         <div className="mt-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">2. Choose the files to upload</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">2. Choose the files to upload</p>
           <div
             onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
             onDragLeave={() => setDragging(false)}
@@ -714,7 +720,7 @@ export function AdminFileLibraryPanel({
               dragging ? 'border-cyan-400/60 bg-cyan-400/10' : 'border-white/15 bg-black/20'
             }`}
           >
-            <FileUp size={22} className="mx-auto text-slate-500" />
+            <FileUp size={22} className="mx-auto text-slate-400" />
             <p className="mt-2 text-xs text-slate-400">
               Drag files here, or
               <label className="mx-1 cursor-pointer text-cyan-300 underline underline-offset-2">
@@ -751,12 +757,12 @@ export function AdminFileLibraryPanel({
                         title="The name this file will be stored and served under — fix it here before uploading."
                         className="h-8 min-w-0 flex-1 rounded border border-white/10 bg-black/40 px-2 font-mono text-xs text-white outline-none focus:border-cyan-400/60"
                       />
-                      <span className="whitespace-nowrap text-[10px] text-slate-500">{formatBytes(row.file.size)}</span>
+                      <span className="whitespace-nowrap text-[10px] text-slate-400">{formatBytes(row.file.size)}</span>
                       {!uploading && (
                         <button
                           onClick={() => setQueue((current) => current.filter((item) => item.file !== row.file))}
                           title="Remove this file from the upload list"
-                          className="text-slate-500 hover:text-red-300"
+                          className="text-slate-400 hover:text-red-300"
                           aria-label={`Remove ${row.name}`}
                         >
                           <X size={13} />
@@ -821,7 +827,7 @@ export function AdminFileLibraryPanel({
               <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-cyan-400 transition-[width]" style={{ width: `${percent}%` }} />
               </div>
-              <p className="mt-1 flex flex-wrap gap-x-3 text-[10px] font-mono text-slate-500">
+              <p className="mt-1 flex flex-wrap gap-x-3 text-[10px] font-mono text-slate-400">
                 <span>{percent}%</span>
                 <span>{formatBytes(progress.sent)} / {formatBytes(progress.total)}</span>
                 {rate && <span>{formatBytes(rate.bytesPerSecond)}/s</span>}
@@ -842,21 +848,21 @@ export function AdminFileLibraryPanel({
 
         {/* Step 3 — what's on the server, and wiring it to a card. */}
         <div className="mt-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
             3. Files on the server{activeDir ? ` — ${activeDir.label}` : ''}
           </p>
           {loadError && (
             <p className="mt-2 flex items-center gap-2 text-xs text-red-300"><AlertTriangle size={12} /> {loadError}</p>
           )}
           {loading ? (
-            <p className="mt-2 text-xs text-slate-500">Loading…</p>
+            <p className="mt-2 text-xs text-slate-400">Loading…</p>
           ) : files.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500">No files here yet.</p>
+            <p className="mt-2 text-xs text-slate-400">No files here yet.</p>
           ) : (
             <div className="mt-2 max-h-80 overflow-y-auto rounded-lg border border-white/10">
               <table className="w-full text-left text-xs">
                 <thead className="sticky top-0 bg-black/60 backdrop-blur">
-                  <tr className="text-[10px] uppercase tracking-widest text-slate-500">
+                  <tr className="text-[10px] uppercase tracking-widest text-slate-400">
                     <th className="px-3 py-2 font-black">File</th>
                     <th className="px-3 py-2 font-black">Size</th>
                     <th className="hidden px-3 py-2 font-black sm:table-cell">Modified</th>
@@ -875,7 +881,7 @@ export function AdminFileLibraryPanel({
                         )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-slate-400">{formatBytes(file.bytes)}</td>
-                      <td className="hidden whitespace-nowrap px-3 py-2 text-slate-500 sm:table-cell">
+                      <td className="hidden whitespace-nowrap px-3 py-2 text-slate-400 sm:table-cell">
                         {new Date(file.mtime).toLocaleDateString()}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">
@@ -941,12 +947,17 @@ export function AdminFileLibraryPanel({
 
         {/* Delete confirm — appears under the table for one server file. */}
         {deleteTarget && (
-          <div className="mt-4 rounded-lg border border-red-400/40 bg-red-500/5 p-4">
+          <div
+            role="region"
+            aria-label={`Delete ${deleteTarget}`}
+            onKeyDown={(e) => { if (e.key === 'Escape') closeDelete() }}
+            className="mt-4 rounded-lg border border-red-400/40 bg-red-500/5 p-4"
+          >
             <div className="flex items-start justify-between gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-red-300">
                 Delete <span className="font-mono normal-case">{deleteTarget}</span>
               </p>
-              <button onClick={closeDelete} className="shrink-0 text-slate-500 hover:text-white" aria-label="Close">
+              <button onClick={closeDelete} className="shrink-0 text-slate-400 hover:text-white" aria-label="Close">
                 <X size={14} />
               </button>
             </div>
@@ -962,7 +973,7 @@ export function AdminFileLibraryPanel({
                 onChange={(e) => setDeleteConfirm(e.target.value)}
                 placeholder={deleteTarget}
                 aria-label={`Type ${deleteTarget} to confirm deletion`}
-                className="h-9 min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 font-mono text-xs text-white outline-none placeholder:text-slate-700 focus:border-red-400/60"
+                className="h-9 min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 font-mono text-xs text-white outline-none placeholder:text-slate-400 focus:border-red-400/60"
               />
               <button
                 onClick={() => void submitDelete(false)}
@@ -998,7 +1009,7 @@ export function AdminFileLibraryPanel({
               <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
                 Rename <span className="font-mono normal-case">{renameFrom}</span>
               </p>
-              <button onClick={() => setRenameFrom('')} className="shrink-0 text-slate-500 hover:text-white" aria-label="Close">
+              <button onClick={() => setRenameFrom('')} className="shrink-0 text-slate-400 hover:text-white" aria-label="Close">
                 <X size={14} />
               </button>
             </div>
@@ -1027,7 +1038,7 @@ export function AdminFileLibraryPanel({
                 <AlertTriangle size={11} /> {renameMessage}
               </p>
             )}
-            <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+            <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
               The public download URL changes with the name — any card pointing at the old name keeps the old,
               now-dead link until you re-attach it via &ldquo;Use in a card&rdquo;.
             </p>
@@ -1036,7 +1047,12 @@ export function AdminFileLibraryPanel({
 
         {/* Attach editor — appears under the table once a file is chosen. */}
         {attachFile && (
-          <div className="mt-4 rounded-lg border border-cyan-400/30 bg-cyan-400/5 p-4">
+          <div
+            role="region"
+            aria-label={`Point a card at ${attachFile.name}`}
+            onKeyDown={(e) => { if (e.key === 'Escape') setAttachFile(null) }}
+            className="mt-4 rounded-lg border border-cyan-400/30 bg-cyan-400/5 p-4"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300">Point a card at this file</p>
@@ -1044,7 +1060,7 @@ export function AdminFileLibraryPanel({
               </div>
               <button
                 onClick={() => setAttachFile(null)}
-                className="shrink-0 text-slate-500 hover:text-white"
+                className="shrink-0 text-slate-400 hover:text-white"
                 aria-label="Close"
               >
                 <X size={14} />
@@ -1053,7 +1069,7 @@ export function AdminFileLibraryPanel({
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Section</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Section</label>
                 <select
                   value={attachScope}
                   onChange={(e) => {
@@ -1075,7 +1091,7 @@ export function AdminFileLibraryPanel({
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Card</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Card</label>
                 <select
                   value={attachCardId}
                   onChange={(e) => { setAttachCardId(e.target.value); setAttachState('idle'); setAttachMessage('') }}
@@ -1089,7 +1105,7 @@ export function AdminFileLibraryPanel({
               </div>
               {attachCardId === '__new__' && (
                 <div className="sm:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">New card title</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">New card title</label>
                   <input
                     type="text"
                     value={newCardTitle}
@@ -1097,7 +1113,7 @@ export function AdminFileLibraryPanel({
                     placeholder="e.g. Ubuntu 26.04 Desktop"
                     className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
                   />
-                  <p className="mt-1 text-[10px] text-slate-500">
+                  <p className="mt-1 text-[10px] text-slate-400">
                     The new card copies its logo and colour from the first card in that section — edit the rest below
                     once it appears.
                   </p>

@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import { CheckCircle2, ChevronDown, ChevronUp, MessageSquarePlus, Plus, RotateCcw, Save, Trash2, XCircle } from 'lucide-react'
-import { adminContentClient } from '@/lib/data/admin-content'
+import { adminAuthHeaders } from '@/lib/data/admin-content'
 import { API_ENDPOINTS } from '@/lib/data/runtime'
 
 const ENDPOINT = API_ENDPOINTS.adminAssistantPrompts
@@ -30,7 +30,7 @@ export function AdminAssistantChipsPanel() {
     try {
       const res = await fetch(ENDPOINT, {
         cache: 'no-store',
-        headers: { 'x-admin-token': adminContentClient.getToken() },
+        headers: adminAuthHeaders(),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
@@ -64,7 +64,7 @@ export function AdminAssistantChipsPanel() {
       const cleaned = chips.map((c) => c.replace(/\s+/g, ' ').trim()).filter(Boolean)
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminContentClient.getToken() },
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders({ write: true }) },
         body: JSON.stringify({ prompts: cleaned }),
       })
       const data = await res.json().catch(() => null)
@@ -83,7 +83,7 @@ export function AdminAssistantChipsPanel() {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'DELETE',
-        headers: { 'x-admin-token': adminContentClient.getToken() },
+        headers: adminAuthHeaders({ write: true }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setMessage({ kind: 'ok', text: 'Override removed — the chat shows the built-in default chips again.' })
@@ -102,7 +102,7 @@ export function AdminAssistantChipsPanel() {
           <span className={source === 'admin' ? 'text-cyan-300' : 'text-slate-300'}>
             {source === 'admin' ? 'admin-managed (assistant-prompts.json)' : 'built-in defaults'}
           </span>
-          <span className="text-slate-600">· {chips.length}/{MAX_CHIPS}</span>
+          <span className="text-slate-400">· {chips.length}/{MAX_CHIPS}</span>
         </p>
         <div className="flex gap-2">
           <button
@@ -129,7 +129,7 @@ export function AdminAssistantChipsPanel() {
         </div>
       </div>
 
-      <p className="mb-3 text-xs text-slate-500 leading-relaxed">
+      <p className="mb-3 text-xs text-slate-400 leading-relaxed">
         These are the clickable prompt chips under <span className="text-slate-300">“APEN Knowledge Base Active”</span> in the
         chat. Clicking a chip sends it immediately. Order here is the order shown. Save with an empty list to hide all chips.
       </p>
@@ -138,8 +138,8 @@ export function AdminAssistantChipsPanel() {
         {chips.map((chip, i) => (
           <div key={i} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-2">
             <div className="flex flex-col">
-              <button onClick={() => move(i, -1)} disabled={i === 0} title="Move up" className="text-slate-600 enabled:hover:text-cyan-300 disabled:opacity-30"><ChevronUp size={14} /></button>
-              <button onClick={() => move(i, 1)} disabled={i === chips.length - 1} title="Move down" className="text-slate-600 enabled:hover:text-cyan-300 disabled:opacity-30"><ChevronDown size={14} /></button>
+              <button onClick={() => move(i, -1)} disabled={i === 0} title="Move up" className="text-slate-400 enabled:hover:text-cyan-300 disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button onClick={() => move(i, 1)} disabled={i === chips.length - 1} title="Move down" className="text-slate-400 enabled:hover:text-cyan-300 disabled:opacity-30"><ChevronDown size={14} /></button>
             </div>
             <input
               value={chip}
@@ -151,13 +151,13 @@ export function AdminAssistantChipsPanel() {
             <button
               onClick={() => setChips((cur) => cur.filter((_, idx) => idx !== i))}
               title="Remove this chip"
-              className="px-1 text-slate-500 transition-colors hover:text-red-400"
+              className="px-1 text-slate-400 transition-colors hover:text-red-400"
             >
               <Trash2 size={14} />
             </button>
           </div>
         ))}
-        {chips.length === 0 && <p className="px-1 py-2 text-xs text-slate-500">No chips — the chat empty state will show no prompt buttons.</p>}
+        {chips.length === 0 && <p className="px-1 py-2 text-xs text-slate-400">No chips — the chat empty state will show no prompt buttons.</p>}
       </div>
 
       {message && (

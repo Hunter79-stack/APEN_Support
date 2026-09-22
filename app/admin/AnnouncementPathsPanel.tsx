@@ -127,7 +127,7 @@ export function AnnouncementPathsPanel() {
 
       <div className="space-y-2">
         {/* Column legend */}
-        <div className="hidden gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-600 lg:grid lg:grid-cols-[1fr_0.7fr_1.4fr_1fr_auto]">
+        <div className="hidden gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 lg:grid lg:grid-cols-[1fr_0.7fr_1.4fr_1fr_auto]">
           <span>Label</span><span>Category</span><span>Filesystem path</span><span>Public URL prefix</span><span />
         </div>
         {rows.map((row, i) => (
@@ -148,14 +148,14 @@ export function AnnouncementPathsPanel() {
               <button
                 onClick={() => setRows((cur) => cur.filter((_, idx) => idx !== i))}
                 title="Remove this root"
-                className="text-slate-500 transition-colors hover:text-red-400"
+                className="text-slate-400 transition-colors hover:text-red-400"
               >
                 <Trash2 size={14} />
               </button>
             </div>
           </div>
         ))}
-        {rows.length === 0 && <p className="px-1 py-2 text-xs text-slate-500">No scan roots configured.</p>}
+        {rows.length === 0 && <p className="px-1 py-2 text-xs text-slate-400">No scan roots configured.</p>}
       </div>
 
       {message && (

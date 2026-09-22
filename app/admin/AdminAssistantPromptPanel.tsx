@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import { Bot, CheckCircle2, RotateCcw, Save, XCircle } from 'lucide-react'
-import { adminContentClient } from '@/lib/data/admin-content'
+import { adminAuthHeaders } from '@/lib/data/admin-content'
 import { API_ENDPOINTS } from '@/lib/data/runtime'
 
 const ENDPOINT = API_ENDPOINTS.adminAssistantSystemPrompt
@@ -36,7 +36,7 @@ export function AdminAssistantPromptPanel() {
     try {
       const res = await fetch(ENDPOINT, {
         cache: 'no-store',
-        headers: { 'x-admin-token': adminContentClient.getToken() },
+        headers: adminAuthHeaders(),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
@@ -63,7 +63,7 @@ export function AdminAssistantPromptPanel() {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminContentClient.getToken() },
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders({ write: true }) },
         body: JSON.stringify({ knowledge: text }),
       })
       const data = await res.json().catch(() => null)
@@ -81,7 +81,7 @@ export function AdminAssistantPromptPanel() {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'DELETE',
-        headers: { 'x-admin-token': adminContentClient.getToken() },
+        headers: adminAuthHeaders({ write: true }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setMessage({ kind: 'ok', text: 'Override removed — the assistant is back on the built-in knowledge block.' })
@@ -100,7 +100,7 @@ export function AdminAssistantPromptPanel() {
           <span className={source === 'admin' ? 'text-cyan-300' : 'text-slate-300'}>
             {source === 'admin' ? 'admin-managed (assistant-system-prompt.json)' : 'built-in default'}
           </span>
-          <span className={tooLong ? 'text-red-400' : 'text-slate-600'}>
+          <span className={tooLong ? 'text-red-400' : 'text-slate-400'}>
             · {text.length.toLocaleString()}/{maxChars.toLocaleString()} chars
           </span>
           {dirty && <span className="text-amber-300">· unsaved changes</span>}

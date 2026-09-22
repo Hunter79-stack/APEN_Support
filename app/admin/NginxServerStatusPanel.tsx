@@ -121,7 +121,7 @@ function SelfHealCard({ events }: { events: SelfHealEvent[] }) {
             </span>
           )}
         </div>
-        <p className="text-[11px] text-slate-600">
+        <p className="text-[11px] text-slate-400">
           {lastActivityMs > 0 && nowMs !== null
             ? `last activity ${relativeAge(lastActivityMs, nowMs)} — VTS guard and version autorepair.`
             : 'nginx recovery activity — VTS guard and version autorepair.'}
@@ -129,7 +129,7 @@ function SelfHealCard({ events }: { events: SelfHealEvent[] }) {
       </div>
 
       {events.length === 0 ? (
-        <p className="py-6 text-center text-[11px] text-slate-600">
+        <p className="py-6 text-center text-[11px] text-slate-400">
           No self-heal events recorded. nginx has not needed to recover.
         </p>
       ) : (
@@ -141,10 +141,10 @@ function SelfHealCard({ events }: { events: SelfHealEvent[] }) {
                 e.stale ? 'bg-black/10 opacity-70' : 'bg-black/20'
               }`}
             >
-              <span className="font-mono text-[10px] tabular-nums text-slate-500">
+              <span className="font-mono text-[10px] tabular-nums text-slate-400">
                 {e.at}
                 {nowMs !== null && (
-                  <span className="ml-1.5 not-italic text-slate-600">({relativeAge(e.atMs, nowMs)})</span>
+                  <span className="ml-1.5 not-italic text-slate-400">({relativeAge(e.atMs, nowMs)})</span>
                 )}
               </span>
               <span
@@ -191,7 +191,7 @@ function PeerBadge({ state }: { state: NginxPeerState }) {
 }
 
 function Meter({ fraction }: { fraction: number | null }) {
-  if (fraction == null) return <span className="text-slate-600">—</span>
+  if (fraction == null) return <span className="text-slate-400">—</span>
   const pct = Math.min(100, Math.max(0, fraction * 100))
   const tone = fraction > 0.85 ? 'bg-red-400' : fraction > 0.6 ? 'bg-amber-400' : 'bg-cyan-400'
   return (
@@ -207,7 +207,7 @@ function Meter({ fraction }: { fraction: number | null }) {
 function Th({ children, align = 'left', colSpan }: { children?: React.ReactNode; align?: 'left' | 'right' | 'center'; colSpan?: number }) {
   const a = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
   return (
-    <th colSpan={colSpan} className={`whitespace-nowrap px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-600 ${a}`}>
+    <th colSpan={colSpan} className={`whitespace-nowrap px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 ${a}`}>
       {children}
     </th>
   )
@@ -217,7 +217,7 @@ function Th({ children, align = 'left', colSpan }: { children?: React.ReactNode;
 function GroupTh({ children, colSpan }: { children?: React.ReactNode; colSpan?: number }) {
   const bare = children == null
   return (
-    <th colSpan={colSpan} className={`whitespace-nowrap px-3 pb-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500 ${bare ? '' : 'border-b border-white/5'}`}>
+    <th colSpan={colSpan} className={`whitespace-nowrap px-3 pb-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 ${bare ? '' : 'border-b border-white/5'}`}>
       {children}
     </th>
   )
@@ -232,7 +232,7 @@ function TableCard({ title, hint, children }: { title: string; hint: React.React
     <div className="rounded-xl border border-white/5 bg-black/20">
       <div className="px-4 pb-3 pt-4">
         <h3 className="text-sm font-bold text-white">{title}</h3>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{hint}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">{hint}</p>
       </div>
       <div className="overflow-x-auto px-2 pb-2">
         <table className="w-full text-xs">{children}</table>
@@ -244,7 +244,7 @@ function TableCard({ title, hint, children }: { title: string; hint: React.React
 function EmptyRow({ span, text }: { span: number; text: string }) {
   return (
     <tr>
-      <td colSpan={span} className="border-t border-white/5 px-3 py-8 text-center text-xs text-slate-600">{text}</td>
+      <td colSpan={span} className="border-t border-white/5 px-3 py-8 text-center text-xs text-slate-400">{text}</td>
     </tr>
   )
 }
@@ -261,9 +261,9 @@ function GroupRow({ span, children }: { span: number; children: React.ReactNode 
 function BarMetric({ label, value, sub, first, tip }: { label: string; value: string; sub: string; first?: boolean; tip?: string }) {
   return (
     <div className={`px-4 ${first ? '' : 'border-l border-white/8'}`} title={tip}>
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">{label}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{label}</div>
       <div className="mt-0.5 text-lg font-bold tabular-nums text-white">{value}</div>
-      <div className="mt-0.5 text-[11px] tabular-nums text-slate-500">{sub}</div>
+      <div className="mt-0.5 text-[11px] tabular-nums text-slate-400">{sub}</div>
     </div>
   )
 }
@@ -274,11 +274,11 @@ function StatCard({ icon: Icon, iconClass, label, value, delta, valueClass = 'te
 }) {
   return (
     <div className="rounded-xl border border-white/5 bg-black/20 px-4 py-4">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
         <Icon size={13} className={iconClass} /> {label}
       </div>
       <div className={`mt-1.5 text-3xl font-bold tabular-nums tracking-tight ${valueClass}`}>{value}</div>
-      <div className="mt-1 text-[11px] text-slate-600">{delta}</div>
+      <div className="mt-1 text-[11px] text-slate-400">{delta}</div>
     </div>
   )
 }
@@ -320,9 +320,9 @@ export function NginxServerStatusPanel() {
   if (unauthorized) {
     return (
       <GlowCard glowColor="indigo" className="flex flex-col items-center gap-2 p-10 text-center">
-        <Lock size={26} className="text-slate-500" />
+        <Lock size={26} className="text-slate-400" />
         <p className="text-sm text-slate-300">Not authorized for nginx status.</p>
-        <p className="max-w-md text-xs leading-relaxed text-slate-500">
+        <p className="max-w-md text-xs leading-relaxed text-slate-400">
           Sign in via <span className="text-cyan-300">Edit pages &amp; cards</span>, or open this console from an
           allowlisted workstation so nginx injects the admin token upstream.
         </p>
@@ -341,7 +341,7 @@ export function NginxServerStatusPanel() {
       <GlowCard glowColor="red" className="flex flex-col items-center gap-2 p-10 text-center">
         <WifiOff size={26} className="text-red-400/70" />
         <p className="text-sm text-red-200">Status endpoint unreachable.</p>
-        <p className="max-w-md text-xs leading-relaxed text-slate-500">
+        <p className="max-w-md text-xs leading-relaxed text-slate-400">
           The site-stats proxy may be down. Check <code className="text-cyan-400">pm2 status apen-stats-api</code>
           {error ? <> — <span className="font-mono">{error}</span></> : null}.
         </p>
@@ -359,7 +359,7 @@ export function NginxServerStatusPanel() {
             wired and ready — once the module is live this fills in automatically. See
             <code className="mx-1 text-cyan-400">proxy/NGINX_VTS_RUNBOOK.md</code> for the build + config steps.
           </p>
-          {data.error ? <p className="max-w-lg font-mono text-[10px] text-slate-600">{data.error}</p> : null}
+          {data.error ? <p className="max-w-lg font-mono text-[10px] text-slate-400">{data.error}</p> : null}
         </GlowCard>
         {/* Stats being down is usually the guard having disabled VTS to keep
             nginx serving. These events say whether that is what happened. */}
@@ -395,7 +395,7 @@ export function NginxServerStatusPanel() {
           <span className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-gradient-to-br from-cyan-400 to-indigo-400 text-[17px] font-black text-[#04121a]">N</span>
           <div className="min-w-0">
             <div className="truncate text-sm font-bold text-white">{host || 'nginx'}</div>
-            <div className="text-[11px] text-slate-500">
+            <div className="text-[11px] text-slate-400">
               nginx <code className="text-cyan-300">{data.nginxVersion || '—'}</code> · <code className="text-cyan-300">{sourceLabel(data.source)}</code>
               {data.uptimeSec != null ? <> · up <span className="tabular-nums">{fmtDuration(data.uptimeSec)}</span></> : null}
             </div>
@@ -451,7 +451,7 @@ export function NginxServerStatusPanel() {
               key={id}
               onClick={() => setTab(id)}
               className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
-                active ? 'border-cyan-400 text-cyan-300' : 'border-transparent text-slate-500 hover:text-slate-200'
+                active ? 'border-cyan-400 text-cyan-300' : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
               {label}{c != null ? <span className="ml-1.5 text-[10px] opacity-60">({c})</span> : null}
@@ -483,28 +483,28 @@ export function NginxServerStatusPanel() {
                 <h3 className="text-[13px] font-semibold text-white">Requests / sec</h3>
                 <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">last {history.length} samples</span>
               </div>
-              <p className="mb-2 mt-0.5 text-[11px] text-slate-600">Derived per-second throughput — one sample per refresh, newest on the right.</p>
+              <p className="mb-2 mt-0.5 text-[11px] text-slate-400">Derived per-second throughput — one sample per refresh, newest on the right.</p>
               <Sparkline data={history} height={92} />
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="text-2xl font-bold tabular-nums text-white">{rps == null ? '—' : nf(rps)}<span className="ml-1 text-xs font-semibold text-slate-500">req/s</span></span>
-                <span className="text-[11px] text-slate-600">{peak == null ? '' : `peak ${nf(peak)} · min ${nf(min ?? 0)}`}</span>
+                <span className="text-2xl font-bold tabular-nums text-white">{rps == null ? '—' : nf(rps)}<span className="ml-1 text-xs font-semibold text-slate-400">req/s</span></span>
+                <span className="text-[11px] text-slate-400">{peak == null ? '' : `peak ${nf(peak)} · min ${nf(min ?? 0)}`}</span>
               </div>
             </div>
 
             <div className="rounded-xl border border-white/5 bg-black/20 p-4">
               <h3 className="text-[13px] font-semibold text-white">Connection states</h3>
-              <p className="mb-3 mt-0.5 text-[11px] text-slate-600">Reading / writing / waiting — the only part open-source stub_status can produce.</p>
+              <p className="mb-3 mt-0.5 text-[11px] text-slate-400">Reading / writing / waiting — the only part open-source stub_status can produce.</p>
               {conn ? (
                 <>
                   <StateBars reading={conn.reading} writing={conn.writing} waiting={conn.waiting} />
-                  <div className="mt-3 flex justify-between border-t border-white/5 pt-3 text-[11px] text-slate-500">
+                  <div className="mt-3 flex justify-between border-t border-white/5 pt-3 text-[11px] text-slate-400">
                     <span>Accepted <b className="tabular-nums text-slate-200">{nfk(conn.accepted)}</b></span>
                     <span>Handled <b className="tabular-nums text-slate-200">{nfk(conn.handled)}</b></span>
                     <span>Dropped <b className={`tabular-nums ${conn.dropped > 0 ? 'text-red-300' : 'text-slate-200'}`}>{nf(conn.dropped)}</b></span>
                   </div>
                 </>
               ) : (
-                <p className="py-6 text-center text-[11px] text-slate-600">No connection data.</p>
+                <p className="py-6 text-center text-[11px] text-slate-400">No connection data.</p>
               )}
             </div>
           </div>
@@ -533,7 +533,7 @@ export function NginxServerStatusPanel() {
                 <tr key={z.name} className="hover:bg-white/[0.02]">
                   <Td>
                     <div className="font-semibold text-white">{za.label}</div>
-                    {za.sub ? <div className="text-[11px] text-slate-500">{za.sub}</div> : null}
+                    {za.sub ? <div className="text-[11px] text-slate-400">{za.sub}</div> : null}
                   </Td>
                   <Td align="center"><StatusDot ratio={ratio} /></Td>
                   <Td align="right">{nf(z.requests)}</Td>

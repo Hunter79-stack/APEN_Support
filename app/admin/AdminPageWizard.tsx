@@ -13,7 +13,7 @@
  * server-side reserved-slug list (admin/api/vmware/...).
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import {
   adminContentClient,
@@ -27,6 +27,7 @@ import {
   GLOW_COLOR_PRESETS,
   PREDEFINED_TAGS,
   DOWNLOAD_BASE_PRESETS,
+  splitDownloadHref,
   type CustomPage,
   type CustomPageCard,
   type PageTemplate,
@@ -99,6 +100,7 @@ function DropdownWithCustom({
   fieldPath?: FieldPath
   erroredField?: FieldPath
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   // The <select> shows CUSTOM_SENTINEL when the current value isn't one of
   // the presets, in which case we render a text input below it.
   const matchedPreset = options.find((opt) => opt.value === value)
@@ -108,8 +110,9 @@ function DropdownWithCustom({
 
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</label>
+      <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</label>
       <select
+        id={`${uid}-f0`}
         value={selectValue}
         onChange={(e) => {
           const next = e.target.value
@@ -135,6 +138,7 @@ function DropdownWithCustom({
       {showCustom && (
         <input
           {...(fieldPath ? { 'data-field-path': fieldPath } : {})}
+          aria-label={`${label} — custom value`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -145,7 +149,7 @@ function DropdownWithCustom({
           }`}
         />
       )}
-      {help && <p className="mt-1 text-[10px] text-slate-600">{help}</p>}
+      {help && <p className="mt-1 text-[10px] text-slate-400">{help}</p>}
     </div>
   )
 }
@@ -163,6 +167,7 @@ function LogoPicker({
   onChange: (next: string) => void
   help?: string
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   const grouped = useMemo(() => {
     const map = new Map<string, typeof LOGO_PRESETS>()
     for (const opt of LOGO_PRESETS) {
@@ -177,7 +182,7 @@ function LogoPicker({
   const selectValue = matched ? matched.value : showCustom ? CUSTOM_SENTINEL : ''
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</label>
+      <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</label>
       <div className="mt-1 flex items-stretch gap-2">
         {value && (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40 p-1">
@@ -186,6 +191,7 @@ function LogoPicker({
           </div>
         )}
         <select
+          id={`${uid}-f0`}
           value={selectValue}
           onChange={(e) => {
             const next = e.target.value
@@ -210,11 +216,12 @@ function LogoPicker({
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          aria-label={`${label} — custom path`}
           placeholder="Choose a catalog image or enter a full URL"
           className="mt-2 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
         />
       )}
-      {help && <p className="mt-1 text-[10px] text-slate-600">{help}</p>}
+      {help && <p className="mt-1 text-[10px] text-slate-400">{help}</p>}
     </div>
   )
 }
@@ -230,10 +237,11 @@ function GlowColorPicker({
   value: string
   onChange: (next: string) => void
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   const current = GLOW_COLOR_PRESETS.find((p) => p.value === value) ?? GLOW_COLOR_PRESETS[0]
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</label>
+      <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</label>
       <div className="mt-1 flex items-stretch gap-2">
         <div
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40"
@@ -242,6 +250,7 @@ function GlowColorPicker({
           <span className="block h-5 w-5 rounded-full" style={{ background: current.swatch, boxShadow: `0 0 12px ${current.swatch}` }} />
         </div>
         <select
+          id={`${uid}-f0`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="h-10 flex-1 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
@@ -549,7 +558,7 @@ export function AdminPageWizard({ onPublished }: { onPublished?: (slug: string) 
                     ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-200'
                     : done
                     ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                    : 'border-white/10 bg-white/5 text-slate-500'
+                    : 'border-white/10 bg-white/5 text-slate-400'
                 }`}
               >
                 <span className={`w-5 h-5 rounded-full text-center ${done ? 'bg-emerald-500/30' : active ? 'bg-cyan-500/30' : 'bg-white/10'}`}>
@@ -649,7 +658,7 @@ function Step1Template({ state, patch }: { state: WizardState; patch: (u: Partia
   return (
     <GlowCard glowColor="indigo" className="p-5">
       <h3 className="text-base font-bold text-white mb-1">Pick a template</h3>
-      <p className="text-xs text-slate-500 mb-4">Each template constrains card fields so you can&apos;t accidentally produce something the site can&apos;t render.</p>
+      <p className="text-xs text-slate-400 mb-4">Each template constrains card fields so you can&apos;t accidentally produce something the site can&apos;t render.</p>
       <div className="grid gap-3 md:grid-cols-3">
         {PAGE_TEMPLATES.map((t) => {
           const active = state.templateId === t.id
@@ -660,8 +669,8 @@ function Step1Template({ state, patch }: { state: WizardState; patch: (u: Partia
               className={`text-left rounded-xl border p-4 transition-colors ${active ? 'border-cyan-400/50 bg-cyan-400/10' : 'border-white/10 bg-black/20 hover:border-cyan-400/20'}`}
             >
               <p className={`text-sm font-bold ${active ? 'text-cyan-200' : 'text-white'}`}>{t.label}</p>
-              <p className="mt-1 text-xs text-slate-500">{t.description}</p>
-              <p className="mt-3 text-[10px] font-mono uppercase tracking-widest text-slate-600">parent: {t.defaultParent}</p>
+              <p className="mt-1 text-xs text-slate-400">{t.description}</p>
+              <p className="mt-3 text-[10px] font-mono uppercase tracking-widest text-slate-400">parent: {t.defaultParent}</p>
             </button>
           )
         })}
@@ -682,6 +691,7 @@ function Step2Details({
   existingSlugs: Set<string>
   erroredField?: FieldPath
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   // Advanced settings are hidden by default since most admins won't need them.
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -704,14 +714,15 @@ function Step2Details({
   return (
     <GlowCard glowColor="cyan" className="p-5">
       <h3 className="text-base font-bold text-white mb-1">Page details</h3>
-      <p className="text-xs text-slate-500 mb-4">
+      <p className="text-xs text-slate-400 mb-4">
         These show up in the page header. Pick from the dropdowns where possible — the wizard fills in
         all the technical bits behind the scenes.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Page title *</label>
+          <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Page title *</label>
           <input
+            id={`${uid}-f0`}
             data-field-path="title"
             value={state.title}
             onChange={(e) => {
@@ -724,12 +735,13 @@ function Step2Details({
             placeholder="e.g. VMware 10 Products"
             className={`mt-1 h-10 w-full rounded-lg border bg-black/30 px-3 text-sm text-white outline-none ${errorBorderClass('title', erroredField)}`}
           />
-          <p className="mt-1 text-[10px] text-slate-600">The big heading at the top of the new page.</p>
+          <p className="mt-1 text-[10px] text-slate-400">The big heading at the top of the new page.</p>
         </div>
 
         <div className="md:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Subtitle</label>
+          <label htmlFor={`${uid}-f1`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Subtitle</label>
           <textarea
+            id={`${uid}-f1`}
             rows={2}
             value={state.subtitle}
             onChange={(e) => patch({ subtitle: e.target.value })}
@@ -739,8 +751,9 @@ function Step2Details({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Section / category *</label>
+          <label htmlFor={`${uid}-f2`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Section / category *</label>
           <select
+            id={`${uid}-f2`}
             data-field-path="category"
             value={state.category}
             onChange={(e) => {
@@ -757,7 +770,7 @@ function Step2Details({
               <option key={p.value} value={p.value}>{p.label}</option>
             ))}
           </select>
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-[10px] text-slate-400">
             Becomes the URL prefix:{' '}
             <code className="text-slate-400 font-mono">
               /{state.category || '<section>'}/{state.slug || '<slug>'}
@@ -767,8 +780,9 @@ function Step2Details({
         </div>
 
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Card layout</label>
+          <label htmlFor={`${uid}-f3`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Card layout</label>
           <select
+            id={`${uid}-f3`}
             value={state.gridCols}
             onChange={(e) => patch({ gridCols: e.target.value })}
             className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
@@ -777,7 +791,7 @@ function Step2Details({
               <option key={g.value} value={g.value}>{g.label}</option>
             ))}
           </select>
-          <p className="mt-1 text-[10px] text-slate-600">How many cards appear side-by-side on a wide screen.</p>
+          <p className="mt-1 text-[10px] text-slate-400">How many cards appear side-by-side on a wide screen.</p>
         </div>
 
         <div>
@@ -831,24 +845,25 @@ function Step2Details({
           >
             <div>
               <p className="text-xs font-semibold text-white">Advanced settings</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
+              <p className="text-[10px] text-slate-400 mt-0.5">
                 URL address ({state.slug && state.category ? `/${state.category}/${state.slug}` : 'auto-generated from section + title'})
               </p>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{showAdvanced ? '▲ Hide' : '▼ Show'}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{showAdvanced ? '▲ Hide' : '▼ Show'}</span>
           </button>
           {showAdvanced && (
             <div className="px-4 pb-4 border-t border-white/5 pt-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Page address (auto)</label>
-              <p className="text-[10px] text-slate-500 mt-1 mb-2">
+              <label htmlFor={`${uid}-f4`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Page address (auto)</label>
+              <p className="text-[10px] text-slate-400 mt-1 mb-2">
                 The address shown in the browser URL bar. Generated from the title automatically — only edit
                 this if you want a specific URL.
               </p>
               <div className="flex items-stretch gap-2">
-                <span className="inline-flex h-10 items-center rounded-lg border border-white/10 bg-black/30 px-3 text-xs font-mono text-slate-500">
+                <span className="inline-flex h-10 items-center rounded-lg border border-white/10 bg-black/30 px-3 text-xs font-mono text-slate-400">
                   /{state.category || '<section>'}/
                 </span>
                 <input
+                  id={`${uid}-f4`}
                   data-field-path="slug"
                   value={state.slug}
                   onChange={(e) => patch({ slug: e.target.value.toLowerCase() })}
@@ -959,7 +974,7 @@ function Step3Cards({
           <Plus size={12} /> Add card
         </button>
       </div>
-      <p className="text-xs text-slate-500 mb-4">Required template fields: {template.cardFields.filter((f) => f.required).map((f) => f.label).join(', ') || '—'}.</p>
+      <p className="text-xs text-slate-400 mb-4">Required template fields: {template.cardFields.filter((f) => f.required).map((f) => f.label).join(', ') || '—'}.</p>
 
       {state.cards.length === 0 && (
         <div
@@ -1015,6 +1030,7 @@ function CardEditor({
   categoryPrefix: string
   erroredField?: FieldPath
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   const [showAdvanced, setShowAdvanced] = useState(false)
   const titlePath = `cards.${idx}.title`
   const descPath = `cards.${idx}.description`
@@ -1041,8 +1057,9 @@ function CardEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Title *</label>
+          <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Title *</label>
           <input
+            id={`${uid}-f0`}
             data-field-path={titlePath}
             value={card.title}
             onChange={(e) => updateCard(idx, { title: e.target.value })}
@@ -1051,8 +1068,9 @@ function CardEditor({
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Description *</label>
+          <label htmlFor={`${uid}-f1`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Description *</label>
           <textarea
+            id={`${uid}-f1`}
             data-field-path={descPath}
             rows={2}
             value={card.description}
@@ -1076,8 +1094,8 @@ function CardEditor({
         />
 
         <div className="sm:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tags</label>
-          <div className="mt-1">
+          <p id={`${uid}-tags`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Tags</p>
+          <div className="mt-1" role="group" aria-labelledby={`${uid}-tags`}>
             <div className="rounded-lg border border-white/10 bg-black/30 p-3">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {PREDEFINED_TAGS.map((tag) => (
@@ -1115,7 +1133,7 @@ function CardEditor({
               </div>
             )}
           </div>
-          <p className="mt-1 text-[10px] text-slate-600">Select tags that appear as chips under the title. Choose from predefined options only.</p>
+          <p className="mt-1 text-[10px] text-slate-400">Select tags that appear as chips under the title. Choose from predefined options only.</p>
         </div>
       </div>
 
@@ -1133,7 +1151,7 @@ function CardEditor({
           </button>
         </div>
         {(card.downloads || []).length === 0 && (
-          <p className="text-[10px] text-slate-600 italic">No downloads — card will display description only.</p>
+          <p className="text-[10px] text-slate-400 italic">No downloads — card will display description only.</p>
         )}
         <div className="space-y-3">
           {(card.downloads || []).map((dl, dlIdx) => (
@@ -1158,18 +1176,19 @@ function CardEditor({
           onClick={() => setShowAdvanced((v) => !v)}
           className="w-full flex items-center justify-between px-3 py-2 text-left"
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Advanced (card id: <span className="font-mono text-slate-400">{card.id}</span>)</p>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{showAdvanced ? '▲ Hide' : '▼ Show'}</span>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Advanced (card id: <span className="font-mono text-slate-400">{card.id}</span>)</p>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{showAdvanced ? '▲ Hide' : '▼ Show'}</span>
         </button>
         {showAdvanced && (
           <div className="px-3 pb-3 border-t border-white/5 pt-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Card id (auto)</label>
+            <label htmlFor={`${uid}-f3`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Card id (auto)</label>
             <input
+              id={`${uid}-f3`}
               value={card.id}
               onChange={(e) => updateCard(idx, { id: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '') })}
               className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white font-mono outline-none focus:border-cyan-400/60"
             />
-            <p className="mt-1 text-[10px] text-slate-600">
+            <p className="mt-1 text-[10px] text-slate-400">
               Internal identifier used when saving overrides. The wizard generates this for you — only edit if
               you have a specific reason.
             </p>
@@ -1199,36 +1218,9 @@ function DownloadRowEditor({
   categoryPrefix: string
   erroredField?: FieldPath
 }) {
+  const uid = useId() // label/control association; unique per rendered instance
   const labelPath = `cards.${cardIdx}.downloads.${dlIdx}.label`
   const hrefPath = `cards.${cardIdx}.downloads.${dlIdx}.href`
-
-  // Try to detect which preset the current href uses so we can split it back
-  // into "base + filename" when the row was loaded with an existing URL.
-  const matchedPreset = useMemo(() => {
-    if (!dl.href) return null
-    const candidates = [...DOWNLOAD_BASE_PRESETS]
-    if (categoryPrefix && !candidates.some((c) => c.value === categoryPrefix)) {
-      candidates.unshift({ label: 'Suggested for this section', value: categoryPrefix })
-    }
-    return candidates
-      .filter((p) => dl.href.startsWith(p.value))
-      .sort((a, b) => b.value.length - a.value.length)[0] || null
-  }, [dl.href, categoryPrefix])
-
-  const [base, setBase] = useState<string>(matchedPreset?.value ?? categoryPrefix)
-  const [filename, setFilename] = useState<string>(matchedPreset ? dl.href.slice(matchedPreset.value.length) : dl.href)
-  const [externalMode, setExternalMode] = useState<boolean>(!matchedPreset && dl.href !== '' && /^https?:\/\//i.test(dl.href) && !dl.href.startsWith(categoryPrefix))
-
-  // Whenever base or filename changes, push the combined href back to state.
-  useEffect(() => {
-    if (externalMode) {
-      // In external mode, the filename input holds the entire URL.
-      updateDownload(cardIdx, dlIdx, 'href', filename)
-    } else {
-      updateDownload(cardIdx, dlIdx, 'href', `${base}${filename}`)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base, filename, externalMode])
 
   // Build the dropdown's option list. We always include the category prefix
   // and a "Custom external URL…" sentinel.
@@ -1240,10 +1232,19 @@ function DownloadRowEditor({
     return opts
   }, [categoryPrefix])
 
+  // base / filename / external mode are DERIVED from dl.href on every render —
+  // no local copy. Rows are keyed by index, so any per-row state here would
+  // stay behind when a row above is deleted and then overwrite the survivor.
+  // The longest preset that prefixes the href is the base; no match means the
+  // input holds a full external URL.
+  const { base, filename } = useMemo(() => splitDownloadHref(dl.href, dropdownOptions), [dl.href, dropdownOptions])
+  const externalMode = base === ''
+  const setHref = (href: string) => updateDownload(cardIdx, dlIdx, 'href', href)
+
   return (
     <div className="rounded-md border border-white/5 bg-black/30 p-3 space-y-2">
       <div className="flex items-baseline justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Download #{dlIdx + 1}</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Download #{dlIdx + 1}</p>
         <button
           onClick={() => removeDownload(cardIdx, dlIdx)}
           className="inline-flex h-7 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:border-red-400/30 hover:text-red-300"
@@ -1254,8 +1255,9 @@ function DownloadRowEditor({
       </div>
 
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Button label</label>
+        <label htmlFor={`${uid}-f0`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Button label</label>
         <input
+          id={`${uid}-f0`}
           data-field-path={labelPath}
           value={dl.label}
           onChange={(e) => updateDownload(cardIdx, dlIdx, 'label', e.target.value)}
@@ -1265,20 +1267,16 @@ function DownloadRowEditor({
       </div>
 
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Where the file lives</label>
+        <label htmlFor={`${uid}-f1`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Where the file lives</label>
         <select
+          id={`${uid}-f1`}
           value={externalMode ? '__external__' : base}
           onChange={(e) => {
             const next = e.target.value
-            if (next === '__external__') {
-              setExternalMode(true)
-              setBase('')
-              setFilename(dl.href || '')
-            } else {
-              setExternalMode(false)
-              setBase(next)
-              // If the user is switching base mid-edit, keep just the filename portion.
-            }
+            // A preset-prefixed href can never read as external, so switching to
+            // external starts from an empty field; switching base keeps the filename.
+            if (next === '__external__') setHref(externalMode ? dl.href : '')
+            else setHref(`${next}${externalMode ? '' : filename}`)
           }}
           className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none focus:border-cyan-400/60"
         >
@@ -1290,18 +1288,19 @@ function DownloadRowEditor({
       </div>
 
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+        <label htmlFor={`${uid}-f2`} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {externalMode ? 'Full URL' : 'Filename or path'}
         </label>
         <input
+          id={`${uid}-f2`}
           data-field-path={hrefPath}
           value={filename}
-          onChange={(e) => setFilename(e.target.value)}
+          onChange={(e) => setHref(`${base}${e.target.value}`)}
           placeholder={externalMode ? 'https://example.com/file.pdf' : 'my-installer.iso'}
           className={`mt-1 h-9 w-full rounded-lg border bg-black/30 px-3 text-xs text-white font-mono outline-none ${errorBorderClass(hrefPath, erroredField)}`}
         />
         {!externalMode && filename && (
-          <p className="mt-1 text-[10px] text-slate-600 break-all">
+          <p className="mt-1 text-[10px] text-slate-400 break-all">
             Final URL: <span className="text-slate-400 font-mono">{`${base}${filename}`}</span>
           </p>
         )}
@@ -1327,7 +1326,7 @@ function StageRow({
     status === 'done' ? <CheckCircle2 size={14} className="text-emerald-300" />
     : status === 'active' ? <Loader2 size={14} className="text-cyan-300 animate-spin" />
     : status === 'error' ? <AlertTriangle size={14} className="text-red-300" />
-    : <Circle size={14} className="text-slate-500" />
+    : <Circle size={14} className="text-slate-400" />
   const labelColor =
     status === 'done' ? 'text-emerald-200'
     : status === 'active' ? 'text-cyan-200'
@@ -1383,13 +1382,13 @@ function Step4Review({
       <GlowCard glowColor="cyan" className="p-5">
         <h3 className="text-base font-bold text-white mb-3">Review</h3>
         <dl className="grid gap-3 sm:grid-cols-2 text-xs">
-          <div><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Template</dt><dd className="text-white">{template.label}</dd></div>
-          <div><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Title</dt><dd className="text-white">{state.title}</dd></div>
-          <div><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">URL</dt><dd className="text-cyan-300 font-mono">/{state.category}/{state.slug}</dd></div>
-          <div><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Category</dt><dd className="text-white">{state.category}</dd></div>
-          <div className="sm:col-span-2"><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Subtitle</dt><dd className="text-slate-300">{state.subtitle || '—'}</dd></div>
-          <div><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Cards</dt><dd className="text-white">{state.cards.length}</dd></div>
-          <div><dt className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Total downloads</dt><dd className="text-white">{state.cards.reduce((sum, c) => sum + (c.downloads?.length || 0), 0)}</dd></div>
+          <div><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Template</dt><dd className="text-white">{template.label}</dd></div>
+          <div><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Title</dt><dd className="text-white">{state.title}</dd></div>
+          <div><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">URL</dt><dd className="text-cyan-300 font-mono">/{state.category}/{state.slug}</dd></div>
+          <div><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Category</dt><dd className="text-white">{state.category}</dd></div>
+          <div className="sm:col-span-2"><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Subtitle</dt><dd className="text-slate-300">{state.subtitle || '—'}</dd></div>
+          <div><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Cards</dt><dd className="text-white">{state.cards.length}</dd></div>
+          <div><dt className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Total downloads</dt><dd className="text-white">{state.cards.reduce((sum, c) => sum + (c.downloads?.length || 0), 0)}</dd></div>
         </dl>
       </GlowCard>
 

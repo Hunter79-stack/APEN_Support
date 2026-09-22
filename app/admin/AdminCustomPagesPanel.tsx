@@ -10,7 +10,7 @@
  * Delete path: adminContentClient.deleteCustomPage(slug, updatedBy)
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import {
   AlertTriangle,
@@ -53,9 +53,12 @@ export function AdminCustomPagesPanel() {
   const [busySlug, setBusySlug] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
 
+  const refreshSeq = useRef(0) // latest request wins: an older list must not land after a newer one
   const refresh = useCallback(async () => {
+    const seq = ++refreshSeq.current
     setLoading(true)
     const data = await adminContentClient.fetchAll()
+    if (seq !== refreshSeq.current) return
     setLoading(false)
     if (!data) {
       setFeedback({ kind: 'err', text: 'Could not reach the admin API. Is the site-stats proxy running?' })
@@ -130,7 +133,7 @@ export function AdminCustomPagesPanel() {
             : <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           }
           <span className="flex-1 whitespace-pre-wrap break-words">{feedback.text}</span>
-          <button onClick={() => setFeedback(null)} aria-label="Dismiss" className="shrink-0 text-slate-500 hover:text-white">
+          <button onClick={() => setFeedback(null)} aria-label="Dismiss" className="shrink-0 text-slate-400 hover:text-white">
             <X size={12} />
           </button>
         </div>
@@ -138,14 +141,14 @@ export function AdminCustomPagesPanel() {
 
       {loading && pages.length === 0 && (
         <GlowCard glowColor="indigo" className="p-6 text-center">
-          <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Loading published pages…</p>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-widest">Loading published pages…</p>
         </GlowCard>
       )}
 
       {!loading && sorted.length === 0 && (
         <GlowCard glowColor="indigo" className="p-6 text-center">
           <p className="text-sm text-slate-400">No pages have been published via the New Page Wizard yet.</p>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-400">
             Switch to the <span className="text-cyan-300">New page wizard</span> tab to create one.
           </p>
         </GlowCard>
@@ -178,7 +181,7 @@ export function AdminCustomPagesPanel() {
                       <p className="mt-1 text-xs text-slate-400 leading-relaxed line-clamp-2">{p.subtitle}</p>
                     )}
                     <p className="mt-1.5 text-[10px] font-mono text-cyan-400/80 truncate">{url}</p>
-                    <p className="mt-1 text-[10px] text-slate-600">
+                    <p className="mt-1 text-[10px] text-slate-400">
                       {p.cards.length} card{p.cards.length === 1 ? '' : 's'}
                       {' · '}
                       updated {formatTimestamp(p.updatedAt)}

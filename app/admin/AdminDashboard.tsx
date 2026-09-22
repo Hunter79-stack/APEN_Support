@@ -138,7 +138,7 @@ function NotificationSettingsPanel({
             <Mail size={16} className="text-cyan-300" aria-hidden="true" />
             <p className="text-xs font-black uppercase tracking-[0.2em] text-white">Notification Email</p>
           </div>
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="admin-notification-email">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400" htmlFor="admin-notification-email">
             Send alerts and feedback notices to
           </label>
           <input
@@ -147,9 +147,9 @@ function NotificationSettingsPanel({
             value={draft.emailAddress}
             onChange={(event) => setDraft((current) => ({ ...current, emailAddress: event.target.value }))}
             placeholder="admin-notifications@example.mil"
-            className="mt-2 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none transition-colors placeholder:text-slate-700 focus:border-cyan-400/60"
+            className="mt-2 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none transition-colors placeholder:text-slate-400 focus:border-cyan-400/60"
           />
-          <div className="mt-3 flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="mt-3 flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -238,7 +238,7 @@ function AlertsPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex gap-2">
           {ADMIN_ALERT_FILTERS.map(t => (
-            <button key={t} onClick={() => setFilter(t)} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all ${filter === t ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-slate-500'}`}>
+            <button key={t} onClick={() => setFilter(t)} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all ${filter === t ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-slate-400'}`}>
               {t}
             </button>
           ))}
@@ -247,7 +247,7 @@ function AlertsPanel({
       </div>
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <p className="text-center py-8 text-slate-600 text-xs font-mono">
+          <p className="text-center py-8 text-slate-400 text-xs font-mono">
             {filter === 'dismissed'
               ? 'No Dismissed Items'
               : `Sensors Clear — ${summary.active} active · ${summary.dismissed} dismissed`}
@@ -265,7 +265,7 @@ function AlertsPanel({
                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{alert.message}</p>
                    {/* DTG line — timestamp, source, and (when dismissed) the
                        attribution of which admin removed it, inline on the same row. */}
-                   <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] text-slate-600 font-mono">
+                   <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] text-slate-400 font-mono">
                       <span className="flex items-center gap-1"><Clock size={10}/> {alert.timestamp}</span>
                       <span className="text-cyan-500/60 font-bold uppercase">{alert.source}</span>
                       {dismissal && (
@@ -319,7 +319,7 @@ function SectionHeader({ label, hint }: { label: string; hint: string }) {
     <div className="flex items-baseline gap-3 mb-6">
       <h2 className="text-sm font-black uppercase tracking-[0.2em] text-white/90">{label}</h2>
       <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-      <span className="text-[10px] font-mono text-slate-600 uppercase tracking-tighter">{hint}</span>
+      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">{hint}</span>
     </div>
   )
 }
@@ -377,7 +377,7 @@ function StatTile({
       </div>
       <div className="min-w-0 text-left">
         <p className="text-xl font-black leading-none text-white">{value}</p>
-        <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
+        <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
       </div>
     </>
   )
@@ -397,7 +397,7 @@ function StatTile({
       className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/5 focus:outline-none focus-visible:border-cyan-400/60"
     >
       {body}
-      <ChevronRight size={14} className="ml-auto shrink-0 text-slate-600" aria-hidden="true" />
+      <ChevronRight size={14} className="ml-auto shrink-0 text-slate-400" aria-hidden="true" />
     </button>
   )
 }
@@ -412,7 +412,7 @@ function StatTile({
 // a page went away. Same predicate as the home filter (isSiteHistoryAnnouncement).
 function SiteHistoryPanel() {
   if (SITE_HISTORY_ANNOUNCEMENTS.length === 0) {
-    return <p className="text-xs text-slate-500">No historical entries recorded.</p>
+    return <p className="text-xs text-slate-400">No historical entries recorded.</p>
   }
   return (
     <ol className="space-y-2">
@@ -421,7 +421,7 @@ function SiteHistoryPanel() {
           key={`${entry.date}-${entry.text}`}
           className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 sm:flex-row sm:items-start sm:gap-4"
         >
-          <span className="shrink-0 font-mono text-[11px] text-slate-500">{entry.date || 'undated'}</span>
+          <span className="shrink-0 font-mono text-[11px] text-slate-400">{entry.date || 'undated'}</span>
           <p className="min-w-0 flex-1 break-words text-xs leading-relaxed text-slate-300">{entry.text}</p>
           {entry.category && (
             <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -747,7 +747,7 @@ export default function AdminDashboard() {
                     </div>
                     <p className={`text-xs font-black uppercase tracking-widest ${active ? 'text-cyan-200' : 'text-white'}`}>{label}</p>
                   </div>
-                  <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{ADMIN_SECTION_DESCRIPTIONS[id]}</p>
+                  <p className="mt-2 text-[11px] leading-relaxed text-slate-400">{ADMIN_SECTION_DESCRIPTIONS[id]}</p>
                 </GlowCard>
               </button>
             )
@@ -766,7 +766,7 @@ export default function AdminDashboard() {
           </section>
 
           <section>
-            <SectionHeader label="Notification Routing" hint={notificationSettings.enabled ? 'Email Enabled' : 'Email Disabled'} />
+            <SectionHeader label="Notification Routing" hint="Preferences only — no mail transport is connected on this host" />
             <NotificationSettingsPanel settings={notificationSettings} onSettingsChange={setNotificationSettings} />
           </section>
 
@@ -791,7 +791,7 @@ export default function AdminDashboard() {
 
           <section>
             <SectionHeader label="Infrastructure Nodes" hint="Live Endpoint Monitoring" />
-            <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+            <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
               Each card represents a real endpoint the site-stats proxy probes on a recurring interval.
               Click any card to see its target URL, recent uptime, and last response. Use
               <span className="text-cyan-300 mx-1">Add node</span> or <span className="text-cyan-300">Edit</span>
@@ -802,7 +802,7 @@ export default function AdminDashboard() {
 
           <section>
             <SectionHeader label="Live Announcement Scan Roots" hint="Home-page upload feed" />
-            <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+            <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
               These are the folders the site scans for newly uploaded files to surface in the
               home-page announcements feed. Changes save to
               <code className="text-cyan-400 mx-1">announcement-paths.json</code> and take effect
@@ -816,7 +816,7 @@ export default function AdminDashboard() {
       {tab === 'nginx' && (
         <section>
           <SectionHeader label="NGINX Server Status" hint="Live VTS metrics" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             The live activity view: per-zone, per-upstream, TCP/UDP and cache breakdowns. Data comes from the
             <code className="text-cyan-400 mx-1">nginx-module-vts</code> module via the site-stats proxy. If the
             module isn&apos;t installed yet, the panel says so rather than showing fabricated numbers — see
@@ -832,7 +832,7 @@ export default function AdminDashboard() {
       {tab === 'content' && (
         <section>
           <SectionHeader label="Live Content Overrides" hint="Update cards without redeploying" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             Pick a section, edit a card&apos;s fields, and save. The change is written to the proxy&apos;s
             <code className="text-cyan-400 mx-1">content-overrides.json</code> and is layered onto the live page on
             the next visit. Use <span className="text-cyan-300">Revert</span> to drop an override and fall back to
@@ -845,7 +845,7 @@ export default function AdminDashboard() {
       {tab === 'chips' && (
         <section>
           <SectionHeader label="Chat Assistant Chips" hint="Suggested prompts on the APEN-chat-assistant" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             Add, remove, modify, or reorder the clickable prompt chips shown under
             <span className="text-cyan-300 mx-1">“APEN Knowledge Base Active”</span> when the chat is empty. Changes save to the
             proxy&apos;s <code className="text-cyan-400">assistant-prompts.json</code> and reach the chat on its next page load —
@@ -858,7 +858,7 @@ export default function AdminDashboard() {
       {tab === 'assistant-prompt' && (
         <section>
           <SectionHeader label="Assistant Knowledge" hint="Who Voltron is and what the APEN offers" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             The editable half of the assistant&apos;s system prompt: its persona, the site sections it knows about,
             and the <span className="text-cyan-300">AI SERVICES</span> list it answers &ldquo;what AI do we have&rdquo;
             from. Saves to the proxy&apos;s <code className="text-cyan-400">assistant-system-prompt.json</code> and
@@ -876,7 +876,7 @@ export default function AdminDashboard() {
       {tab === 'wizard' && (
         <section>
           <SectionHeader label="New Page Wizard" hint="Create a published page in 4 steps" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             Walk through the wizard to create a brand-new page without writing code. The wizard validates every
             step, prevents slug collisions, and publishes to <code className="text-cyan-400">/&lt;section&gt;/&lt;slug&gt;</code>.
           </p>
@@ -888,7 +888,7 @@ export default function AdminDashboard() {
         <section>
           <div id="custom-pages" className="scroll-mt-24" />
           <SectionHeader label="Custom Pages" hint="Everything published via the wizard" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             Read-only audit of every page created by the New Page Wizard. Each row shows the URL,
             section, last update, and a delete control. Use the wizard to create new pages.
           </p>
@@ -900,7 +900,7 @@ export default function AdminDashboard() {
         <section>
           <div id="chat-transcripts" className="scroll-mt-24" />
           <SectionHeader label="Chat Transcripts" hint="Signed-in user conversations" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             Every signed-in user&apos;s chat transcript (one record per realm + username — the same document a user
             sees on any device once logged in there). Click a row to expand the full conversation. Export the whole
             list as Markdown, CSV, or PDF with <span className="text-cyan-300">Export</span> above.
@@ -913,7 +913,7 @@ export default function AdminDashboard() {
         <section>
           <div id="sign-in-security" className="scroll-mt-24" />
           <SectionHeader label="Sign-In Security" hint="Refused sign-ins and spoof attempts" />
-          <p className="text-xs text-slate-500 -mt-3 mb-6 max-w-3xl leading-relaxed">
+          <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
             Sign-ins this server refused <span className="text-cyan-300">before</span> contacting a domain controller —
             so they appear in no Windows security log. A name that claims two domains at once (
             <span className="font-mono text-slate-400">DOMAIN\user@domain</span>), names a domain this site does not

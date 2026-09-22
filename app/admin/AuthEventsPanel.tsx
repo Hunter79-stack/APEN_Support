@@ -111,7 +111,7 @@ export function AuthEventsPanel() {
       </div>
 
       {state === 'loading' && (
-        <p className="text-xs font-mono uppercase tracking-widest text-slate-500">Loading…</p>
+        <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Loading…</p>
       )}
 
       {state === 'ready' && shown.length === 0 && (
@@ -131,7 +131,7 @@ export function AuthEventsPanel() {
       {state === 'ready' && shown.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[46rem] text-left text-xs">
-            <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-slate-500">
+            <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-slate-400">
               <tr>
                 <th scope="col" className="px-3 py-2 font-bold">When</th>
                 <th scope="col" className="px-3 py-2 font-bold">Severity</th>
@@ -160,12 +160,12 @@ export function AuthEventsPanel() {
                   <td className="px-3 py-2 font-mono text-[11px] text-white break-all">{event.typed}</td>
                   <td className="px-3 py-2 text-slate-400">
                     <span className="text-slate-300">{REASON_LABELS[event.reason] ?? event.reason}</span>
-                    {event.detail && <span className="block text-[10px] leading-relaxed text-slate-500">{event.detail}</span>}
+                    {event.detail && <span className="block text-[10px] leading-relaxed text-slate-400">{event.detail}</span>}
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-slate-400 break-all">
                     {event.ip || '—'}
                     {event.userAgent && (
-                      <span className="block max-w-[18rem] truncate text-[10px] text-slate-600" title={event.userAgent}>
+                      <span className="block max-w-[18rem] truncate text-[10px] text-slate-400" title={event.userAgent}>
                         {event.userAgent}
                       </span>
                     )}
@@ -177,7 +177,7 @@ export function AuthEventsPanel() {
         </div>
       )}
 
-      <p className="text-[10px] leading-relaxed text-slate-600">
+      <p className="text-[10px] leading-relaxed text-slate-400">
         These sign-ins never reached a domain controller, so they appear in no Windows security log. Records are kept
         newest-first and cannot be cleared from this console. The typed value is the username box only — passwords are
         never recorded.

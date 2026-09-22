@@ -876,6 +876,7 @@ function SessionGate({ onAuthorized }: { onAuthorized: () => void }) {
   const [error, setError] = useState('')
   const [probeState, setProbeState] = useState<'probing' | 'open' | 'needLogin' | 'insufficientPrivileges' | 'needToken' | 'offline'>('probing')
   const [whoamiUsername, setWhoamiUsername] = useState('')
+  const [attempt, setAttempt] = useState(0) // bumped by Retry to re-run the probe
 
   useEffect(() => {
     let cancelled = false
@@ -920,12 +921,12 @@ function SessionGate({ onAuthorized }: { onAuthorized: () => void }) {
       }
     })()
     return () => { cancelled = true }
-  }, [onAuthorized])
+  }, [onAuthorized, attempt])
 
   if (probeState === 'probing' || probeState === 'open') {
     return (
       <GlowCard glowColor="cyan" className="p-5">
-        <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Checking admin session…</p>
+        <p className="text-xs font-mono text-slate-400 uppercase tracking-widest">Checking admin session…</p>
       </GlowCard>
     )
   }
@@ -943,7 +944,7 @@ function SessionGate({ onAuthorized }: { onAuthorized: () => void }) {
         </p>
         <pre className="mt-3 p-3 rounded-lg bg-black/40 border border-white/10 text-xs text-cyan-300 font-mono overflow-x-auto">npm run dev:all</pre>
         <button
-          onClick={() => setProbeState('probing')}
+          onClick={() => { setProbeState('probing'); setAttempt((n) => n + 1) }}
           className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 text-[10px] font-black uppercase tracking-widest text-cyan-300 hover:bg-cyan-400/20"
         >
           Retry
@@ -1020,7 +1021,7 @@ function SessionGate({ onAuthorized }: { onAuthorized: () => void }) {
           that account isn&apos;t a member of the admin group for its realm. Contact a CESC administrator if you
           need admin access.
         </p>
-        <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+        <p className="mt-3 text-xs text-slate-400 leading-relaxed">
           Just been added to the admin group? Your current session was issued before that change — sign out and
           back in to pick it up (session privilege is decided once, at login, not re-checked on every page).
         </p>
@@ -1295,7 +1296,7 @@ function RegisteredRouteImageEditor({
 
       {/* Route picker stays visible; everything below it waits for a choice. */}
       <div className="mt-5 lg:max-w-md">
-        <label htmlFor="route-image-route" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        <label htmlFor="route-image-route" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
           Registered route
         </label>
         <select
@@ -1322,7 +1323,7 @@ function RegisteredRouteImageEditor({
       </div>
 
       {!routeChosen && (
-        <p className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6 text-center text-xs text-slate-500">
+        <p className="mt-4 rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-6 text-center text-xs text-slate-400">
           Choose a route above to see its current image and change it.
         </p>
       )}
@@ -1332,7 +1333,7 @@ function RegisteredRouteImageEditor({
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="route-image-source-mode" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <label htmlFor="route-image-source-mode" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Image source
               </label>
               <select
@@ -1350,7 +1351,7 @@ function RegisteredRouteImageEditor({
 
             {sourceMode === 'catalog' && (
               <div>
-                <label htmlFor="route-image-catalog" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Catalog key</label>
+                <label htmlFor="route-image-catalog" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Catalog key</label>
                 <select
                   id="route-image-catalog"
                   value={catalogKey}
@@ -1364,7 +1365,7 @@ function RegisteredRouteImageEditor({
 
             {sourceMode === 'asset' && (
               <div>
-                <label htmlFor="route-image-asset" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Uploaded image</label>
+                <label htmlFor="route-image-asset" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Uploaded image</label>
                 <select
                   id="route-image-asset"
                   value={assetId}
@@ -1379,7 +1380,7 @@ function RegisteredRouteImageEditor({
 
             {sourceMode === 'path' && (
               <div>
-                <label htmlFor="route-image-path" className="text-[10px] font-black uppercase tracking-widest text-slate-500">Same-origin image path</label>
+                <label htmlFor="route-image-path" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Same-origin image path</label>
                 <input
                   id="route-image-path"
                   type="text"
@@ -1393,7 +1394,7 @@ function RegisteredRouteImageEditor({
 
             {sourceMode === 'upload' && (
               <div>
-                <label htmlFor="route-image-upload" className="text-[10px] font-black uppercase tracking-widest text-slate-500">PNG, JPEG, WebP, or GIF · max 6 MiB</label>
+                <label htmlFor="route-image-upload" className="text-[10px] font-black uppercase tracking-widest text-slate-400">PNG, JPEG, WebP, or GIF · max 6 MiB</label>
                 <input
                   key={fileInputKey}
                   id="route-image-upload"
@@ -1406,9 +1407,9 @@ function RegisteredRouteImageEditor({
             )}
           </div>
 
-          <div className="rounded-lg border border-white/8 bg-black/20 p-3 text-[10px] font-mono leading-relaxed text-slate-500">
-            <p><span className="text-slate-600">source default:</span> {defaultKey ?? 'catalog key unavailable'} · {PAGE_LOGOS[selectedRoute]}</p>
-            <p className="truncate"><span className="text-slate-600">effective live:</span> {effectiveSrc}</p>
+          <div className="rounded-lg border border-white/8 bg-black/20 p-3 text-[10px] font-mono leading-relaxed text-slate-400">
+            <p><span className="text-slate-400">source default:</span> {defaultKey ?? 'catalog key unavailable'} · {PAGE_LOGOS[selectedRoute]}</p>
+            <p className="truncate"><span className="text-slate-400">effective live:</span> {effectiveSrc}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -1442,7 +1443,7 @@ function RegisteredRouteImageEditor({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={draftPreview} alt={`Preview for ${selectedRoute}`} className="max-h-36 w-full object-contain" />
           ) : (
-            <p className="text-center text-xs text-slate-600">Choose a valid image to preview it.</p>
+            <p className="text-center text-xs text-slate-400">Choose a valid image to preview it.</p>
           )}
         </div>
       </div>
@@ -1531,7 +1532,7 @@ function ListRowsEditor({
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {field.label}
         </p>
-        <p className="text-[10px] font-mono text-slate-600">
+        <p className="text-[10px] font-mono text-slate-400">
           {liveCount} {liveCount === 1 ? 'row' : 'rows'}
           {removedCount > 0 ? ` · ${removedCount} removed` : ''}
         </p>
@@ -1544,7 +1545,7 @@ function ListRowsEditor({
               key={index}
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-400/20 bg-red-500/5 px-3 py-2"
             >
-              <p className="min-w-0 flex-1 truncate text-[11px] font-mono text-slate-500 line-through">
+              <p className="min-w-0 flex-1 truncate text-[11px] font-mono text-slate-400 line-through">
                 {field.columns.map((c) => row.values[c.field]).filter(Boolean)[0] || `row ${index + 1}`}
               </p>
               <button
@@ -1558,7 +1559,7 @@ function ListRowsEditor({
           ) : (
             <div key={index} className="rounded-lg border border-white/10 bg-black/30 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-600">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400">
                   {index + 1}
                 </span>
                 <button
@@ -1573,7 +1574,7 @@ function ListRowsEditor({
               <div className="grid gap-2 sm:grid-cols-2">
                 {field.columns.map((column) => (
                   <div key={column.field} className={column.full ? 'sm:col-span-2' : ''}>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {column.label}
                     </label>
                     <input
@@ -1595,7 +1596,7 @@ function ListRowsEditor({
       </div>
 
       {liveCount === 0 && (
-        <p className="py-3 text-center text-[11px] font-mono text-slate-600">
+        <p className="py-3 text-center text-[11px] font-mono text-slate-400">
           No rows. Add one below.
         </p>
       )}
@@ -1815,7 +1816,7 @@ function CardRowEditor({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-white truncate">{String(merged.title)}</p>
-          <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
+          <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
             id: {String(merged.id)}{String(merged.id) !== card.id ? ` (was ${card.id})` : ''}
           </p>
         </div>
@@ -1849,7 +1850,7 @@ function CardRowEditor({
               The "From title" button re-syncs a stale id to the current title in
               one click (useful when the title was renamed earlier). */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Card ID</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Card ID</label>
             <div className="mt-1 flex gap-2">
               <input
                 type="text"
@@ -1866,7 +1867,7 @@ function CardRowEditor({
                 <RotateCcw size={12} /> From title
               </button>
             </div>
-            <p className="mt-1 text-[10px] font-mono text-slate-700 truncate">
+            <p className="mt-1 text-[10px] font-mono text-slate-400 truncate">
               {idTouched ? 'custom id' : 'auto-suggested from title'} · source id: {card.id}
             </p>
           </div>
@@ -1882,7 +1883,7 @@ function CardRowEditor({
                 </div>
               ) : (
               <div key={field.key} className={field.full || field.type === 'textarea' ? 'sm:col-span-2' : ''}>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{field.label}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{field.label}</label>
                 {field.type === 'textarea' ? (
                   <textarea
                     rows={3}
@@ -1905,7 +1906,7 @@ function CardRowEditor({
                     className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
                   />
                 )}
-                <p className="mt-1 text-[10px] font-mono text-slate-700 truncate">
+                <p className="mt-1 text-[10px] font-mono text-slate-400 truncate">
                   default: {fieldStringValue(getDeep(card, field.key)) || '—'}
                 </p>
               </div>
@@ -1942,7 +1943,7 @@ function CardRowEditor({
               </span>
             )}
             {status === 'idle' && errorMsg && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{errorMsg}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{errorMsg}</span>
             )}
             </div>
           </div>
@@ -2273,7 +2274,7 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
                   {pendingUploads.map((file) => (
                     <li key={file.url} className="text-[11px] font-medium text-slate-300">
                       <span className="font-mono">{file.name}</span>
-                      <span className="text-slate-500"> → {file.url}</span>
+                      <span className="text-slate-400"> → {file.url}</span>
                     </li>
                   ))}
                 </ul>
@@ -2351,10 +2352,10 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
 
         <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 flex-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500" htmlFor="admin-scope-select">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400" htmlFor="admin-scope-select">
               Choose a section to edit
             </label>
-            <p className="text-xs text-slate-500 mt-1 max-w-xl">
+            <p className="text-xs text-slate-400 mt-1 max-w-xl">
               Pick the part of the site you want to update. Sections are grouped by product family.
             </p>
             <select
@@ -2390,7 +2391,7 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
               "what am I about to edit" at a glance. */}
           <div className="flex flex-wrap items-center gap-2 lg:justify-end lg:max-w-xs">
             {!scopeChosen && (
-              <span className="text-[11px] text-slate-500">Nothing selected yet.</span>
+              <span className="text-[11px] text-slate-400">Nothing selected yet.</span>
             )}
             {scopeChosen && (
             <>
@@ -2418,20 +2419,20 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
       <GlowCard glowColor="indigo" className="p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3 mb-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{activeScope.productFamily}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{activeScope.productFamily}</p>
             <h3 className="text-base font-bold text-white truncate">{activeScope.sectionName}</h3>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">{activeScope.scope}</span>
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{activeScope.scope}</span>
             <button
               onClick={refresh}
-              className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-cyan-300"
+              className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-cyan-300"
             >
               ↻ Refresh
             </button>
           </div>
         </div>
-        <p className="text-xs text-slate-500 mb-4">{activeScope.description}</p>
+        <p className="text-xs text-slate-400 mb-4">{activeScope.description}</p>
         <div className="space-y-3">
           {/* One datalist shared by every URL field below — the browser shows it
               as a dropdown on the input. Free text still works for routes and
@@ -2467,7 +2468,7 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{page.title}</p>
-                    <p className="text-[10px] font-mono text-slate-600">/custom-pages/?slug={page.slug}</p>
+                    <p className="text-[10px] font-mono text-slate-400">/custom-pages/?slug={page.slug}</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -2480,13 +2481,13 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
                         window.alert(result.error)
                       }
                     }}
-                    className="text-slate-600 hover:text-red-300"
+                    className="text-slate-400 hover:text-red-300"
                     aria-label={`Delete ${page.title}`}
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-slate-500 line-clamp-2">{page.subtitle}</p>
+                <p className="mt-1 text-xs text-slate-400 line-clamp-2">{page.subtitle}</p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] text-slate-400">{page.cards.length} cards</span>
                   <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] text-slate-400">{page.category}</span>
@@ -2504,15 +2505,15 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
           <ul className="space-y-1.5 text-xs">
             {auditLog.slice(0, 12).map((entry) => (
               <li key={entry.id} className="flex flex-wrap gap-2 items-baseline">
-                <span className="font-mono text-slate-600">{new Date(entry.at).toLocaleString()}</span>
+                <span className="font-mono text-slate-400">{new Date(entry.at).toLocaleString()}</span>
                 <span className="text-cyan-300 font-semibold">{entry.kind}</span>
                 <span className="text-slate-300 truncate">{entry.scope || entry.slug || ''}</span>
-                <span className="text-slate-500">
+                <span className="text-slate-400">
                   by <span className="text-slate-300">{entry.by || 'admin'}</span>
                   {entry.workstation && (
-                    <span className="text-slate-500"> @ <span className="text-slate-400 font-mono">{entry.workstation}</span></span>
+                    <span className="text-slate-400"> @ <span className="text-slate-400 font-mono">{entry.workstation}</span></span>
                   )}
-                  {entry.ip && <span className="text-slate-700 font-mono"> ({entry.ip})</span>}
+                  {entry.ip && <span className="text-slate-400 font-mono"> ({entry.ip})</span>}
                 </span>
               </li>
             ))}

@@ -36,7 +36,7 @@ function entryError(e: NginxManagedEntry): string | null {
 function StatusLine({ status, reloadEnabled }: { status: NginxReloadStatus; reloadEnabled: boolean }) {
   if (status.state === 'idle') {
     return (
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-slate-400">
         {reloadEnabled
           ? 'Edits are staged; Publish & Reload writes the nginx config and reloads nginx.'
           : 'Auto-reload is disabled — Publish writes the config; it applies on the next $SITEUPDATE.'}
@@ -125,11 +125,11 @@ export function NginxManagedEditor({ onPublished }: { onPublished?: () => void }
       </div>
 
       {loading ? (
-        <p className="py-6 text-center text-xs text-slate-500">Loading…</p>
+        <p className="py-6 text-center text-xs text-slate-400">Loading…</p>
       ) : (
         <div className="space-y-3">
           {entries.length === 0 && (
-            <p className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-xs text-slate-600">
+            <p className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-xs text-slate-400">
               No managed zones yet. Click <span className="text-cyan-300">Add</span> to create one.
             </p>
           )}
@@ -191,7 +191,7 @@ export function NginxManagedEditor({ onPublished }: { onPublished?: () => void }
 function Field({ label, value, onChange, placeholder, mono }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean }) {
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</label>
+      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</label>
       <input
         type="text"
         value={value}

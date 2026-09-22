@@ -27,7 +27,7 @@ export function NginxStatusSummary() {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white">NGINX Server</p>
           {live && data?.source && <SourcePill source={data.source} />}
           {live && data?.nginxVersion && (
-            <span className="hidden text-[10px] font-mono text-slate-600 sm:inline">
+            <span className="hidden text-[10px] font-mono text-slate-400 sm:inline">
               nginx {data.nginxVersion}
               {data.uptimeSec != null ? ` · up ${fmtDuration(data.uptimeSec)}` : ''}
             </span>
@@ -39,9 +39,9 @@ export function NginxStatusSummary() {
       {/* Unauthorized */}
       {unauthorized && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <Lock size={20} className="text-slate-500" />
+          <Lock size={20} className="text-slate-400" />
           <p className="text-xs text-slate-400">Not authorized for nginx status.</p>
-          <p className="max-w-md text-[11px] leading-relaxed text-slate-600">
+          <p className="max-w-md text-[11px] leading-relaxed text-slate-400">
             Sign in via <span className="text-cyan-300">Edit pages &amp; cards</span>, or open from an allowlisted
             workstation so nginx injects the admin token.
           </p>
@@ -53,7 +53,7 @@ export function NginxStatusSummary() {
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <WifiOff size={20} className="text-amber-400/70" />
           <p className="text-xs text-amber-200/90">VTS not detected.</p>
-          <p className="max-w-md text-[11px] leading-relaxed text-slate-500">
+          <p className="max-w-md text-[11px] leading-relaxed text-slate-400">
             Live metrics need the nginx-module-vts module. See
             <code className="text-cyan-400"> proxy/NGINX_VTS_RUNBOOK.md</code>.
           </p>
@@ -65,7 +65,7 @@ export function NginxStatusSummary() {
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <WifiOff size={20} className="text-red-400/70" />
           <p className="text-xs text-red-200/90">Status endpoint unreachable.</p>
-          <p className="max-w-md text-[11px] leading-relaxed text-slate-600">
+          <p className="max-w-md text-[11px] leading-relaxed text-slate-400">
             Check <code className="text-cyan-400">pm2 status apen-stats-api</code>.
           </p>
         </div>
