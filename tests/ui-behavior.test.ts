@@ -878,6 +878,8 @@ test('privacy headers suppress referrers without blocking same-origin embeds', (
 test('the admin content panels start blank until a location is chosen', () => {
   const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
   const contentEditor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
+  // The route-image editor moved to its own file (code-quality #64).
+  const routeEditor = fs.readFileSync(path.join('app', 'admin', 'RouteImageEditor.tsx'), 'utf8')
 
   // Downloads & installers: no directory preselected, and its body is gated.
   // Step 1 names a product section now, not a folder — the folder is derived.
@@ -886,9 +888,9 @@ test('the admin content panels start blank until a location is chosen', () => {
   assert.doesNotMatch(libraryPanel, /useState\('isos'\)/)
 
   // Registered route images: a route must be picked before the editor appears.
-  assert.match(contentEditor, /const \[routeChosen, setRouteChosen\] = useState\(false\)/)
-  assert.match(contentEditor, /<option value="">— Choose a route —<\/option>/)
-  assert.match(contentEditor, /\{routeChosen && \(/)
+  assert.match(routeEditor, /const \[routeChosen, setRouteChosen\] = useState\(false\)/)
+  assert.match(routeEditor, /<option value="">— Choose a route —<\/option>/)
+  assert.match(routeEditor, /\{routeChosen && \(/)
 
   // Section picker + its card list follow the same pattern.
   assert.match(contentEditor, /const \[scopeChosen, setScopeChosen\] = useState\(false\)/)
@@ -1191,10 +1193,12 @@ test('every documentation page is editable and every picker names its page', asy
 
 test('URL fields offer the server files of every folder their section links into', () => {
   const editor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
-  // One datalist, referenced by every url-type input — native dropdown with
-  // free text preserved for routes and external links.
+  const rowEditor = fs.readFileSync(path.join('app', 'admin', 'CardRowEditor.tsx'), 'utf8')
+  // One datalist (in the editor), referenced by every url-type input (in the
+  // row editor) — native dropdown with free text preserved for routes and
+  // external links.
   assert.match(editor, /<datalist id="admin-scope-file-options">/)
-  assert.match(editor, /list=\{field\.type === 'url' \? 'admin-scope-file-options' : undefined\}/)
+  assert.match(rowEditor, /list=\{field\.type === 'url' \? 'admin-scope-file-options' : undefined\}/)
   // ALL of a section's folders feed it, not just the most-linked one — the
   // Tools / VMRC section spans /vmware/vmware-tools AND /vmware/vmrc, and a
   // best-prefix-only list would leave the VMRC field with nothing to offer.
