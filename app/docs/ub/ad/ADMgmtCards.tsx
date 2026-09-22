@@ -30,13 +30,13 @@ function JoinContent() {
       <div className="space-y-2">
         <Step n={3} text="Ensure DNS server and Search domain settings are correctly configured." />
         <p className="text-xs font-semibold text-slate-400">Ubuntu 22 Desktop Specific</p>
-        <p className="text-xs text-slate-500">Interfaces are managed via nmtui. Open it, select the interface in use, and adjust DNS settings. Then restart NetworkManager.</p>
+        <p className="text-xs text-slate-400">Interfaces are managed via nmtui. Open it, select the interface in use, and adjust DNS settings. Then restart NetworkManager.</p>
         <CodeBlock code="sudo nmtui" />
         <CodeBlock className="mt-1" code="sudo systemctl restart NetworkManager" />
         <p className="text-xs font-semibold text-slate-400 mt-2">Ubuntu 22 Server Specific</p>
-        <p className="text-xs text-slate-500">Interfaces are managed via Netplan. Edit the .yaml file in /etc/netplan/ (e.g. 00-installer-config.yaml). Spacing is critical. Apply with:</p>
+        <p className="text-xs text-slate-400">Interfaces are managed via Netplan. Edit the .yaml file in /etc/netplan/ (e.g. 00-installer-config.yaml). Spacing is critical. Apply with:</p>
         <CodeBlock code="sudo netplan apply" />
-        <p className="text-xs text-slate-500 mt-1">Example NIC configuration:</p>
+        <p className="text-xs text-slate-400 mt-1">Example NIC configuration:</p>
         <div className="p-2.5 rounded-lg border border-white/5 font-mono text-xs text-slate-300 space-y-0.5" style={{ background: 'rgba(10,15,35,0.7)' }}>
           <div>network:</div>
           <div>&nbsp;&nbsp;version: 2</div>
@@ -59,7 +59,7 @@ function JoinContent() {
       <div className="space-y-2">
         <Step n={4} text="Join Active Directory." />
         <CodeBlock code="sudo realm join BLCSE.MIL -U username" />
-        <p className="text-xs text-slate-500">If you get a parent/child domain error, run <code className="code-inline">sudo realm discover BLCSE.MIL</code> and try again.</p>
+        <p className="text-xs text-slate-400">If you get a parent/child domain error, run <code className="code-inline">sudo realm discover BLCSE.MIL</code> and try again.</p>
       </div>
       <div className="space-y-2">
         <Step n={5} text="Verify the machine is joined to the domain." />
@@ -117,7 +117,7 @@ export function ADMgmtCards() {
                 <GlowCard className={`p-8 flex flex-col gap-6 w-full transition-all duration-300 ${isOpen ? 'ring-2 ring-cyan-400 shadow-[0_0_90px_rgba(0,212,255,0.8)]' : 'hover:ring-2 hover:ring-sky-300/70'}`} glowColor="cyan">
                   <div className="flex items-start justify-between">
                     <RouteThemedLogo route="/docs/ub/ad" fallbackSrc={DOCS_PAGE_LOGOS['/docs/ub/ad']} alt="Ubuntu" size="xl" glass glow variant="square" />
-                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
+                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
                   </div>
                   <div className="flex-1">
                     <p className="text-lg font-semibold text-white">{card.title}</p>

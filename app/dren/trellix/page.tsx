@@ -20,13 +20,13 @@ export default function DRENTrellixPage() {
 
         <section>
           <SectionTitle>Enterprise Linux</SectionTitle>
-          <p className="text-sm text-slate-500 mb-6">Tested on AlmaLinux 8, AlmaLinux 9, RockyLinux 8, and CentOS 7.</p>
+          <p className="text-sm text-slate-400 mb-6">Tested on AlmaLinux 8, AlmaLinux 9, RockyLinux 8, and CentOS 7.</p>
           <DRENTrellixELCards />
         </section>
 
         <section>
           <SectionTitle>Ubuntu</SectionTitle>
-          <p className="text-sm text-slate-500 mb-6">Tested on Ubuntu 22 and Ubuntu 24.</p>
+          <p className="text-sm text-slate-400 mb-6">Tested on Ubuntu 22 and Ubuntu 24.</p>
           <DRENTrellixUbuntuCards />
         </section>
 

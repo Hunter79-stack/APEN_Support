@@ -13,7 +13,7 @@ export function EnterpriseCards() {
   return (
     <div className="grid md:grid-cols-3 gap-6">
       {cards.map(({ itemCount, hrefLabel, ...card }, index) => (
-        <HoverRevealCard key={card.href} {...card} glowColor={getCardGlowColor(index)} subtitle={itemCount} />
+        <HoverRevealCard key={card.href} {...card} glowColor={getCardGlowColor(index)} subtitle={itemCount} ctaLabel={hrefLabel} />
       ))}
     </div>
   )

@@ -11,8 +11,6 @@ import { Callout } from '@/components/layout/PageHeader'
 import { DOCS_PAGE_LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 
-const BASE = URLS.evaluateStig
-
 interface UbuntuVersion {
   id: string
   version: string
@@ -61,8 +59,8 @@ function GuideContent({ v }: { v: UbuntuVersion }) {
       </div>
       <div className="space-y-2">
         <Step n={2} text="Download Evaluate-STIG." />
-        <CodeBlock code={`sudo curl ${BASE}/Evaluate-STIG.tar.gz -o /var/evaluate-stig/Evaluate-STIG.tar.gz`} />
-        <p className="text-xs text-slate-500 mt-1">
+        <CodeBlock code={`sudo curl ${URLS.evaluateStigDownload}/Evaluate-STIG.tar.gz -o /var/evaluate-stig/Evaluate-STIG.tar.gz`} />
+        <p className="text-xs text-slate-400 mt-1">
           For certificate trust errors, see{' '}
           <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.
         </p>
@@ -108,7 +106,7 @@ export function STIGUbuntuCards() {
                 <GlowCard className={`p-8 flex flex-col gap-6 w-full transition-all duration-300 ${isOpen ? 'ring-2 ring-cyan-400 shadow-[0_0_90px_rgba(0,212,255,0.8)]' : 'hover:ring-2 hover:ring-sky-300/70'}`} glowColor={getCardGlowColor(index)}>
                   <div className="flex items-start justify-between">
                     <RouteThemedLogo route="/docs/evaluate-stig/linux/ubuntu" fallbackSrc={DOCS_PAGE_LOGOS['/docs/evaluate-stig/linux/ubuntu']} alt="Evaluate-STIG" size="xl" glass glow variant="square" />
-                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
+                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

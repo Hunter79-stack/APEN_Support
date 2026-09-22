@@ -132,9 +132,9 @@ function TileText({ item }: { item: TileItem }) {
     <div className="flex-1 min-w-0">
       <p className="text-sm font-semibold text-white truncate" title={item.title}>{item.title}</p>
       {item.subtitle && <p className="text-xs text-slate-400 truncate">{item.subtitle}</p>}
-      {item.version && <p className="text-[11px] text-slate-500 truncate">{item.version}</p>}
+      {item.version && <p className="text-[11px] text-slate-400 truncate">{item.version}</p>}
       {item.description && (
-        <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{item.description}</p>
+        <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">{item.description}</p>
       )}
     </div>
   )
@@ -347,7 +347,7 @@ export function TileGrid({
             <div className="flex items-baseline gap-3 mb-4">
               <h2 className="text-xl font-semibold text-white">{category}</h2>
               {showCounts && (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   {bucket.length} {unitLabel}{bucket.length === 1 ? '' : 's'}
                 </span>
               )}

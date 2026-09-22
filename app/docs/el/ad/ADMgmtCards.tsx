@@ -40,7 +40,7 @@ function JoinContent() {
       <div className="space-y-2">
         <Step n={3} text="Verify DNS and Search domain settings via nmtui." />
         <CodeBlock code="sudo nmtui" />
-        <p className="text-xs text-slate-500">Select the interface in use and follow the onscreen prompts.</p>
+        <p className="text-xs text-slate-400">Select the interface in use and follow the onscreen prompts.</p>
       </div>
       <div className="space-y-2">
         <Step n={4} text="Reload NetworkManager config." />
@@ -130,7 +130,7 @@ export function ADMgmtCards() {
                     <RouteThemedLogo route="/docs/el/ad" fallbackSrc={DOCS_PAGE_LOGOS['/docs/el/ad']} alt="Enterprise Linux" size="xl" glass glow variant="square" />
                     {isOpen && (
                       <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }}
-                        className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close">
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close">
                         <X size={14} />
                       </button>
                     )}

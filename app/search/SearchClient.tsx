@@ -153,7 +153,7 @@ export function SearchClient() {
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-[1fr_14rem]">
         <div className="relative">
-          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
           <input
             ref={inputRef}
             autoFocus
@@ -168,7 +168,7 @@ export function SearchClient() {
               type="button"
               onClick={() => { setQuery(''); inputRef.current?.focus() }}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -186,7 +186,7 @@ export function SearchClient() {
         </select>
       </div>
 
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-slate-400">
         Press <kbd className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-slate-400">/</kbd> anywhere to focus search.
       </p>
 
@@ -196,7 +196,7 @@ export function SearchClient() {
         </p>
       )}
       {!pages && !loadError && query && (
-        <p className="flex items-center gap-2 text-sm text-slate-500">
+        <p className="flex items-center gap-2 text-sm text-slate-400">
           <Loader2 size={14} className="animate-spin" aria-hidden="true" /> Loading search index…
         </p>
       )}
@@ -205,7 +205,7 @@ export function SearchClient() {
         {pages && query.trim().length >= 2 && results.length === 0 && (
           <div className="space-y-3 text-sm text-slate-400">
             <div className="flex items-center gap-3">
-              <SearchX size={18} className="text-slate-500" aria-hidden="true" />
+              <SearchX size={18} className="text-slate-400" aria-hidden="true" />
               No pages match “{query}” in {category === 'all' ? 'the site' : category}.
             </div>
             <p>Try a shorter term, switch to All categories, or use the main navigation.</p>
@@ -218,7 +218,7 @@ export function SearchClient() {
 
       {results.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-widest text-slate-500">
+          <p className="text-xs uppercase tracking-widest text-slate-400">
             {results.length === MAX_RESULTS ? `Top ${MAX_RESULTS} results` : `${results.length} result${results.length === 1 ? '' : 's'}`}
           </p>
           {results.map(({ page, snippet }) => (

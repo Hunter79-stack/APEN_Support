@@ -574,7 +574,7 @@ export function Navbar() {
             </button>
           )}
           {expanded && (
-            <p className="text-[10px] text-slate-600 font-mono tracking-wider truncate">
+            <p className="text-[10px] text-slate-400 font-mono tracking-wider truncate">
               CESC &bull; APEN
             </p>
           )}
@@ -720,7 +720,7 @@ export function Navbar() {
                             href={child.href}
                             target={isExternal ? '_blank' : undefined}
                             rel={isExternal ? 'noopener noreferrer' : undefined}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-200 hover:bg-white/5 transition"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-white/5 transition"
                             onClick={() => setMobileOpen(false)}
                           >
                             {icon && <ThemedLogo src={icon} alt={child.label} size="xs" variant="square" glass={false} className="opacity-70" />}

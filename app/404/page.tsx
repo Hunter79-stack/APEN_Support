@@ -38,7 +38,7 @@ export default function NotFound() {
 
         {/* Quick links */}
         <div className="mt-12 border-t border-white/5 pt-8">
-          <p className="text-xs text-slate-600 uppercase tracking-widest mb-4">Common Destinations</p>
+          <p className="text-xs text-slate-400 uppercase tracking-widest mb-4">Common Destinations</p>
           <div className="flex flex-wrap justify-center gap-2">
             {[
               { label: 'Documentation', href: '/docs' },

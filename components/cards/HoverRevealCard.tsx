@@ -245,7 +245,8 @@ export function HoverRevealCard({
                 </div>
               )}
               <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-white/85">
-                {ctaLabel ?? (external ? 'Open site' : 'Open')}
+                {/* data files write the label with a trailing arrow; the icon below is the arrow */}
+                {ctaLabel?.replace(/\s*(?:→|->)\s*$/, '') || (external ? 'Open site' : 'Open')}
                 <ArrowUpRight size={13} aria-hidden="true" />
               </span>
             </div>

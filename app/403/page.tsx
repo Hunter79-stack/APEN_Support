@@ -40,7 +40,7 @@ export default function ForbiddenPage() {
 
         {/* Contact info */}
         <div className="mt-12 border-t border-white/5 pt-8">
-          <p className="text-xs text-slate-600 uppercase tracking-widest mb-4">Need Access?</p>
+          <p className="text-xs text-slate-400 uppercase tracking-widest mb-4">Need Access?</p>
           <p className="text-xs text-slate-400 leading-relaxed">
             Contact the FCC CESC Helpdesk at{' '}
             <a href="mailto:cesc@army.mil" className="text-cyan-400 hover:text-cyan-300 transition-colors">

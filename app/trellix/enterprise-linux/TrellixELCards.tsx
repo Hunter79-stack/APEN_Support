@@ -11,7 +11,7 @@ import { Callout } from '@/components/layout/PageHeader'
 import { TRELLIX_PAGE_LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 
-const BASE = URLS.trellixAgent
+const BASE = URLS.trellixAgentEl
 
 function Step({ n, text }: { n: number; text: string }) {
   return (
@@ -42,7 +42,7 @@ function AgentContent() {
       <div className="space-y-2"><Step n={4} text="Change to the directory." /><CodeBlock code="cd /trellixtemp" /></div>
       <div className="space-y-2">
         <Step n={5} text="Download install scripts." />
-        <p className="text-xs text-slate-500">For certificate trust errors see <Link href="/docs/el/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
+        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/el/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
         <CodeBlock code={`sudo wget ${BASE}/install.sh`} />
         <CodeBlock className="mt-1" code={`sudo wget ${BASE}/installrpm.sh`} />
       </div>
@@ -119,7 +119,7 @@ export function TrellixELCards() {
                     <RouteThemedLogo route="/trellix/enterprise-linux" fallbackSrc={TRELLIX_PAGE_LOGOS['/trellix/enterprise-linux']} alt="Trellix" size="xl" glass glow variant="square" />
                     {isOpen && (
                       <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }}
-                        className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close">
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close">
                         <X size={14} />
                       </button>
                     )}

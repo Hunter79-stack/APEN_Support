@@ -12,7 +12,7 @@ export function ReposCategoryCards() {
   return (
     <div className="grid md:grid-cols-3 gap-6">
       {cards.map(({ itemCount, hrefLabel, ...cat }, index) => (
-        <HoverRevealCard key={cat.href} {...cat} glowColor={getCardGlowColor(index)} subtitle={itemCount} />
+        <HoverRevealCard key={cat.href} {...cat} glowColor={getCardGlowColor(index)} subtitle={itemCount} ctaLabel={hrefLabel} />
       ))}
     </div>
   )

@@ -47,7 +47,7 @@ export default function PIPRepoPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-white">APEN pip Mirror</p>
-            <p className="text-xs text-slate-400">{BASE}/simple/</p>
+            <p className="text-xs text-slate-400">{BASE}/</p>
           </div>
         </GlowCard>
 

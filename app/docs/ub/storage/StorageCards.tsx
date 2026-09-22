@@ -33,7 +33,7 @@ function FstabContent() {
         <div className="p-2.5 rounded-lg border border-white/5 font-mono text-xs text-slate-300 mt-1" style={{ background: 'rgba(10,15,35,0.7)' }}>
           UUID=your-uuid-here  /mnt/mydata  ext4  nofail,x-systemd.device-timeout=10  0  2
         </div>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           The <code className="code-inline">nofail</code> option lets the system boot even if the drive is missing;
           <code className="code-inline">x-systemd.device-timeout=10</code> caps the wait at 10 seconds.
         </p>
@@ -47,7 +47,7 @@ function FstabContent() {
 function LvmContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-      <p className="text-xs text-slate-500">Create an LVM logical volume on a fresh secondary disk (e.g. <code className="code-inline">/dev/sdb</code>) and mount it at <code className="code-inline">/mnt/storage</code>.</p>
+      <p className="text-xs text-slate-400">Create an LVM logical volume on a fresh secondary disk (e.g. <code className="code-inline">/dev/sdb</code>) and mount it at <code className="code-inline">/mnt/storage</code>.</p>
       <div className="space-y-2"><Step n={1} text="Install LVM tools." /><CodeBlock code="sudo apt update && sudo apt install -y lvm2" /></div>
       <div className="space-y-2"><Step n={2} text="Create a physical volume on the new disk." /><CodeBlock code="sudo pvcreate /dev/sdb" /></div>
       <div className="space-y-2"><Step n={3} text="Create a volume group." /><CodeBlock code="sudo vgcreate vg_storage /dev/sdb" /></div>
@@ -107,7 +107,7 @@ export function StorageCards() {
                 <GlowCard className={`p-8 flex flex-col gap-6 w-full transition-all duration-300 ${isOpen ? 'ring-2 ring-cyan-400 shadow-[0_0_90px_rgba(0,212,255,0.8)]' : 'hover:ring-2 hover:ring-sky-300/70'}`} glowColor={getCardGlowColor(index)}>
                   <div className="flex items-start justify-between">
                     <RouteThemedLogo route="/docs/ub/storage" fallbackSrc={DOCS_PAGE_LOGOS['/docs/ub/storage']} alt="Ubuntu" size="xl" glass glow variant="square" />
-                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
+                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
                   </div>
                   <div className="flex-1">
                     <p className="text-lg font-semibold text-white">{card.title}</p>

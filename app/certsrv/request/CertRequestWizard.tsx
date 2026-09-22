@@ -274,13 +274,13 @@ function StepBubble({ step, current }: { step: StepDef; current: number }) {
                     transition-all duration-300 text-sm font-bold
           ${done   ? 'bg-cyan-400/20 border-cyan-400 text-cyan-400'        : ''}
           ${active ? 'bg-cyan-400   border-cyan-400 text-[#060b18]'        : ''}
-          ${!done && !active ? 'bg-white/5 border-white/15 text-slate-600' : ''}`}
+          ${!done && !active ? 'bg-white/5 border-white/15 text-slate-400' : ''}`}
       >
         {done ? <CheckCircle2 size={18} /> : step.id}
       </div>
       <span
         className={`text-xs font-medium whitespace-nowrap transition-colors duration-300
-          ${active ? 'text-white' : done ? 'text-cyan-400' : 'text-slate-600'}`}
+          ${active ? 'text-white' : done ? 'text-cyan-400' : 'text-slate-400'}`}
       >
         {step.label}
       </span>
@@ -363,7 +363,7 @@ function SubjectPanel({
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
           placeholder={typeConfig.placeholder}
           className={`flex-1 px-3 py-2.5 rounded-lg border font-mono text-sm text-slate-200
-                     placeholder:text-slate-600 focus:outline-none transition-colors
+                     placeholder:text-slate-400 focus:outline-none transition-colors
                      ${error ? 'border-red-400/50' : 'border-white/10 focus:border-cyan-400/50'}`}
           style={{ background: 'rgba(6,11,24,0.8)' }}
         />
@@ -384,7 +384,7 @@ function SubjectPanel({
             <AlertCircle size={11} className="flex-shrink-0" /> {error}
           </p>
         ) : typeConfig.hint && (
-          <p className="text-xs text-slate-600 leading-relaxed">{typeConfig.hint}</p>
+          <p className="text-xs text-slate-400 leading-relaxed">{typeConfig.hint}</p>
         )}
 
       <div
@@ -392,7 +392,7 @@ function SubjectPanel({
         style={{ background: 'rgba(6,11,24,0.6)' }}
       >
         {entries.length === 0
-          ? <p className="text-xs text-slate-600 italic p-3">No subject fields added yet.</p>
+          ? <p className="text-xs text-slate-400 italic p-3">No subject fields added yet.</p>
           : (
             <div className="divide-y divide-white/5">
               {entries.map((e, i) => (
@@ -405,7 +405,7 @@ function SubjectPanel({
                   <button
                     onClick={() => onRemove(i)}
                     aria-label="Remove"
-                    className="ml-3 p-1 rounded text-slate-700 group-hover:text-slate-500
+                    className="ml-3 p-1 rounded text-slate-400
                                hover:!text-red-400 hover:bg-red-400/10 transition-colors flex-shrink-0"
                   >
                     <Trash2 size={12} />
@@ -417,7 +417,7 @@ function SubjectPanel({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-slate-600 mr-0.5">Required:</span>
+        <span className="text-xs text-slate-400 mr-0.5">Required:</span>
         {requiredTypes.map((typeId) => {
           const present = entries.some((e) => e.type === typeId && e.value.trim())
           return (
@@ -427,7 +427,7 @@ function SubjectPanel({
                           transition-all duration-200
                 ${present
                   ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                  : 'bg-white/5 border border-white/10 text-slate-500'}`}
+                  : 'bg-white/5 border border-white/10 text-slate-400'}`}
             >
               {present && <CheckCircle2 size={9} />}
               {typeId}
@@ -489,7 +489,7 @@ function SANPanel({
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
           placeholder={sanType === 'DNS' ? 'server.example.mil' : '192.168.1.100'}
           className={`flex-1 px-3 py-2.5 rounded-lg border font-mono text-sm text-slate-200
-                     placeholder:text-slate-600 focus:outline-none transition-colors
+                     placeholder:text-slate-400 focus:outline-none transition-colors
                      ${error ? 'border-red-400/50' : 'border-white/10 focus:border-cyan-400/50'}`}
           style={{ background: 'rgba(6,11,24,0.8)' }}
         />
@@ -510,7 +510,7 @@ function SANPanel({
             <AlertCircle size={11} className="flex-shrink-0" /> {error}
           </p>
         ) : (
-          <p className="text-xs text-slate-600 leading-relaxed">{hint}</p>
+          <p className="text-xs text-slate-400 leading-relaxed">{hint}</p>
         )}
 
       <div
@@ -518,7 +518,7 @@ function SANPanel({
         style={{ background: 'rgba(6,11,24,0.6)' }}
       >
         {sans.length === 0
-          ? <p className="text-xs text-slate-600 italic p-3">No alternative names added yet.</p>
+          ? <p className="text-xs text-slate-400 italic p-3">No alternative names added yet.</p>
           : (
             <div className="divide-y divide-white/5">
               {sans.map((s, i) => (
@@ -533,7 +533,7 @@ function SANPanel({
                   <button
                     onClick={() => onRemove(i)}
                     aria-label="Remove"
-                    className="ml-3 p-1 rounded text-slate-700 group-hover:text-slate-500
+                    className="ml-3 p-1 rounded text-slate-400
                                hover:!text-red-400 hover:bg-red-400/10 transition-colors flex-shrink-0"
                   >
                     <Trash2 size={12} />
@@ -602,7 +602,7 @@ function StepChoosePath({
                   <Icon size={20} />
                 </div>
                 <div className={`flex-shrink-0 transition-colors
-                  ${selected ? 'text-cyan-400' : 'text-slate-700'}`}>
+                  ${selected ? 'text-cyan-400' : 'text-slate-400'}`}>
                   {selected ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                 </div>
               </div>
@@ -610,7 +610,7 @@ function StepChoosePath({
                 ${selected ? 'text-white' : 'text-slate-300'}`}>
                 {opt.title}
               </p>
-              <p className="text-xs text-slate-500 leading-relaxed">{opt.sub}</p>
+              <p className="text-xs text-slate-400 leading-relaxed">{opt.sub}</p>
             </button>
           )
         })}
@@ -681,7 +681,7 @@ function StepPasteCert({
           spellCheck={false}
           placeholder={'-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----'}
           className={`w-full px-3 py-2.5 rounded-lg border font-mono text-xs text-slate-200
-                     placeholder:text-slate-600 focus:outline-none transition-colors
+                     placeholder:text-slate-400 focus:outline-none transition-colors
                      ${error ? 'border-red-400/50' : 'border-white/10 focus:border-cyan-400/50'}`}
           style={{ background: 'rgba(6,11,24,0.8)' }}
         />
@@ -714,14 +714,14 @@ function StepPasteCert({
             <CheckCircle2 size={12} /> Parsed successfully
           </p>
           <div>
-            <p className="text-xs text-slate-500 mb-1">Subject</p>
+            <p className="text-xs text-slate-400 mb-1">Subject</p>
             <p className="font-mono text-xs text-slate-300 break-all leading-relaxed">
               {preview.subject.map((e) => `${e.type}=${e.value}`).join(', ') || '(none found)'}
             </p>
           </div>
           {preview.sans.length > 0 && (
             <div>
-              <p className="text-xs text-slate-500 mb-1">Subject Alternative Names</p>
+              <p className="text-xs text-slate-400 mb-1">Subject Alternative Names</p>
               <p className="font-mono text-xs text-slate-300 break-all leading-relaxed">
                 {preview.sans.map((s) => `${s.type === 'IP' ? 'IP' : 'DNS'}:${s.value}`).join(', ')}
               </p>
@@ -806,15 +806,15 @@ function StepSelectOS({
                 </p>
                 {opt.badge && (
                   <span className="px-1.5 py-0.5 rounded text-xs font-mono
-                                   bg-white/5 border border-white/10 text-slate-500">
+                                   bg-white/5 border border-white/10 text-slate-400">
                     {opt.badge}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{opt.sub}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
             </div>
             <div className={`ml-auto flex-shrink-0 transition-colors
-                             ${os === opt.id ? 'text-cyan-400' : 'text-slate-700'}`}>
+                             ${os === opt.id ? 'text-cyan-400' : 'text-slate-400'}`}>
               {os === opt.id ? <CheckCircle2 size={18} /> : <Circle size={18} />}
             </div>
           </button>
@@ -927,15 +927,15 @@ function StepDetails({
                     {cfg.label}
                   </span>
                   <div className={`flex-shrink-0 transition-colors
-                    ${certType === id ? 'text-cyan-400' : 'text-slate-700'}`}>
+                    ${certType === id ? 'text-cyan-400' : 'text-slate-400'}`}>
                     {certType === id ? <CheckCircle2 size={15} /> : <Circle size={15} />}
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 leading-snug">{cfg.sub}</p>
+                <p className="text-xs text-slate-400 leading-snug">{cfg.sub}</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {cfg.oids.map((o) => (
                     <span key={o.oid} className="px-1.5 py-0.5 rounded text-[10px] font-mono
-                                                  bg-white/5 border border-white/10 text-slate-600">
+                                                  bg-white/5 border border-white/10 text-slate-400">
                       {o.comment}
                     </span>
                   ))}
@@ -943,7 +943,7 @@ function StepDetails({
               </button>
             ))}
           </div>
-          <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
             Minimum key length: <code className="code-inline text-xs">2048-bit RSA</code> (enforced in the generated INF file).
           </p>
         </div>
@@ -965,11 +965,11 @@ function StepDetails({
             onChange={(e) => setKeyPath(e.target.value)}
             placeholder="/etc/pki/tls/private/server.key"
             className="w-full px-3 py-2.5 rounded-lg border border-white/10 font-mono text-sm
-                       text-slate-200 placeholder:text-slate-600 focus:outline-none
+                       text-slate-200 placeholder:text-slate-400 focus:outline-none
                        focus:border-cyan-400/50 transition-colors"
             style={{ background: 'rgba(6,11,24,0.8)' }}
           />
-          <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
             Absolute path to the existing private key file on the target system. The renewal CSR
             will be signed with this key — the file is not uploaded.
           </p>
@@ -1012,7 +1012,7 @@ function StepDetails({
           className="p-4 rounded-xl border border-white/8"
           style={{ background: 'rgba(6,11,24,0.6)' }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1.5">
             Distinguished Name
           </p>
           <p className="font-mono text-xs text-slate-300 break-all leading-relaxed">
@@ -1135,7 +1135,7 @@ function StepGenerate({
 
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-white/8" />
-        <span className="text-xs text-slate-600 uppercase tracking-widest">then run</span>
+        <span className="text-xs text-slate-400 uppercase tracking-widest">then run</span>
         <div className="flex-1 h-px bg-white/8" />
       </div>
 
@@ -1153,14 +1153,14 @@ function StepGenerate({
             className="mt-3 p-4 rounded-xl border border-white/8 space-y-3"
             style={{ background: 'rgba(6,11,24,0.7)' }}
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
               How to run the certreq command
             </p>
             <ol className="space-y-2">
               {[
                 <>Open <strong className="text-slate-300">Command Prompt</strong> or <strong className="text-slate-300">PowerShell</strong> <span className="text-cyan-400 font-semibold">as Administrator</span> — right-click and select <em className="text-slate-400">Run as administrator</em>.</>,
                 <>Navigate to the folder where you saved <code className="code-inline text-xs">{configFile}</code>. Example: <code className="code-inline text-xs">cd C:\Certs</code></>,
-                <>Copy and paste the command above into the prompt and press <kbd className="px-1.5 py-0.5 rounded border border-white/20 text-xs font-mono text-slate-300 bg-white/5">Enter</kbd>. <span className="text-slate-500">certreq will create the CSR file in the same folder.</span></>,
+                <>Copy and paste the command above into the prompt and press <kbd className="px-1.5 py-0.5 rounded border border-white/20 text-xs font-mono text-slate-300 bg-white/5">Enter</kbd>. <span className="text-slate-400">certreq will create the CSR file in the same folder.</span></>,
                 <>The output file <code className="code-inline text-xs">{name}.csr</code> is your Certificate Signing Request. Continue to the next step to submit it via the {EXTERNAL_URL_LABELS.certificateServices} portal.</>,
                 isRenew
                   ? <>Because <code className="code-inline text-xs">UseExistingKeySet = TRUE</code>, certreq re-uses the private key from the Local Machine certificate store associated with the existing certificate — the key never leaves the system.</>
@@ -1179,7 +1179,7 @@ function StepGenerate({
         )}
 
         {!isWindows && (
-          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+          <p className="text-xs text-slate-400 mt-1 leading-relaxed">
             Run from the directory containing{' '}
             <code className="code-inline text-xs">{configFile}</code>. Outputs{' '}
             {isRenew
@@ -1204,7 +1204,7 @@ function StepGenerate({
           </p>
         </div>
         <CodeBlock code={verifyCmd} />
-        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
           Review the output to confirm all Subject fields and SANs are correct before
           submitting to the APEN Certificate Authority.
         </p>
@@ -1221,7 +1221,7 @@ function StepGenerate({
             </div>
             <div>
               <p className="text-sm font-semibold text-white">One-click automation script</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Download a shell script that runs both steps automatically.
                 Place it alongside{' '}
                 <code className="code-inline text-xs">{configFile}</code> and execute it.
@@ -1415,11 +1415,11 @@ function PathOption({
             {label}
           </p>
           <div className={`flex-shrink-0 transition-colors
-            ${selected ? 'text-cyan-400' : 'text-slate-700'}`}>
+            ${selected ? 'text-cyan-400' : 'text-slate-400'}`}>
             {selected ? <CheckCircle2 size={16} /> : <Circle size={16} />}
           </div>
         </div>
-        <p className="text-xs text-slate-500 mt-1 leading-relaxed">{sub}</p>
+        <p className="text-xs text-slate-400 mt-1 leading-relaxed">{sub}</p>
       </div>
     </button>
   )
@@ -1537,7 +1537,7 @@ function ApiSubmitPanel({ allowedTemplates }: { allowedTemplates: string[] | nul
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+        <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
           Paste your CSR (.csr file contents)
         </label>
         <textarea
@@ -1547,14 +1547,14 @@ function ApiSubmitPanel({ allowedTemplates }: { allowedTemplates: string[] | nul
           spellCheck={false}
           placeholder={'-----BEGIN CERTIFICATE REQUEST-----\nMIIC...\n-----END CERTIFICATE REQUEST-----'}
           className="w-full px-3 py-2.5 rounded-lg border border-white/10 font-mono text-xs
-                     text-slate-200 placeholder:text-slate-600 focus:outline-none
+                     text-slate-200 placeholder:text-slate-400 focus:outline-none
                      focus:border-cyan-400/50 transition-colors"
           style={{ background: 'rgba(6,11,24,0.8)' }}
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+        <label className="text-xs font-bold uppercase tracking-widest text-slate-400">
           Certificate template
         </label>
         {templatesErr ? (
@@ -1562,7 +1562,7 @@ function ApiSubmitPanel({ allowedTemplates }: { allowedTemplates: string[] | nul
             <AlertCircle size={11} className="flex-shrink-0 mt-0.5" /> {templatesErr}
           </p>
         ) : templates === null ? (
-          <p className="text-xs text-slate-600 flex items-center gap-1.5">
+          <p className="text-xs text-slate-400 flex items-center gap-1.5">
             <Loader2 size={11} className="animate-spin" /> Loading templates from CEP…
           </p>
         ) : templates.length === 0 ? (
@@ -1572,7 +1572,7 @@ function ApiSubmitPanel({ allowedTemplates }: { allowedTemplates: string[] | nul
             onChange={(e) => setSelectedTpl(e.target.value)}
             placeholder="WebServer"
             className="w-full px-3 py-2.5 rounded-lg border border-white/10 font-mono text-sm
-                       text-slate-200 placeholder:text-slate-600 focus:outline-none
+                       text-slate-200 placeholder:text-slate-400 focus:outline-none
                        focus:border-cyan-400/50 transition-colors"
             style={{ background: 'rgba(6,11,24,0.8)' }}
           />
@@ -1710,10 +1710,10 @@ function PortalSubmitPanel() {
         style={{ background: 'rgba(6,11,24,0.7)' }}
       >
         <div className="flex items-center justify-between px-3 py-2 border-b border-white/8">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
             Embedded portal
           </p>
-          <p className="text-xs text-slate-600 font-mono">
+          <p className="text-xs text-slate-400 font-mono">
             {EXTERNAL_URL_LABELS.certificateServices}
           </p>
         </div>
@@ -1724,7 +1724,7 @@ function PortalSubmitPanel() {
             <p className="text-sm text-slate-300 font-semibold">
               The portal could not be embedded.
             </p>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
               Your browser blocked the embed (most commonly via{' '}
               <code className="code-inline text-xs">X-Frame-Options</code>). Use the
               button above to open it in a new tab.
@@ -1744,7 +1744,7 @@ function PortalSubmitPanel() {
 
       <div className="rounded-xl border border-white/8 p-4 space-y-3"
            style={{ background: 'rgba(6,11,24,0.6)' }}>
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
           Submission steps
         </p>
         <ol className="space-y-2">
@@ -1952,7 +1952,7 @@ export function CertRequestWizard() {
           {renderStep()}
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6 leading-relaxed">
+        <p className="text-center text-xs text-slate-400 mt-6 leading-relaxed">
           Having trouble? Contact the CESC helpdesk via{' '}
           <a
             href={EXTERNAL_URLS.trackItSelfService}

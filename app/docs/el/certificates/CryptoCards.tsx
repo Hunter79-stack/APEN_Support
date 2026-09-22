@@ -51,7 +51,7 @@ function CAContent() {
       <div className="space-y-2"><Step n={2} text="Tell the machine to update its CA certificate store." /><CodeBlock code="sudo update-ca-trust extract" /></div>
       <div className="space-y-2"><Step n={3} text="View the information of the CA certificate that was curled." /><CodeBlock code="cat /etc/pki/ca-trust/source/anchors/cuica.pem" /></div>
       <div className="space-y-2"><Step n={4} text="Verify the public key information of the newly added CA certificate is the same as the curled one." /><CodeBlock code="cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem" /></div>
-      <p className="text-xs text-slate-500">Note: Newly added CA certificates are typically added to the top of the list.</p>
+      <p className="text-xs text-slate-400">Note: Newly added CA certificates are typically added to the top of the list.</p>
     </div>
   )
 }
@@ -59,7 +59,7 @@ function CAContent() {
 function OpenSSLContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-400">
         Option reference: <code className="code-inline">-noenc</code> writes the key/cert without a passphrase;
         <code className="code-inline">-nokeys</code> / <code className="code-inline">-nocerts</code> exclude keys / certs;
         <code className="code-inline">-clcerts</code> emits the client cert only; <code className="code-inline">-cacerts</code> the CA cert only.
@@ -103,7 +103,7 @@ function SSHContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
       <p className="text-xs font-semibold text-slate-300">Linux → Enterprise Linux / Ubuntu</p>
-      <p className="text-xs text-slate-500">Creates an ed25519 keypair to SSH without a password. The passphrase you set will become your new SSH password.</p>
+      <p className="text-xs text-slate-400">Creates an ed25519 keypair to SSH without a password. The passphrase you set will become your new SSH password.</p>
       <div className="space-y-2">
         <Step n={1} text="Generate an ed25519 keypair. Press Enter to accept the default save location, then enter a passphrase." />
         <CodeBlock code="ssh-keygen -t ed25519 -a 100" />
@@ -115,7 +115,7 @@ function SSHContent() {
       <div className="space-y-2">
         <Step n={3} text="Configure the SSH daemon (Advanced). Edit the sshd_config file." />
         <CodeBlock code="sudo vi /etc/ssh/sshd_config" />
-        <p className="text-xs text-slate-500 mt-1">Ensure the following lines are set. Warning: disabling PasswordAuthentication will block SSH from any machine without an ed25519 keypair trust.</p>
+        <p className="text-xs text-slate-400 mt-1">Ensure the following lines are set. Warning: disabling PasswordAuthentication will block SSH from any machine without an ed25519 keypair trust.</p>
         <div className="p-2.5 rounded-lg border border-white/5 font-mono text-xs text-slate-300 space-y-0.5 mt-1" style={{ background: 'rgba(10,15,35,0.7)' }}>
           <div>PubkeyAuthentication yes</div>
           <div>AuthorizedKeysFile .ssh/authorized_keys .ssh/authorized_keys2</div>
@@ -128,7 +128,7 @@ function SSHContent() {
         <CodeBlock code="ssh user@ip-address" />
       </div>
       <p className="text-xs font-semibold text-slate-300 mt-2">Windows 11 → Enterprise Linux / Ubuntu</p>
-      <p className="text-xs text-slate-500">Note: Most Ubuntu machines already have <code className="code-inline">~/.ssh/authorized_keys</code>. Enterprise Linux machines may not — run <code className="code-inline">ssh-keygen -t ed25519 -a 100</code> on the target profile to create it first.</p>
+      <p className="text-xs text-slate-400">Note: Most Ubuntu machines already have <code className="code-inline">~/.ssh/authorized_keys</code>. Enterprise Linux machines may not — run <code className="code-inline">ssh-keygen -t ed25519 -a 100</code> on the target profile to create it first.</p>
       <div className="space-y-2">
         <Step n={1} text="Open Windows Terminal and generate your ed25519 keypair." />
         <CodeBlock code="ssh-keygen -t ed25519 -a 100" />
@@ -182,7 +182,7 @@ export function CryptoCards() {
                     <RouteThemedLogo route="/docs/el/certificates" fallbackSrc={DOCS_PAGE_LOGOS['/docs/el/certificates']} alt="Enterprise Linux" size="xl" glass glow variant="square" />
                     {isOpen && (
                       <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }}
-                        className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close">
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close">
                         <X size={14} />
                       </button>
                     )}

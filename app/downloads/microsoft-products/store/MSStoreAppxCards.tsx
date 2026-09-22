@@ -141,13 +141,13 @@ export function MSStoreAppxCards() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 min-w-[220px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search apps…"
             aria-label="Search apps"
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
           />
         </div>
 
@@ -182,7 +182,7 @@ export function MSStoreAppxCards() {
                   <button
                     type="button"
                     onClick={() => setShowSource(false)}
-                    className="text-slate-500 hover:text-white transition-colors p-1 rounded"
+                    className="text-slate-400 hover:text-white transition-colors p-1 rounded"
                     aria-label="Close"
                   >
                     <X size={15} aria-hidden="true" />
@@ -285,7 +285,7 @@ export function MSStoreAppxCards() {
                     type="button"
                     onClick={() => toggleSelect(a.id)}
                     aria-label={`Remove ${a.title} from the app pack`}
-                    className="text-slate-500 hover:text-white transition-colors"
+                    className="text-slate-400 hover:text-white transition-colors"
                   >
                     <X size={12} aria-hidden="true" />
                   </button>

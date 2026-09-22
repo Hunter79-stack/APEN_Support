@@ -194,7 +194,7 @@ export function ExpandableCardGrid<T extends BaseCard & { logo?: string }>({
                           e.stopPropagation()
                           setOpenCard(null)
                         }}
-                        className="text-slate-500 hover:text-white transition-colors p-1 rounded"
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded"
                         aria-label="Close"
                       >
                         <X size={14} />

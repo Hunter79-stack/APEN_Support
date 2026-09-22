@@ -70,7 +70,7 @@ function AnnouncementRow({ a, index }: { a: Announcement; index: number }) {
         <div className="flex flex-wrap items-center gap-2 mb-0.5">
           {fresh && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-cyan-400/20 border border-cyan-400/40 text-cyan-300 tracking-wider">NEW</span>}
           {a.category && <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${catCls}`}>{a.category}</span>}
-          <span className="text-xs text-slate-600 font-mono">{a.date}</span>
+          <span className="text-xs text-slate-400 font-mono">{a.date}</span>
         </div>
         <p className="max-w-full break-words text-slate-300 text-base leading-relaxed">{a.text}</p>
       </div>

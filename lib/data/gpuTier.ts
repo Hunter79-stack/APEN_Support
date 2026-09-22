@@ -264,25 +264,8 @@ export function getGpuTier(): GpuTier {
       return _cached
     }
 
-    // Positive 'high' markers — explicit so we don't fall through to 'high'
-    // for unrecognized strings that might actually be integrated chips we
-    // haven't seen yet. If none match, we trust the negative check above
-    // (i.e. "renderer is recognized hardware that isn't software or integrated").
-    const isExplicitHigh =
-      /\bgeforce\b/.test(renderer) ||
-      /\bquadro\b/.test(renderer) ||
-      /\brtx\b/.test(renderer) ||
-      /\bgtx\b/.test(renderer) ||
-      /\btitan\b/.test(renderer) ||
-      /\btesla\b/.test(renderer) ||
-      /\brx\s*\d/.test(renderer) ||
-      /radeon\s*pro\b/.test(renderer) ||
-      /\bapple\s+m\d/.test(renderer) ||                     // Apple M1/M2/M3/M4
-      /\bapple\s+(silicon|gpu)\b/.test(renderer) ||
-      /\badreno\s*(?:\(tm\)\s*)?[6-9]\d{2}\b/.test(renderer) || // Adreno 6xx/7xx/8xx
-      /\bmali-g7\d\b/.test(renderer)                        // Mali-G7x high-tier
-
-    _cached = isExplicitHigh ? 'high' : 'high' // unrecognized but real hardware → 'high'
+    // Real hardware that is neither software-rendered nor integrated → 'high'.
+    _cached = 'high'
     return _cached
   } catch {
     // Unexpected error during detection — defer to capability hints rather than

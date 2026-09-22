@@ -80,6 +80,7 @@ export function DownloadRow({ label, href, external }: {
         href={href}
         target={blank ? '_blank' : undefined}
         rel={blank ? 'noopener noreferrer' : undefined}
+        aria-label={`${label}${extension ? ` (.${extension})` : ''}`}
         className="btn-download flex-shrink-0 ml-2 text-xs px-2 py-1 flex items-center gap-1"
       >
         <Icon size={11} aria-hidden="true" />

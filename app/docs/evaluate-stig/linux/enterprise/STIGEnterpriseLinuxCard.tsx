@@ -11,8 +11,6 @@ import { getCardGlowColor } from '@/lib/data/card-colors'
 import { DOCS_PAGE_LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 
-const BASE = URLS.evaluateStig
-
 interface ELDistro {
   id: string
   distro: string
@@ -66,8 +64,8 @@ function GuideContent({ d }: { d: ELDistro }) {
       </div>
       <div className="space-y-2">
         <Step n={2} text="Download Evaluate-STIG." />
-        <CodeBlock code={`sudo curl ${BASE}/Evaluate-STIG.tar.gz -o /var/evaluate-stig/Evaluate-STIG.tar.gz`} />
-        <p className="text-xs text-slate-500 mt-1">
+        <CodeBlock code={`sudo curl ${URLS.evaluateStigDownload}/Evaluate-STIG.tar.gz -o /var/evaluate-stig/Evaluate-STIG.tar.gz`} />
+        <p className="text-xs text-slate-400 mt-1">
           For certificate trust errors, see{' '}
           <Link href="/docs/el/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.
         </p>
@@ -107,7 +105,7 @@ export function STIGEnterpriseLinuxCard() {
                 <GlowCard className={`p-8 flex flex-col gap-6 w-full transition-all duration-300 ${isOpen ? 'ring-2 ring-cyan-400 shadow-[0_0_90px_rgba(0,212,255,0.8)]' : 'hover:ring-2 hover:ring-sky-300/70'}`} glowColor={getCardGlowColor(index)}>
                   <div className="flex items-start justify-between">
                     <RouteThemedLogo route="/docs/evaluate-stig/linux/enterprise" fallbackSrc={DOCS_PAGE_LOGOS['/docs/evaluate-stig/linux/enterprise']} alt="Evaluate-STIG" size="xl" glass glow variant="square" />
-                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
+                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -115,7 +113,7 @@ export function STIGEnterpriseLinuxCard() {
                       {d.isNew && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-400/20 text-emerald-400 border border-emerald-400/30">New</span>}
                     </div>
                     <p className={`text-sm leading-relaxed mt-1.5 ${isOpen ? 'text-slate-300' : 'text-slate-400'}`}>
-                      Run Evaluate-STIG with <code className="code-inline">--ForceSTIG {d.forceFlag}</code> on {d.distro} {d.version}.
+                      Run Evaluate-STIG{d.forceFlag && <> with <code className="code-inline">--ForceSTIG {d.forceFlag}</code></>} on {d.distro} {d.version}.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">

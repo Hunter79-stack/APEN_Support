@@ -30,14 +30,24 @@ export function CodeBlock({ code, className = '' }: CodeBlockProps) {
                     : 'border-cyan-400/15 hover:border-cyan-400/35 hover:bg-[#111c33]'
                   } ${className}`}
       onClick={handleCopy}
+      role="button"
+      tabIndex={0}
+      aria-label={`Copy: ${code}`}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        e.stopPropagation() // parent cards toggle on Enter/Space
+        handleCopy()
+      }}
       title="Click to copy"
     >
+      <span role="status" className="sr-only">{copied ? 'Copied to clipboard' : ''}</span>
       <code className={`font-mono text-sm break-all leading-relaxed
                         ${copied ? 'text-emerald-300' : 'text-cyan-300'}`}>
         {code}
       </code>
       <span className={`flex-shrink-0 transition-all duration-200
-                        ${copied ? 'text-emerald-400' : 'text-slate-600 group-hover:text-cyan-400'}`}>
+                        ${copied ? 'text-emerald-400' : 'text-slate-400 group-hover:text-cyan-400'}`}>
         {copied ? <Check size={14} /> : <Copy size={14} />}
       </span>
     </div>
@@ -61,6 +71,15 @@ export function InlineCode({ code }: { code: string }) {
   return (
     <code
       onClick={handleCopy}
+      role="button"
+      tabIndex={0}
+      aria-label={copied ? 'Copied to clipboard' : `Copy: ${code}`}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        e.stopPropagation()
+        handleCopy()
+      }}
       title="Click to copy"
       className={`code-inline ${copied ? 'copied' : ''}`}
     >

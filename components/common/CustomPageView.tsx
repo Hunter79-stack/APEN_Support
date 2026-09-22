@@ -36,7 +36,7 @@ export function CustomPageView({ page }: { page: CustomPage }) {
       <div className="max-w-7xl mx-auto px-6 py-10">
         <CustomPageCardsGrid page={page} />
         {page.updatedAt && (
-          <p className="mt-8 text-[10px] font-mono text-slate-700 text-center uppercase tracking-widest">
+          <p className="mt-8 text-[10px] font-mono text-slate-400 text-center uppercase tracking-widest">
             Last updated {new Date(page.updatedAt).toLocaleString()}
             {page.updatedBy ? ` · published by ${page.updatedBy}` : ''}
           </p>
@@ -99,7 +99,7 @@ function CustomPageCardsGrid({ page }: { page: CustomPage }) {
                     <button
                       type="button"
                       onClick={() => setOpenCard(null)}
-                      className="absolute right-5 top-3 rounded p-1 text-slate-500 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                      className="absolute right-5 top-3 rounded p-1 text-slate-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                       aria-label={`Close details for ${card.title}`}
                     >
                       <X size={14} aria-hidden="true" />

@@ -25,7 +25,7 @@ function CAContent() {
       <div className="space-y-2"><Step n={2} text="Tell the machine to update its CA certificate store." /><CodeBlock code="sudo update-ca-certificates" /></div>
       <div className="space-y-2"><Step n={3} text="View the list of trusted CAs." /><CodeBlock code="cat /etc/ssl/certs/ca-certificates.crt" /></div>
       <div className="space-y-2"><Step n={4} text="Verify the public key at the bottom of the trusted CAs matches the newly added certificate." /><CodeBlock code="cat /usr/local/share/ca-certificates/cuica.crt" /></div>
-      <p className="text-xs text-slate-500">Note: Newly added CA certificates are typically added to the bottom of the list.</p>
+      <p className="text-xs text-slate-400">Note: Newly added CA certificates are typically added to the bottom of the list.</p>
     </div>
   )
 }
@@ -49,7 +49,7 @@ function SSHContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
       <p className="text-xs font-semibold text-slate-300">Linux → Enterprise Linux / Ubuntu</p>
-      <p className="text-xs text-slate-500">Creates an RSA keypair to SSH without a password. The passphrase you set will become your new SSH password.</p>
+      <p className="text-xs text-slate-400">Creates an RSA keypair to SSH without a password. The passphrase you set will become your new SSH password.</p>
       <div className="space-y-2">
         <Step n={1} text="Generate an RSA keypair. Press Enter to accept the default save location, then enter a passphrase." />
         <CodeBlock code="ssh-keygen -t rsa -b 4096" />
@@ -61,7 +61,7 @@ function SSHContent() {
       <div className="space-y-2">
         <Step n={3} text="Configure the SSH daemon (Advanced). Edit the sshd_config file." />
         <CodeBlock code="sudo vi /etc/ssh/sshd_config" />
-        <p className="text-xs text-slate-500 mt-1">Ensure the following lines are set. Warning: disabling PasswordAuthentication will block SSH from any machine without an RSA keypair trust.</p>
+        <p className="text-xs text-slate-400 mt-1">Ensure the following lines are set. Warning: disabling PasswordAuthentication will block SSH from any machine without an RSA keypair trust.</p>
         <div className="p-2.5 rounded-lg border border-white/5 font-mono text-xs text-slate-300 space-y-0.5 mt-1" style={{ background: 'rgba(10,15,35,0.7)' }}>
           <div>PubkeyAuthentication yes</div>
           <div>AuthorizedKeysFile .ssh/authorized_keys .ssh/authorized_keys2</div>
@@ -74,7 +74,7 @@ function SSHContent() {
         <CodeBlock code="ssh user@ip-address" />
       </div>
       <p className="text-xs font-semibold text-slate-300 mt-2">Windows 11 → Enterprise Linux / Ubuntu</p>
-      <p className="text-xs text-slate-500">Note: Most Ubuntu machines already have <code className="code-inline">~/.ssh/authorized_keys</code>. Enterprise Linux machines may not — run <code className="code-inline">ssh-keygen -t rsa -b 4096</code> on the target profile to create it first.</p>
+      <p className="text-xs text-slate-400">Note: Most Ubuntu machines already have <code className="code-inline">~/.ssh/authorized_keys</code>. Enterprise Linux machines may not — run <code className="code-inline">ssh-keygen -t rsa -b 4096</code> on the target profile to create it first.</p>
       <div className="space-y-2">
         <Step n={1} text="Open Windows Terminal and generate your RSA keypair." />
         <CodeBlock code="ssh-keygen -t rsa -b 4096" />
@@ -124,7 +124,7 @@ export function CryptoCards() {
                 <GlowCard className={`p-8 flex flex-col gap-6 w-full transition-all duration-300 ${isOpen ? 'ring-2 ring-cyan-400 shadow-[0_0_90px_rgba(0,212,255,0.8)]' : 'hover:ring-2 hover:ring-sky-300/70'}`} glowColor={getCardGlowColor(index)}>
                   <div className="flex items-start justify-between">
                     <RouteThemedLogo route="/docs/ub/certificates" fallbackSrc={DOCS_PAGE_LOGOS['/docs/ub/certificates']} alt="Ubuntu" size="xl" glass glow variant="square" />
-                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
+                    {isOpen && <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }} className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close"><X size={14} /></button>}
                   </div>
                   <div className="flex-1">
                     <p className="text-lg font-semibold text-white">{card.title}</p>

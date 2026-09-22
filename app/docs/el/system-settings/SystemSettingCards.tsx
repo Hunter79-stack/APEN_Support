@@ -48,26 +48,26 @@ function CronContent() {
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
       <p className="text-xs text-slate-400">Cron is a popular tool in Linux for scheduling tasks to run periodically.</p>
       <p className="text-xs font-semibold text-slate-300">Cron File Locations</p>
-      <p className="text-xs text-slate-500"><code className="code-inline">/etc/crontab</code>: System-wide cron jobs (root privileges needed to edit)<br /><code className="code-inline">/etc/cron.d/</code>: Directory for per-user cron jobs. Note: cron.daily, cron.hourly, cron.weekly, and cron.monthly are symbolic links pointing to /etc/cron.d.</p>
+      <p className="text-xs text-slate-400"><code className="code-inline">/etc/crontab</code>: System-wide cron jobs (root privileges needed to edit)<br /><code className="code-inline">/etc/cron.d/</code>: Directory for per-user cron jobs. Note: cron.daily, cron.hourly, cron.weekly, and cron.monthly are symbolic links pointing to /etc/cron.d.</p>
       <p className="text-xs font-semibold text-slate-300">View CRON Job Runs</p>
       <CodeBlock code="grep CRON /var/log/cron" />
       <p className="text-xs font-semibold text-slate-300">Cron Job Format</p>
       <div className="p-2.5 rounded-lg border border-white/5 font-mono text-xs text-slate-300" style={{ background: 'rgba(10,15,35,0.7)' }}>
         <div>minute hour day_of_month month day_of_week command_to_run</div>
-        <div className="text-slate-500 mt-1">minute (0-59) · hour (0-23) · day_of_month (1-31) · month (1-12) · day_of_week (0-6, 0=Sunday)</div>
-        <div className="text-slate-500 mt-1">*=every  ,=multiple values  -=range  /=interval (e.g. */2)</div>
+        <div className="text-slate-400 mt-1">minute (0-59) · hour (0-23) · day_of_month (1-31) · month (1-12) · day_of_week (0-6, 0=Sunday)</div>
+        <div className="text-slate-400 mt-1">*=every  ,=multiple values  -=range  /=interval (e.g. */2)</div>
       </div>
       <p className="text-xs font-semibold text-slate-300">Examples</p>
       <div className="p-2.5 rounded-lg border border-white/5 font-mono text-xs text-slate-300 space-y-1" style={{ background: 'rgba(10,15,35,0.7)' }}>
-        <div><span className="text-slate-500"># Daily at midnight</span></div>
+        <div><span className="text-slate-400"># Daily at midnight</span></div>
         <div>0 0 * * * /path/to/backup.sh</div>
-        <div className="mt-1"><span className="text-slate-500"># Every Sunday at 2:00 AM</span></div>
+        <div className="mt-1"><span className="text-slate-400"># Every Sunday at 2:00 AM</span></div>
         <div>0 2 * * 0 sudo apt update &amp;&amp; sudo apt upgrade</div>
-        <div className="mt-1"><span className="text-slate-500"># 1st of every month at 10:00 PM</span></div>
+        <div className="mt-1"><span className="text-slate-400"># 1st of every month at 10:00 PM</span></div>
         <div>0 22 1 * * ./clean_disk.sh</div>
       </div>
       <p className="text-xs font-semibold text-slate-300">Root Crontab</p>
-      <p className="text-xs text-slate-500">Important: Be cautious when editing the root crontab, as mistakes can affect system tasks.</p>
+      <p className="text-xs text-slate-400">Important: Be cautious when editing the root crontab, as mistakes can affect system tasks.</p>
       <div className="space-y-2">
         <Step n={1} text="Edit the system-wide crontab." /><CodeBlock code="sudo vi /etc/crontab" />
         <Step n={2} text="Add a new line following the cron job format above, then save and close." />
@@ -79,15 +79,15 @@ function CronContent() {
         <Step n={3} text="Load the newly created cron jobs." /><CodeBlock code="sudo crontab /etc/cron.d/task.txt" />
       </div>
       <p className="text-xs font-semibold text-slate-300">Manage the Crontab Cache</p>
-      <p className="text-xs text-slate-500">The cache automatically refreshes based on the latest crontab files.</p>
+      <p className="text-xs text-slate-400">The cache automatically refreshes based on the latest crontab files.</p>
       <div className="space-y-1">
-        <CodeBlock code="crontab -l" /><p className="text-xs text-slate-500 ml-1">List all cached jobs for current user.</p>
-        <CodeBlock code="crontab -e" /><p className="text-xs text-slate-500 ml-1">Edit the cached list (does not affect persistent jobs).</p>
-        <CodeBlock code="crontab -r" /><p className="text-xs text-slate-500 ml-1">Remove all cached jobs. Jobs will not run again until the crontab is repopulated.</p>
+        <CodeBlock code="crontab -l" /><p className="text-xs text-slate-400 ml-1">List all cached jobs for current user.</p>
+        <CodeBlock code="crontab -e" /><p className="text-xs text-slate-400 ml-1">Edit the cached list (does not affect persistent jobs).</p>
+        <CodeBlock code="crontab -r" /><p className="text-xs text-slate-400 ml-1">Remove all cached jobs. Jobs will not run again until the crontab is repopulated.</p>
       </div>
       <p className="text-xs font-semibold text-slate-300">Disable or Delete a Job</p>
-      <p className="text-xs text-slate-500">Note: After disabling or removing a task, it remains in the cache until the machine reboots, the cache is manually cleared, or the machine updates the cache automatically.</p>
-      <p className="text-xs text-slate-500">To temporarily disable: comment out the line in the cron file. To permanently remove: delete the line or the file.</p>
+      <p className="text-xs text-slate-400">Note: After disabling or removing a task, it remains in the cache until the machine reboots, the cache is manually cleared, or the machine updates the cache automatically.</p>
+      <p className="text-xs text-slate-400">To temporarily disable: comment out the line in the cron file. To permanently remove: delete the line or the file.</p>
     </div>
   )
 }
@@ -95,7 +95,7 @@ function CronContent() {
 function SystemctlContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-      <p className="text-xs text-slate-500">Note: The example below is structured to disable a NIC at startup, but can be adapted for other startup tasks. The service name can be changed as long as it is unique and ends in .service.</p>
+      <p className="text-xs text-slate-400">Note: The example below is structured to disable a NIC at startup, but can be adapted for other startup tasks. The service name can be changed as long as it is unique and ends in .service.</p>
       <div className="space-y-2">
         <Step n={1} text="Create the service file." />
         <CodeBlock code="sudo touch /etc/systemd/system/disable-interface.service" />
@@ -185,7 +185,7 @@ export function SystemSettingCards() {
                     <RouteThemedLogo route="/docs/el/system-settings" fallbackSrc={DOCS_PAGE_LOGOS['/docs/el/system-settings']} alt="Enterprise Linux" size="xl" glass glow variant="square" />
                     {isOpen && (
                       <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }}
-                        className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close">
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close">
                         <X size={14} />
                       </button>
                     )}

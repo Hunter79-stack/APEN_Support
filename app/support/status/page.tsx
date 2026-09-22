@@ -181,7 +181,7 @@ export default async function TicketStatusPage() {
                 <CardContent className="flex items-center justify-between p-6">
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <span className="text-xs font-mono text-slate-500">{ticket.id}</span>
+                      <span className="text-xs font-mono text-slate-400">{ticket.id}</span>
                       <span className={`flex items-center gap-1 text-xs font-medium ${color}`}>
                         <StatusIcon size={14} /> {ticket.status}
                       </span>

@@ -143,12 +143,12 @@ export default function ColorPickerPage() {
             style={{ backgroundColor: color }} />
           <div className="flex-1 space-y-4 w-full">
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-widest mb-2 block">Choose Color</label>
+              <label className="text-xs text-slate-400 uppercase tracking-widest mb-2 block">Choose Color</label>
               <input type="color" value={color} onChange={(e) => commitColor(e.target.value)}
                 className="w-full h-12 rounded-lg cursor-pointer border-0 bg-transparent" style={{ padding: '2px' }} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-widest mb-2 block">HEX Input</label>
+              <label className="text-xs text-slate-400 uppercase tracking-widest mb-2 block">HEX Input</label>
               <input type="text" value={hexDraft}
                 onChange={(e) => {
                   let v = e.target.value.trim()
@@ -179,7 +179,7 @@ export default function ColorPickerPage() {
 
         {/* Channel sliders */}
         <GlowWrapper className="card-glow p-5">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Channel Breakdown</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Channel Breakdown</h2>
           <div className="space-y-3">
             {[
               { label: 'Red',   value: r, color: 'bg-red-500',     max: 255 },
@@ -187,7 +187,7 @@ export default function ColorPickerPage() {
               { label: 'Blue',  value: b, color: 'bg-blue-500',    max: 255 },
             ].map((ch) => (
               <div key={ch.label} className="flex items-center gap-3">
-                <span className="text-xs text-slate-500 w-10">{ch.label}</span>
+                <span className="text-xs text-slate-400 w-10">{ch.label}</span>
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(6,11,24,0.8)' }}>
                   <div className={`h-full rounded-full transition-all duration-200 ${ch.color}`}
                     style={{ width: `${(ch.value / ch.max) * 100}%` }} />

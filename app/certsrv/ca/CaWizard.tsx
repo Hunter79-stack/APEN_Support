@@ -39,11 +39,11 @@ function StepBubble({ step, current }: { step: typeof STEPS[0]; current: number 
       <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all duration-300 text-sm font-bold
         ${done   ? 'bg-cyan-400/20 border-cyan-400 text-cyan-400' : ''}
         ${active ? 'bg-cyan-400   border-cyan-400 text-[#060b18]' : ''}
-        ${!done && !active ? 'bg-white/5 border-white/15 text-slate-600' : ''}`}>
+        ${!done && !active ? 'bg-white/5 border-white/15 text-slate-400' : ''}`}>
         {done ? <CheckCircle2 size={18} /> : step.id}
       </div>
       <span className={`text-xs font-medium whitespace-nowrap transition-colors duration-300
-        ${active ? 'text-white' : done ? 'text-cyan-400' : 'text-slate-600'}`}>
+        ${active ? 'text-white' : done ? 'text-cyan-400' : 'text-slate-400'}`}>
         {step.label}
       </span>
     </div>
@@ -170,16 +170,16 @@ function Step1({ onNext }: { onNext: () => void }) {
           <p className="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors">
             APEN CA Certificate Services
           </p>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             Opens the {EXTERNAL_URL_LABELS.certificateServices} portal
           </p>
         </div>
-        <ExternalLink size={15} className="text-slate-600 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
+        <ExternalLink size={15} className="text-slate-400 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
       </a>
 
       {/* Instructions */}
       <div className="space-y-3">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">On the CA server page:</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">On the CA server page:</p>
         {[
           'Click "Download a CA certificate, certificate chain, or CRL"',
           'Select "Base 64" encoding',
@@ -241,7 +241,7 @@ function Step2({
 
       {/* OS picker */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Operating System</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Operating System</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {osOptions.map((opt) => (
             <button
@@ -257,9 +257,9 @@ function Step2({
                 <p className={`text-sm font-semibold transition-colors ${os === opt.id ? 'text-white' : 'text-slate-300'}`}>
                   {opt.label}
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">{opt.sub}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{opt.sub}</p>
               </div>
-              <div className={`ml-auto flex-shrink-0 transition-colors ${os === opt.id ? 'text-cyan-400' : 'text-slate-700'}`}>
+              <div className={`ml-auto flex-shrink-0 transition-colors ${os === opt.id ? 'text-cyan-400' : 'text-slate-400'}`}>
                 {os === opt.id ? <CheckCircle2 size={18} /> : <Circle size={18} />}
               </div>
             </button>
@@ -269,8 +269,8 @@ function Step2({
 
       {/* Cert filename */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-          Certificate Filename <span className="text-slate-600 font-normal normal-case tracking-normal">(optional — defaults to APEN-CA.crt)</span>
+        <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+          Certificate Filename <span className="text-slate-400 font-normal normal-case tracking-normal">(optional — defaults to APEN-CA.crt)</span>
         </label>
         <input
           type="text"
@@ -278,11 +278,11 @@ function Step2({
           onChange={(e) => setCertName(e.target.value)}
           placeholder="e.g. certnew.crt  or  APEN-CA.crt"
           className="w-full px-4 py-2.5 rounded-lg border border-white/10 text-slate-200
-                     placeholder:text-slate-600 font-mono text-sm focus:outline-none
+                     placeholder:text-slate-400 font-mono text-sm focus:outline-none
                      focus:border-cyan-400/50 transition-colors"
           style={{ background: 'rgba(6,11,24,0.8)' }}
         />
-        <p className="text-xs text-slate-600 mt-1.5">
+        <p className="text-xs text-slate-400 mt-1.5">
           This is the name of the file you downloaded in Step 1. Commands will use this filename exactly.
         </p>
       </div>
@@ -353,7 +353,7 @@ function Step3({
           </div>
           <div>
             <p className="text-sm font-semibold text-white">One-click automation script</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               Download a shell script that runs all three steps automatically.
               Place it in the same folder as your <code className="code-inline text-xs">{baseName}</code> and run it.
             </p>
@@ -370,7 +370,7 @@ function Step3({
       {/* Divider */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-white/8" />
-        <span className="text-xs text-slate-600 uppercase tracking-widest">or run manually</span>
+        <span className="text-xs text-slate-400 uppercase tracking-widest">or run manually</span>
         <div className="flex-1 h-px bg-white/8" />
       </div>
 
@@ -382,7 +382,7 @@ function Step3({
         </div>
         <CodeBlock code={cmds.copy} />
         {os === 'ubuntu' && (
-          <p className="text-xs text-slate-600 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Ubuntu requires the <code className="code-inline text-xs">.crt</code> extension — make sure the filename ends in <code className="code-inline text-xs">.crt</code>.
           </p>
         )}
@@ -396,7 +396,7 @@ function Step3({
         </div>
         <CodeBlock code={cmds.update} />
         {os === 'ubuntu' && (
-          <p className="text-xs text-slate-600 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             You'll see a message like <em>"1 added, 0 removed"</em> if the certificate was added successfully.
           </p>
         )}
@@ -409,7 +409,7 @@ function Step3({
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Step 3 — Verify</p>
         </div>
         <CodeBlock code={cmds.verify} />
-        <p className="text-xs text-slate-600 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           If the cert is trusted, you'll see the certificate label in the output.
           No output means it wasn't found — re-check the filename and repeat Step 1.
         </p>
@@ -534,7 +534,7 @@ export function CertsrvWizard() {
         </div>
 
         {/* Help note */}
-        <p className="text-center text-xs text-slate-600 mt-6 leading-relaxed">
+        <p className="text-center text-xs text-slate-400 mt-6 leading-relaxed">
           Having trouble? Contact the CESC helpdesk via{' '}
           <a href={EXTERNAL_URLS.trackItSelfService}
             target="_blank" rel="noopener noreferrer"

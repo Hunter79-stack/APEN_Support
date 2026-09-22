@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getGpuTier, type GpuTier } from '@/lib/data/gpuTier'
+import { getGpuTier, getRenderBudget, type GpuTier } from '@/lib/data/gpuTier'
 
 /**
  * StarfallBackground — Animated cyber-technology background.
@@ -116,9 +116,13 @@ export function StarfallBackground() {
   const [tier, setTier] = useState<GpuTier>('none')
 
   useEffect(() => {
+    // A reduced render budget (prefers-reduced-motion, save-data, weak
+    // device) wins over the GPU tier: render nothing rather than 35 particles
+    // and 16 nodes the reduced-motion CSS then hides.
+    const pick = (gpuTier: GpuTier, budget: string) => (budget === 'reduced' ? 'none' : gpuTier)
     const handleTierChange = (event: Event) => {
-      const nextTier = (event as CustomEvent<{ tier?: GpuTier }>).detail?.tier
-      if (nextTier) setTier(nextTier)
+      const detail = (event as CustomEvent<{ tier?: GpuTier; budget?: string }>).detail
+      if (detail?.tier) setTier(pick(detail.tier, detail.budget ?? getRenderBudget()))
     }
     window.addEventListener('apen-gpu-tier-change', handleTierChange)
 
@@ -126,7 +130,7 @@ export function StarfallBackground() {
     // tier instead of starting in 'none' and re-rendering after an idle tick.
     // GpuTierDetector also dispatches `apen-gpu-tier-change` on mount, which
     // covers the case where this component mounts before the detector.
-    setTier(getGpuTier())
+    setTier(pick(getGpuTier(), getRenderBudget()))
 
     return () => {
       window.removeEventListener('apen-gpu-tier-change', handleTierChange)

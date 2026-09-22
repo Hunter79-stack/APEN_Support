@@ -11,7 +11,7 @@ import { Callout } from '@/components/layout/PageHeader'
 import { DREN_PAGE_LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 
-const AGENT_BASE = URLS.drenTrellixAgent
+const AGENT_BASE = URLS.drenTrellixAgentUbuntu
 const ENS_BASE   = URLS.drenTrellixEns
 const PAA_BASE   = URLS.drenTrellixPolicyAuditor
 
@@ -45,7 +45,7 @@ function AgentContent() {
       <div className="space-y-2"><Step n={4} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
       <div className="space-y-2">
         <Step n={5} text="Download install scripts from the DREN server." />
-        <p className="text-xs text-slate-500">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
+        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
         <CodeBlock code={`sudo wget ${AGENT_BASE}/install.sh`} />
         <CodeBlock className="mt-1" code={`sudo wget ${AGENT_BASE}/installdeb.sh`} />
       </div>
@@ -72,7 +72,7 @@ function ENSContent() {
       <div className="space-y-2"><Step n={3} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
       <div className="space-y-2">
         <Step n={4} text="Download the ENS package from the DREN server." />
-        <p className="text-xs text-slate-500">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
+        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
         <CodeBlock code={`sudo curl ${ENS_BASE}/ens_tp.tar.gz -o ens_tp.tar.gz`} />
       </div>
       <div className="space-y-2"><Step n={5} text="Extract the installation files." /><CodeBlock code="sudo tar -zxvf ens_tp.tar.gz" /></div>
@@ -103,7 +103,7 @@ function PAAContent() {
       <div className="space-y-2"><Step n={3} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
       <div className="space-y-2">
         <Step n={4} text="Download Policy Auditor files from the DREN server." />
-        <p className="text-xs text-slate-500">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
+        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
         <CodeBlock code={`sudo curl ${PAA_BASE}/install.sh -o install.sh`} />
         <CodeBlock className="mt-1" code={`sudo curl ${PAA_BASE}/paa-install.tar -o paa-install.tar`} />
       </div>
@@ -178,7 +178,7 @@ export function DRENTrellixUbuntuCards() {
                     <RouteThemedLogo route="/dren/trellix/ubuntu" fallbackSrc={DREN_PAGE_LOGOS['/dren/trellix/ubuntu']} alt="Trellix DREN" size="xl" glass glow variant="square" />
                     {isOpen && (
                       <button onClick={(e) => { e.stopPropagation(); setOpenCard(null) }}
-                        className="text-slate-500 hover:text-white transition-colors p-1 rounded" aria-label="Close">
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded" aria-label="Close">
                         <X size={14} />
                       </button>
                     )}

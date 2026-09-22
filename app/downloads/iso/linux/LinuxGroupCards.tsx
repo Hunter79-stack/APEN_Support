@@ -16,7 +16,7 @@ export function LinuxGroupCards() {
   return (
     <div className="grid md:grid-cols-2 gap-6">
       {groups.map(({ itemCount, hrefLabel, ...group }, index) => (
-        <HoverRevealCard key={group.href} {...group} glowColor={getCardGlowColor(index)} subtitle={itemCount} />
+        <HoverRevealCard key={group.href} {...group} glowColor={getCardGlowColor(index)} subtitle={itemCount} ctaLabel={hrefLabel} />
       ))}
     </div>
   )

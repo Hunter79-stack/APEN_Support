@@ -20,7 +20,7 @@ export function ReleaseNotes({ groups }: { groups: ReleaseNoteGroup[] }) {
               <div key={rel.version} className="border-l-2 border-white/10 pl-4">
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-semibold text-cyan-200">{rel.version}</span>
-                  {rel.date && <span className="text-[11px] font-mono text-slate-500">{rel.date}</span>}
+                  {rel.date && <span className="text-[11px] font-mono text-slate-400">{rel.date}</span>}
                   {rel.href && (
                     <a href={rel.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-cyan-300 hover:text-cyan-200">
                       <FileText size={11} /> Release notes <ExternalLink size={10} className="opacity-50" />

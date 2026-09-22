@@ -20,7 +20,7 @@ export default function VisualStudioDocsPage() {
         <section>
           <SectionTitle>All Version Release Notes</SectionTitle>
           <ReleaseNotes groups={visualStudioReleaseNotes} />
-          <p className="mt-4 text-[11px] text-slate-500">
+          <p className="mt-4 text-[11px] text-slate-400">
             Source: Microsoft Learn — learn.microsoft.com/visualstudio/releases/2022. Compiled for offline reference.
           </p>
         </section>

@@ -37,7 +37,7 @@ export function SupportServiceCards() {
                 <div className={`p-3 rounded-lg bg-white/5 border border-white/10 text-${service.glowColor}-400`}>
                   <Icon size={24} />
                 </div>
-                <ExternalLink size={16} className="text-slate-600 group-hover:text-cyan-400/50 transition-colors" />
+                <ExternalLink size={16} className="text-slate-400 group-hover:text-cyan-400/50 transition-colors" />
               </div>
               <div>
                 <p className="text-lg font-semibold text-white leading-snug group-hover:text-white transition-colors">{service.title}</p>

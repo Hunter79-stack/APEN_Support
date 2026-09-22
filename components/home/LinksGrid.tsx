@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { motion } from 'framer-motion'
+import { motion, MotionConfig } from 'framer-motion'
 import { HoverRevealCard, type GlowColorName } from '@/components/cards'
 import { getCardGlowColor } from '@/lib/data/card-colors'
 import { useCardOverrides } from '@/lib/data/admin-content'
@@ -96,6 +96,9 @@ export function LinksGrid({
      the inner grid) so cards keep a stable size regardless of how many
      items the section has. */
   return (
+    // reducedMotion="user": with the OS "reduce motion" setting on, the y
+    // translations are dropped and only the opacity fades run.
+    <MotionConfig reducedMotion="user">
     <motion.section
       className="apen-section"
       variants={sectionVariants}
@@ -140,5 +143,6 @@ export function LinksGrid({
         </motion.div>
       </div>
     </motion.section>
+    </MotionConfig>
   )
 }

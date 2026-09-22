@@ -56,7 +56,7 @@ export function CustomPageRenderer() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
-        <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Loading admin-published pages…</p>
+        <p className="text-xs font-mono text-slate-400 uppercase tracking-widest">Loading admin-published pages…</p>
       </div>
     )
   }
@@ -76,7 +76,7 @@ export function CustomPageRenderer() {
           {visiblePages.length === 0 ? (
             <GlowCard glowColor="indigo" className="p-8 text-center">
               <p className="text-sm text-slate-400">No custom pages have been published yet.</p>
-              <p className="text-xs text-slate-600 mt-2">
+              <p className="text-xs text-slate-400 mt-2">
                 Admins can create one via the New Page Wizard at <code className="text-cyan-400">/admin</code>.
               </p>
             </GlowCard>

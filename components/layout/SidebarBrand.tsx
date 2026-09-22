@@ -56,7 +56,7 @@ export function SidebarBrand({
         /* Wordmark layout: full-width pill, title below */
         <div className="flex flex-col gap-2">
           {brandLogo}
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 pl-0.5">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 pl-0.5">
             {title}
           </p>
         </div>

@@ -13,7 +13,7 @@ export function UbuntuProductCards() {
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map(({ itemCount, hrefLabel, ...card }, index) => (
-        <HoverRevealCard key={card.href} {...card} glowColor={getCardGlowColor(index)} subtitle={itemCount} />
+        <HoverRevealCard key={card.href} {...card} glowColor={getCardGlowColor(index)} subtitle={itemCount} ctaLabel={hrefLabel} />
       ))}
     </div>
   )

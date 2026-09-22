@@ -20,7 +20,7 @@ export default function SsmsDocsPage() {
         <section>
           <SectionTitle>All Version Release Notes</SectionTitle>
           <ReleaseNotes groups={ssmsReleaseNotes} />
-          <p className="mt-4 text-[11px] text-slate-500">
+          <p className="mt-4 text-[11px] text-slate-400">
             Source: Microsoft Learn — learn.microsoft.com/ssms. Compiled for offline reference.
           </p>
         </section>

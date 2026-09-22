@@ -31,7 +31,7 @@ export default function SpeedTestPage() {
       />
       <div className="max-w-6xl mx-auto px-6 pb-10 pt-4 space-y-3">
         <NetworkAnalysisTabs />
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-slate-400">
           Test not loading or stuck?{' '}
           <a
             href="/speedtest/"

@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * Origin: shadcn/ui (dropdown-menu.tsx, legacy forwardRef registry) — https://github.com/shadcn-ui/ui
+ * MIT License, Copyright (c) 2023 shadcn. Adapted for the APEN dark theme
+ * (colour tokens only). Full notice: public/THIRD-PARTY-NOTICES.txt and /attribution.
+ */
+
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import * as React from 'react'
 import { cn } from '@/lib/data/utils'
@@ -25,7 +31,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <ChevronRightIcon className="ml-auto text-slate-500" />
+    <ChevronRightIcon className="ml-auto text-slate-400" />
   </DropdownMenuPrimitive.SubTrigger>
 ))
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName
@@ -38,7 +44,6 @@ const DropdownMenuSubContent = React.forwardRef<
     ref={ref}
     className={cn(
       'z-50 min-w-40 overflow-hidden rounded-lg border border-white/10 p-1 text-slate-200 shadow-card',
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
     )}
     style={{ background: 'rgba(7,12,28,0.95)', backdropFilter: 'blur(20px)' }}
@@ -57,8 +62,6 @@ const DropdownMenuContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'z-50 min-w-40 overflow-hidden rounded-lg border border-white/10 p-1 text-slate-200 shadow-card',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-        'data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2',
         className
       )}
       style={{ background: 'rgba(7,12,28,0.95)', backdropFilter: 'blur(20px)' }}
@@ -128,7 +131,7 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-2 py-1.5 text-xs font-medium text-slate-500', inset && 'pl-8', className)}
+    className={cn('px-2 py-1.5 text-xs font-medium text-slate-400', inset && 'pl-8', className)}
     {...props}
   />
 ))

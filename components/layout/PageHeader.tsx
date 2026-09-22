@@ -153,7 +153,7 @@ export function DownloadRow({ label, href, meta }: { label: string; href: string
     >
       <div className="min-w-0">
         <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{label}</p>
-        {meta && <p className="text-xs text-slate-600 mt-0.5">{meta}</p>}
+        {meta && <p className="text-xs text-slate-400 mt-0.5">{meta}</p>}
       </div>
       <a
         href={href}

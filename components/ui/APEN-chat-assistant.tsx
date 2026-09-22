@@ -1619,7 +1619,7 @@ export function FloatingAiAssistant() {
           <div className="relative flex flex-1 flex-col overflow-hidden">
             {tab === 'chat' ? (
               <>
-                <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 space-y-4 overflow-y-auto p-4">
+                <div ref={scrollRef} onScroll={handleMessagesScroll} role="log" aria-live="polite" aria-label="Conversation" aria-busy={thinking} tabIndex={0} className="flex-1 space-y-4 overflow-y-auto p-4">
                   {messages.length === 0 && (
                     /* Empty state greets by name and asks the question, instead
                        of the old bare "knowledge base active" status line — a

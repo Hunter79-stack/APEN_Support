@@ -32,7 +32,7 @@ export function VideosCategoryCards() {
 
   if (cards.length === 0) {
     return (
-      <p className="text-sm text-slate-600 italic">
+      <p className="text-sm text-slate-400 italic">
         No video categories are published yet. Check back soon.
       </p>
     )
@@ -46,6 +46,7 @@ export function VideosCategoryCards() {
           {...card}
           glowColor={getCardGlowColor(index)}
           subtitle={itemCount}
+          ctaLabel={hrefLabel}
         />
       ))}
     </div>

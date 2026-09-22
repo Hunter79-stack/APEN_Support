@@ -29,6 +29,8 @@ export const APENSUPPORT_BASE = ''
  * is ever renamed again.
  */
 export const APENSUPPORT_ABSOLUTE = 'https://apensupport.blcse.mil'
+/** Bare hostname, for pip --trusted-host and similar. Derived so a rename stays one edit. */
+export const APENSUPPORT_HOST = new URL(APENSUPPORT_ABSOLUTE).host
 
 /** Absolute AND http:// on purpose — it bootstraps CA trust, so it has to work
  *  before the CA that signs this site's certificate is trusted. */
@@ -59,7 +61,9 @@ export const RESTRICTED_SERVICE_URLS = {
 export const URLS = {
   vmware:       `${APENSUPPORT_BASE}/vmware`,
   trellix:      `${APENSUPPORT_BASE}/trellix`,
-  trellixAgent: `${APENSUPPORT_BASE}/trellix/agent`,
+  // Absolute: these land in wget/curl commands. Paths mirror the installer tree on the file host.
+  trellixAgentEl:     `${APENSUPPORT_ABSOLUTE}/trellix/installer/el-trellix-install/agent`,
+  trellixAgentUbuntu: `${APENSUPPORT_ABSOLUTE}/trellix/installer/ub-trellix-install/agent`,
   isos:         `${APENSUPPORT_BASE}/isos`,
   repos:        `${APENSUPPORT_BASE}/repos`,
   // ─── ABSOLUTE on purpose ─────────────────────────────────────────────
@@ -68,8 +72,10 @@ export const URLS = {
   // origin to resolve it against, so these must keep a real hostname.
   reposDeb:     `${APENSUPPORT_ABSOLUTE}/repos/deb`,
   reposRpm:     `${APENSUPPORT_ABSOLUTE}/repos/rpm`,
-  reposPip:     `${APENSUPPORT_ABSOLUTE}/repos/pip`,
+  // /repos/piprepo IS the PEP 503 simple index (symlink to .../wheels/simple); /repos/pip redirects to the docs.
+  reposPip:     `${APENSUPPORT_ABSOLUTE}/repos/piprepo`,
   evaluateStig: `${APENSUPPORT_BASE}/evaluate-stig`,
+  evaluateStigDownload: `${APENSUPPORT_ABSOLUTE}/evaluate-stig`, // for curl commands
   // ABSOLUTE: PDQ clients store this as a repository URL and pull from it
   // outside any browser context.
   pdq:          `${APENSUPPORT_ABSOLUTE}/PDQ`,
@@ -84,9 +90,13 @@ export const URLS = {
   videos:       `${APENSUPPORT_BASE}/videos`,
   videosFacpro: `${APENSUPPORT_BASE}/videos/facpro`,
   dren:         `${APENSUPPORT_BASE}/dren`,
-  drenTrellixAgent: `${APENSUPPORT_BASE}/dren/trellix/agent`,
-  drenTrellixEns: `${APENSUPPORT_BASE}/dren/trellix/ens_tp`,
-  drenTrellixPolicyAuditor: `${APENSUPPORT_BASE}/dren/trellix/policy_auditor`,
+  drenTrellixAgentEl:     `${APENSUPPORT_ABSOLUTE}/dren/trellix/installer/el-trellix-install/agent`,
+  drenTrellixAgentUbuntu: `${APENSUPPORT_ABSOLUTE}/dren/trellix/installer/ub-trellix-install/agent`,
+  // NOTE: ens_tp/ and policy_auditor/ do not exist on the file host (2026-09-21); the DREN ENS/PAA
+  // guide steps stay broken until those files are published or the guides are rewritten around
+  // dren-trellix-install.tar.gz.
+  drenTrellixEns: `${APENSUPPORT_ABSOLUTE}/dren/trellix/ens_tp`,
+  drenTrellixPolicyAuditor: `${APENSUPPORT_ABSOLUTE}/dren/trellix/policy_auditor`,
 } as const
 
 /*

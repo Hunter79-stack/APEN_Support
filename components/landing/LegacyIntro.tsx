@@ -30,7 +30,7 @@ export function LegacyIntro({ logoSrc }: LegacyIntroProps) {
 
         <p className="font-mono text-[10px] uppercase tracking-[0.42em] text-slate-400">
           APEN.MIL
-          <span className="mx-2 text-slate-600">·</span>
+          <span className="mx-2 text-slate-400">·</span>
           CESC
         </p>
 
@@ -60,7 +60,7 @@ export function LegacyIntro({ logoSrc }: LegacyIntroProps) {
           />
         </StaticLink>
 
-        <p className="mt-16 font-mono text-[10px] uppercase tracking-[0.32em] text-slate-600">
+        <p className="mt-16 font-mono text-[10px] uppercase tracking-[0.32em] text-slate-400">
           Operated by FCC CESC
         </p>
       </div>

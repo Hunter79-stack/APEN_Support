@@ -42,7 +42,7 @@ export default function EvaluateStigPage() {
                     show theirs — visible text, so it also reaches site search
                     and the AI assistant rather than living in an attribute. */}
                 {evalStigToolDownload.version && (
-                  <p className="mt-1 text-xs text-slate-500">Version {evalStigToolDownload.version}</p>
+                  <p className="mt-1 text-xs text-slate-400">Version {evalStigToolDownload.version}</p>
                 )}
                 <p className="mt-1 text-sm text-slate-400 leading-relaxed">{evalStigToolDownload.description}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">

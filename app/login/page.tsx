@@ -94,7 +94,7 @@ export default function LoginPage() {
 
         {loadState === 'loading' && (
           <GlowCard glowColor="cyan" className="p-6">
-            <p className="text-xs font-mono uppercase tracking-widest text-slate-500">Loading…</p>
+            <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Loading…</p>
           </GlowCard>
         )}
 
@@ -120,7 +120,7 @@ export default function LoginPage() {
                   from the username instead — see the hint under the field. */}
               {realms.length > 1 && (
                 <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="login-realm">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400" htmlFor="login-realm">
                     Realm
                   </label>
                   <select
@@ -137,7 +137,7 @@ export default function LoginPage() {
                 </div>
               )}
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="login-username">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400" htmlFor="login-username">
                   Username
                 </label>
                 <input
@@ -147,7 +147,8 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder={placeholderForm.replace('<UserAccount>', 'firstname.lastname')}
-                  aria-describedby="login-username-hint"
+                  aria-describedby={error ? 'login-username-hint login-error' : 'login-username-hint'}
+                  aria-invalid={Boolean(error)}
                   required
                   className="h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-cyan-400/60"
                 />
@@ -155,7 +156,7 @@ export default function LoginPage() {
                     username itself, in one of the exact forms the server
                     accepts. Anything else is refused — and a name that claims
                     two domains at once is logged as an attempted spoof. */}
-                <p id="login-username-hint" className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+                <p id="login-username-hint" className="mt-1.5 text-[10px] leading-relaxed text-slate-400">
                   {acceptedForms.length > 0 ? (
                     <>
                       Include your domain. Accepted forms:{' '}
@@ -175,13 +176,15 @@ export default function LoginPage() {
                 </p>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="login-password">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400" htmlFor="login-password">
                   Password
                 </label>
                 <input
                   id="login-password"
                   type="password"
                   autoComplete="current-password"
+                  aria-describedby={error ? 'login-error' : undefined}
+                  aria-invalid={Boolean(error)}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -197,7 +200,7 @@ export default function LoginPage() {
                 {submitting ? 'Signing in…' : 'Sign in'}
               </button>
               {error && (
-                <p className="flex items-center gap-2 text-xs text-red-300">
+                <p id="login-error" role="alert" className="flex items-center gap-2 text-xs text-red-300">
                   <AlertTriangle size={12} aria-hidden="true" /> {error}
                 </p>
               )}

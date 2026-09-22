@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { motion, AnimatePresence, type Variants } from 'framer-motion'
+import { motion, AnimatePresence, MotionConfig, type Variants } from 'framer-motion'
 import { ChevronDown, Activity, Wifi, WifiOff, Users } from 'lucide-react'
 import { cn } from '@/lib/data/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -364,8 +364,8 @@ export function ActivityChartCard({
                 </>
               ) : (
                 <>
-                  <Users size={13} className="text-slate-500" />
-                  <span className="text-xs text-slate-500">
+                  <Users size={13} className="text-slate-400" />
+                  <span className="text-xs text-slate-400">
                     unique connections — waiting for live data
                   </span>
                 </>
@@ -375,6 +375,7 @@ export function ActivityChartCard({
 
           {/* Bars */}
           <div className="relative w-full">
+            <MotionConfig reducedMotion="user">
             <AnimatePresence mode="wait">
               <motion.div
                 key={selected}
@@ -425,11 +426,12 @@ export function ActivityChartCard({
                       }}
                       variants={barVariants}
                     />
-                    <span className="text-[10px] text-slate-600 whitespace-nowrap">{item.day}</span>
+                    <span className="text-[10px] text-slate-400 whitespace-nowrap">{item.day}</span>
                   </button>
                 ))}
               </motion.div>
             </AnimatePresence>
+            </MotionConfig>
 
             {/* Empty-state overlay shown when there's no live data yet. The
                 bars beneath are real (zero-valued with proper period labels),
@@ -469,11 +471,11 @@ export function ActivityChartCard({
                 )}
               </div>
               {topIPs.length > 0 && (
-                <span className="text-[10px] uppercase tracking-widest text-slate-600">{topIPs.length} shown · click to expand</span>
+                <span className="text-[10px] uppercase tracking-widest text-slate-400">{topIPs.length} shown · click to expand</span>
               )}
             </div>
             {topIPs.length === 0 && bucketLabel ? (
-              <p className="py-3 text-xs text-slate-500">
+              <p className="py-3 text-xs text-slate-400">
                 No connections recorded in the {bucketLabel} bucket.
               </p>
             ) : topIPs.length > 0 ? (
@@ -491,26 +493,26 @@ export function ActivityChartCard({
                         className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-xs transition-colors hover:bg-white/5"
                       >
                         <span className="flex min-w-0 items-center gap-2">
-                          <ChevronDown size={12} className={cn('shrink-0 text-slate-600 transition-transform duration-200', isOpen && 'rotate-180')} />
-                          <span className="w-5 text-right tabular-nums text-slate-600">{i + 1}</span>
+                          <ChevronDown size={12} className={cn('shrink-0 text-slate-400 transition-transform duration-200', isOpen && 'rotate-180')} />
+                          <span className="w-5 text-right tabular-nums text-slate-400">{i + 1}</span>
                           <code className="truncate font-mono text-xs text-slate-300">{entry.ip}</code>
                         </span>
-                        <span className="shrink-0 tabular-nums text-slate-500">{entry.count.toLocaleString()} hits</span>
+                        <span className="shrink-0 tabular-nums text-slate-400">{entry.count.toLocaleString()} hits</span>
                       </button>
                       {isOpen && (
                         <div className="border-t border-white/5 bg-black/20 px-2 py-2">
-                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Locations viewed</p>
+                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Locations viewed</p>
                           {locations.length > 0 ? (
                             <ul className="space-y-0.5">
                               {locations.map((loc) => (
                                 <li key={loc.path} className="flex items-center justify-between gap-3 text-[11px]">
                                   <code className="truncate font-mono text-slate-400">{loc.path}</code>
-                                  <span className="shrink-0 tabular-nums text-slate-600">{loc.count.toLocaleString()}</span>
+                                  <span className="shrink-0 tabular-nums text-slate-400">{loc.count.toLocaleString()}</span>
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-[11px] italic text-slate-600">No page-level detail recorded for this connection.</p>
+                            <p className="text-[11px] italic text-slate-400">No page-level detail recorded for this connection.</p>
                           )}
                         </div>
                       )}
@@ -519,7 +521,7 @@ export function ActivityChartCard({
                 })}
               </div>
             ) : (
-              <p className="text-xs italic text-slate-500">
+              <p className="text-xs italic text-slate-400">
                 {live ? 'No connection data for this period yet.' : 'Waiting for live data…'}
               </p>
             )}

@@ -234,7 +234,7 @@ function mergeAnnouncements(items: Announcement[]): Announcement[] {
   const seen = new Set<string>()
 
   return items.filter((item) => {
-    const key = `${item.date}|${item.category ?? ''}|${item.href ?? ''}`
+    const key = `${item.date}|${item.category ?? ''}|${item.href ?? ''}|${item.text}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
