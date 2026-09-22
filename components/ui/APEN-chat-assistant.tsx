@@ -43,6 +43,21 @@ import {
   storeRatings,
 } from '@/lib/assistant/storage'
 import type { AssistantAttachment, AssistantMessage as Message } from '@/lib/assistant/types'
+import {
+  ASSISTANT_MARGIN,
+  ASSISTANT_PANEL_POSITION_STORAGE_KEY,
+  ASSISTANT_PANEL_SIZE_STORAGE_KEY,
+  PANEL_DEFAULT_HEIGHT,
+  PANEL_DEFAULT_WIDTH,
+  clampPanelPosition,
+  clampPanelSize,
+  storePanelPosition,
+  storePanelSize,
+  type AssistantPosition,
+  type AssistantSize,
+  type AssistantViewport,
+} from '@/lib/assistant/panel-geometry'
+import { usePanelGeometry, type ResizeDirection } from '@/lib/hooks/usePanelGeometry'
 import { downloadFile, openPrintableReport } from '@/lib/utils/download-file'
 
 type ExportFormat = 'pdf' | 'markdown' | 'html' | 'json'
@@ -116,9 +131,6 @@ function BotAvatar({ className }: { className?: string }) {
   )
 }
 
-interface AssistantPosition { x: number; y: number }
-interface AssistantSize     { width: number; height: number }
-interface AssistantViewport { width: number; height: number }
 interface AssistantDragState {
   pointerId: number
   target: HTMLButtonElement
@@ -129,17 +141,6 @@ interface AssistantDragState {
   moved: boolean
 }
 
-/* Tracks an active panel drag (header) or resize (corner handle). */
-interface PanelInteractionState {
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startPanelX:  number
-  startPanelY:  number
-  startWidth:   number
-  startHeight:  number
-}
-
 export const VOLTRON_IMAGE_SRC = ASSISTANT_CONFIG.imageSrc
 // Storage key was bumped from -position → -position-v2 when the default
 // anchor moved from bottom-left to bottom-right. Old entries pinned to
@@ -147,11 +148,7 @@ export const VOLTRON_IMAGE_SRC = ASSISTANT_CONFIG.imageSrc
 // (the new design intent); anyone who explicitly drags the button still
 // gets their new position persisted under the v2 key.
 export const ASSISTANT_POSITION_STORAGE_KEY = 'apen-ai-assistant-position-v2'
-/* Separate localStorage keys for the chat PANEL's drag position and
-   resize dimensions. Both are nullable in state — when null, the panel
-   auto-positions next to the trigger button and uses default size. */
-export const ASSISTANT_PANEL_POSITION_STORAGE_KEY = 'apen-ai-assistant-panel-position'
-export const ASSISTANT_PANEL_SIZE_STORAGE_KEY     = 'apen-ai-assistant-panel-size'
+export { ASSISTANT_PANEL_POSITION_STORAGE_KEY, ASSISTANT_PANEL_SIZE_STORAGE_KEY }
 /* Chat transcript persistence — sessionStorage survives client-side navigation
    but clears when the browser tab/session ends. */
 export { ASSISTANT_MESSAGES_STORAGE_KEY, ASSISTANT_RATINGS_STORAGE_KEY }
@@ -174,7 +171,6 @@ const PILL_CAP_PADDING = LAUNCHER_VISUAL_SIZE + 8
 const PILL_OUTER_PADDING = 20
 
 const ASSISTANT_BUTTON_SIZE = 65
-const ASSISTANT_MARGIN = 16
 /* How far the DEFAULT first-load anchor sits in from the bottom-right corner.
    Deliberately larger than ASSISTANT_MARGIN so the button (and the panel that
    opens next to it) rest clear of the very corner / footer content instead of
@@ -183,12 +179,6 @@ const ASSISTANT_MARGIN = 16
 const ASSISTANT_DEFAULT_INSET = 40
 const DRAG_THRESHOLD_PX = 4
 
-/* Panel default + bounds — used both as initial values and as clamps
-   while the user drags / resizes. */
-const PANEL_DEFAULT_WIDTH  = 440
-const PANEL_DEFAULT_HEIGHT = 600
-const PANEL_MIN_WIDTH      = 320
-const PANEL_MIN_HEIGHT     = 360
 
 type PanelTab = 'chat' | 'feedback'
 
@@ -196,7 +186,6 @@ type PanelTab = 'chat' | 'feedback'
    the axis letters that should grow with the pointer (n = north / s = south
    / e = east / w = west). 'n' means dragging the top edge; 'se' means
    dragging the bottom-right corner; etc. */
-type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
 const RESIZE_HANDLE_CONFIG: Record<ResizeDirection, { className: string; label: string }> = {
   // Edges — thin strips just inside the panel border. Corner handles
@@ -296,43 +285,6 @@ function storeAssistantPosition(position: AssistantPosition) {
 
 /* ── Panel position/size persistence ───────────────────────────── */
 
-function storePanelPosition(pos: AssistantPosition | null) {
-  try {
-    if (pos === null) window.localStorage.removeItem(ASSISTANT_PANEL_POSITION_STORAGE_KEY)
-    else window.localStorage.setItem(ASSISTANT_PANEL_POSITION_STORAGE_KEY, JSON.stringify(pos))
-  } catch { /* ignore */ }
-}
-
-function storePanelSize(size: AssistantSize | null) {
-  try {
-    if (size === null) window.localStorage.removeItem(ASSISTANT_PANEL_SIZE_STORAGE_KEY)
-    else window.localStorage.setItem(ASSISTANT_PANEL_SIZE_STORAGE_KEY, JSON.stringify(size))
-  } catch { /* ignore */ }
-}
-
-
-function clampPanelPosition(
-  pos: AssistantPosition,
-  size: AssistantSize,
-  viewport: AssistantViewport,
-): AssistantPosition {
-  const maxX = Math.max(ASSISTANT_MARGIN, viewport.width  - size.width  - ASSISTANT_MARGIN)
-  const maxY = Math.max(ASSISTANT_MARGIN, viewport.height - size.height - ASSISTANT_MARGIN)
-  return {
-    x: Math.min(Math.max(pos.x, ASSISTANT_MARGIN), maxX),
-    y: Math.min(Math.max(pos.y, ASSISTANT_MARGIN), maxY),
-  }
-}
-
-function clampPanelSize(size: AssistantSize, viewport: AssistantViewport): AssistantSize {
-  const maxW = Math.max(PANEL_MIN_WIDTH,  viewport.width  - ASSISTANT_MARGIN * 2)
-  const maxH = Math.max(PANEL_MIN_HEIGHT, viewport.height - ASSISTANT_MARGIN * 2)
-  return {
-    width:  Math.min(Math.max(size.width,  PANEL_MIN_WIDTH),  maxW),
-    height: Math.min(Math.max(size.height, PANEL_MIN_HEIGHT), maxH),
-  }
-}
-
 export function getAssistantPanelPosition(
   buttonPosition: AssistantPosition,
   viewport: AssistantViewport,
@@ -406,10 +358,12 @@ export function FloatingAiAssistant() {
   /* User-overridden panel position + size. Both null = auto-position
      next to the button and use the default size. Hydrated from
      localStorage on mount so user choices survive reloads. */
-  const [panelPos,  setPanelPos]  = useState<AssistantPosition | null>(null)
-  const [panelSize, setPanelSize] = useState<AssistantSize | null>(null)
-  const panelInteractionRef = useRef<PanelInteractionState | null>(null)
-  const removePanelListenersRef = useRef<(() => void) | null>(null)
+  const {
+    panelPos, panelSize, setPanelPos, setPanelSize,
+    onHeaderPointerDown: handlePanelHeaderPointerDown,
+    onResizePointerDown: handlePanelResizePointerDown,
+    resetPanelLayout,
+  } = usePanelGeometry()
 
   /* Feedback state */
   const [fbName, setFbName] = useState('')
@@ -639,161 +593,6 @@ export function FloatingAiAssistant() {
       .catch(() => { /* best-effort */ })
     return () => { cancelled = true }
   }, [isVisible])
-
-  /* ── Panel drag (header bar) ─────────────────────────────────
-     Press anywhere in the header (except the close button — its
-     pointerdown is stopped) and the panel follows the pointer until
-     release. The new position is persisted to localStorage. */
-  const handlePanelHeaderPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return
-    /* Anchor the panel at its current rendered position before the
-       drag starts. Defer pointer capture / listeners to window so
-       pointer movement outside the header still tracks. */
-    event.preventDefault()
-    const panelEl = (event.currentTarget.closest('[data-assistant-panel]') as HTMLElement | null)
-    if (!panelEl) return
-    const rect = panelEl.getBoundingClientRect()
-
-    panelInteractionRef.current = {
-      pointerId:    event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startPanelX:  rect.left,
-      startPanelY:  rect.top,
-      startWidth:   rect.width,
-      startHeight:  rect.height,
-    }
-
-    const sizeAtStart: AssistantSize = panelSize ?? { width: rect.width, height: rect.height }
-
-    const handleMove = (move: PointerEvent) => {
-      const state = panelInteractionRef.current
-      if (!state || move.pointerId !== state.pointerId) return
-      const dx = move.clientX - state.startClientX
-      const dy = move.clientY - state.startClientY
-      const next = clampPanelPosition(
-        { x: state.startPanelX + dx, y: state.startPanelY + dy },
-        sizeAtStart,
-        { width: window.innerWidth, height: window.innerHeight },
-      )
-      setPanelPos(next)
-    }
-    const handleUp = (up: PointerEvent) => {
-      const state = panelInteractionRef.current
-      if (!state || up.pointerId !== state.pointerId) return
-      panelInteractionRef.current = null
-      removePanelListenersRef.current?.()
-      removePanelListenersRef.current = null
-      setPanelPos((current) => { if (current) storePanelPosition(current); return current })
-    }
-
-    window.addEventListener('pointermove', handleMove)
-    window.addEventListener('pointerup',   handleUp)
-    window.addEventListener('pointercancel', handleUp)
-    removePanelListenersRef.current = () => {
-      window.removeEventListener('pointermove', handleMove)
-      window.removeEventListener('pointerup',   handleUp)
-      window.removeEventListener('pointercancel', handleUp)
-    }
-  }, [panelSize])
-
-  /* ── Panel resize (any edge or corner) ───────────────────────
-     Eight handles wrap the panel — four edges and four corners.
-     The direction string says which axes grow with pointer motion
-     and which need to also move the panel's top-left so the
-     opposite edge stays anchored. Examples:
-       'se' → drag bottom-right: width += dx, height += dy
-       'nw' → drag top-left:     position moves with pointer,
-                                 size shrinks/grows from the opposite edge */
-  const handlePanelResizePointerDown = useCallback(
-    (direction: ResizeDirection) => (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0) return
-      event.preventDefault()
-      event.stopPropagation()
-      const panelEl = (event.currentTarget.closest('[data-assistant-panel]') as HTMLElement | null)
-      if (!panelEl) return
-      const rect = panelEl.getBoundingClientRect()
-
-      panelInteractionRef.current = {
-        pointerId:    event.pointerId,
-        startClientX: event.clientX,
-        startClientY: event.clientY,
-        startPanelX:  rect.left,
-        startPanelY:  rect.top,
-        startWidth:   rect.width,
-        startHeight:  rect.height,
-      }
-
-      const growsRight  = direction.includes('e')
-      const growsLeft   = direction.includes('w')
-      const growsDown   = direction.includes('s')
-      const growsUp     = direction.includes('n')
-
-      const handleMove = (move: PointerEvent) => {
-        const state = panelInteractionRef.current
-        if (!state || move.pointerId !== state.pointerId) return
-        const dx = move.clientX - state.startClientX
-        const dy = move.clientY - state.startClientY
-        const viewport = { width: window.innerWidth, height: window.innerHeight }
-
-        // Compute the raw target size from the active axes.
-        let nextWidth  = state.startWidth
-        let nextHeight = state.startHeight
-        if (growsRight) nextWidth  = state.startWidth  + dx
-        if (growsLeft)  nextWidth  = state.startWidth  - dx
-        if (growsDown)  nextHeight = state.startHeight + dy
-        if (growsUp)    nextHeight = state.startHeight - dy
-        const clampedSize = clampPanelSize({ width: nextWidth, height: nextHeight }, viewport)
-
-        // When dragging from a west/north edge, the OPPOSITE edge must stay
-        // anchored — so the top-left moves by however much the size changed.
-        let nextX = state.startPanelX
-        let nextY = state.startPanelY
-        if (growsLeft) nextX = state.startPanelX + (state.startWidth  - clampedSize.width)
-        if (growsUp)   nextY = state.startPanelY + (state.startHeight - clampedSize.height)
-        const clampedPos = clampPanelPosition(
-          { x: nextX, y: nextY },
-          clampedSize,
-          viewport,
-        )
-
-        setPanelSize(clampedSize)
-        if (growsLeft || growsUp) setPanelPos(clampedPos)
-      }
-      const handleUp = (up: PointerEvent) => {
-        const state = panelInteractionRef.current
-        if (!state || up.pointerId !== state.pointerId) return
-        panelInteractionRef.current = null
-        removePanelListenersRef.current?.()
-        removePanelListenersRef.current = null
-        setPanelSize((current) => { if (current) storePanelSize(current); return current })
-        if (growsLeft || growsUp) {
-          setPanelPos((current) => { if (current) storePanelPosition(current); return current })
-        }
-      }
-
-      window.addEventListener('pointermove', handleMove)
-      window.addEventListener('pointerup',   handleUp)
-      window.addEventListener('pointercancel', handleUp)
-      removePanelListenersRef.current = () => {
-        window.removeEventListener('pointermove', handleMove)
-        window.removeEventListener('pointerup',   handleUp)
-        window.removeEventListener('pointercancel', handleUp)
-      }
-    },
-    [],
-  )
-
-  /* Double-clicking the header resets to the auto-position + default
-     size — same gesture-symmetry as the trigger button's double-click
-     reset, so users have an obvious recovery path if they drag the
-     panel somewhere awkward. */
-  const resetPanelLayout = useCallback(() => {
-    setPanelPos(null)
-    setPanelSize(null)
-    storePanelPosition(null)
-    storePanelSize(null)
-  }, [])
 
   useEffect(() => {
     if (!open || !isVisible) return
