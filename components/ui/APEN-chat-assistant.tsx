@@ -4,9 +4,9 @@ import React, { useState, useRef, useEffect, useCallback, useSyncExternalStore, 
 import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
 import {
-  Send, X, CheckCircle, ShieldAlert,
+  Send, X, ShieldAlert,
   Sun, Moon, Maximize2, Minimize2, Download, Trash2,
-  Copy, Check, ThumbsUp, ThumbsDown, RotateCcw, Paperclip, ArrowDown, ArrowLeft, MessageSquare,
+  Copy, Check, ThumbsUp, ThumbsDown, RotateCcw, Paperclip, ArrowDown, MessageSquare,
   Sparkles, ArrowRight,
 } from 'lucide-react'
 import { API_ENDPOINTS } from '@/lib/data/runtime'
@@ -21,11 +21,9 @@ import {
   ASSISTANT_PILL_INTRO_MS,
   ASSISTANT_ATTACH_LABEL,
   assistantAttachTooltip,
-  FEEDBACK_CATEGORIES,
-  type FeedbackCategory,
 } from '@/lib/data/assistant'
-import { analyzeFeedbackContent } from '@/lib/feedback-moderation.strict'
 import { FormattedMessage, normalizeAssistantRoute } from '@/components/assistant/FormattedMessage'
+import { FeedbackForm } from '@/components/assistant/FeedbackForm'
 import {
   ASSISTANT_ATTACHMENT_ACCEPT,
   ASSISTANT_ATTACHMENT_LIMIT_LABEL,
@@ -366,14 +364,9 @@ export function FloatingAiAssistant() {
   } = usePanelGeometry()
 
   /* Feedback state */
-  const [fbName, setFbName] = useState('')
-  const [fbCategory, setFbCategory] = useState<FeedbackCategory>('General Feedback')
-  const [fbMessage, setFbMessage] = useState('')
-  const [fbSending, setFbSending] = useState(false)
-  const [fbSent, setFbSent] = useState(false)
-  const feedbackModeration = analyzeFeedbackContent(fbMessage)
-  const feedbackCharactersRemaining = ASSISTANT_CONFIG.maxFeedbackChars - fbMessage.length
-  const feedbackCounterTone = feedbackCharactersRemaining <= 100 ? 'text-amber-300' : 'text-gray-500'
+  /** Seed for the feedback form: set by "send feedback on this response".
+   *  A fresh object each time so the form re-applies it. */
+  const [feedbackSeed, setFeedbackSeed] = useState<{ text: string; at: number } | null>(null)
 
   /* ── Widget tooling state (theme, modes, exports, per-message actions,
         file attach, live preview, scroll-to-bottom) ── */
@@ -539,7 +532,6 @@ export function FloatingAiAssistant() {
     if (!isVisible) return
 
     const openFeedbackPanel = () => {
-      setFbSent(false)
       setGreetingOpen(false)
       setOpen(true)
       setTab('feedback')
@@ -722,38 +714,6 @@ export function FloatingAiAssistant() {
     }
   }, [message, messages, thinking, attached])
 
-  const handleFeedbackSubmit = async () => {
-    if (!fbMessage.trim() || fbSending) return
-    setFbSending(true)
-    try {
-      const response = await fetch(API_ENDPOINTS.siteFeedback, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: fbName.trim(),
-          category: fbCategory,
-          message: fbMessage,
-          moderation: feedbackModeration,
-          timestamp: new Date().toISOString(),
-        }),
-      })
-
-      if (response.ok) {
-        setFbSent(true)
-        setFbName('')
-        setFbMessage('')
-        setTimeout(() => {
-          setFbSent(false)
-          setTab('chat')
-        }, 3000)
-      }
-    } catch (err) {
-      console.error('Feedback submission failed', err)
-    } finally {
-      setFbSending(false)
-    }
-  }
-
   /* ── Theme (persisted) ── */
   const setTheme = useCallback((t: 'dark' | 'light') => {
     setThemeState(t)
@@ -796,9 +756,8 @@ export function FloatingAiAssistant() {
 
   /* Open the integrated feedback view, pre-referencing a specific response. */
   const openFeedbackForResponse = useCallback((text: string) => {
-    setFbSent(false)
     setTab('feedback')
-    setFbMessage((cur) => (cur.trim() ? cur : `Regarding this response:\n"${text.slice(0, 220)}${text.length > 220 ? '…' : ''}"\n\n`))
+    setFeedbackSeed({ text: `Regarding this response:\n"${text.slice(0, 220)}${text.length > 220 ? '…' : ''}"\n\n`, at: Date.now() })
   }, [])
 
   /* Close any open export menu on the next outside click. */
@@ -1538,7 +1497,7 @@ export function FloatingAiAssistant() {
                       The mandatory USG monitoring banner above the transcript
                       is untouched and still carries the required notice. */}
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    <button onClick={() => { setFbSent(false); setTab('feedback') }} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${ui.toolBtn}`}>
+                    <button onClick={() => setTab('feedback')} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${ui.toolBtn}`}>
                       <MessageSquare size={11} /> Feedback
                     </button>
                     <p className="text-[8px] uppercase tracking-widest text-gray-500">Powered by FCC <span className={`font-semibold ${dark ? 'text-gray-300' : 'text-gray-700'}`}>Voltron AI</span></p>
@@ -1546,102 +1505,12 @@ export function FloatingAiAssistant() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 space-y-4 overflow-y-auto p-6 text-xs">
-                <button onClick={() => setTab('chat')} className={`-mt-2 inline-flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-widest ${ui.toolBtn}`}>
-                  <ArrowLeft size={12} /> Back to chat
-                </button>
-                {fbSent ? (
-                  <div className="flex h-full flex-col items-center justify-center space-y-3 text-center">
-                    <CheckCircle className="text-green-500" size={48} />
-                    <p className="font-bold uppercase tracking-widest text-white">Feedback Received</p>
-                    <p className="text-gray-400">Thank you for helping improve the APEN Environment.</p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="mb-4 text-center text-gray-400">Report bugs or request features for the CESC team.</p>
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <label htmlFor="feedback-name" className="text-[10px] font-bold uppercase text-gray-500">Name (Optional)</label>
-                        <input
-                          id="feedback-name"
-                          value={fbName}
-                          onChange={(event) => setFbName(event.target.value)}
-                          maxLength={80}
-                          autoComplete="name"
-                          placeholder="Name or team"
-                          className="w-full rounded border border-white/10 bg-white/5 p-2 text-white placeholder:text-gray-600 focus:border-red-600 focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label htmlFor="feedback-category" className="text-[10px] font-bold uppercase text-gray-500">Category</label>
-                        <select
-                          id="feedback-category"
-                          value={fbCategory}
-                          onChange={e => setFbCategory(e.target.value as FeedbackCategory)}
-                          className="w-full rounded border border-white/10 bg-white/5 p-2 text-white focus:border-red-600 focus:outline-none"
-                        >
-                          {FEEDBACK_CATEGORIES.map(c => <option key={c} value={c} className="bg-[#0a0f23]">{c}</option>)}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <label htmlFor="feedback-details" className="text-[10px] font-bold uppercase text-gray-500">Details</label>
-                          <span id="feedback-character-count" aria-live="polite" className={`text-[10px] font-bold tabular-nums ${feedbackCounterTone}`}>
-                            {fbMessage.length} / {ASSISTANT_CONFIG.maxFeedbackChars}
-                          </span>
-                        </div>
-                        <textarea
-                          id="feedback-details"
-                          value={fbMessage}
-                          onChange={e => setFbMessage(e.target.value)}
-                          rows={6}
-                          maxLength={ASSISTANT_CONFIG.maxFeedbackChars}
-                          aria-describedby="feedback-character-count feedback-moderation.strict-status"
-                          placeholder="Please describe the issue or suggestion..."
-                          className="w-full resize-none rounded border border-white/10 bg-white/5 p-2 text-white placeholder:text-gray-600 focus:border-red-600 focus:outline-none"
-                        />
-                      </div>
-
-                      {fbMessage.trim() && (
-                        <div
-                          id="feedback-moderation.strict-status"
-                          aria-live="polite"
-                          className={`rounded border p-3 ${feedbackModeration.flagged ? 'border-amber-400/30 bg-amber-500/10 text-amber-100' : 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'}`}
-                        >
-                          <div className="flex items-start gap-2">
-                            {feedbackModeration.flagged ? (
-                              <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-300" aria-hidden="true" />
-                            ) : (
-                              <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-300" aria-hidden="true" />
-                            )}
-                            <div className="min-w-0 space-y-1">
-                              <p className="text-[10px] font-bold uppercase tracking-widest">
-                                {feedbackModeration.flagged ? 'Flagged by Local AI' : 'Local AI Review Clear'}
-                              </p>
-                              <p className="text-[11px] leading-relaxed opacity-80">{feedbackModeration.guidance}</p>
-                              {feedbackModeration.flagged && (
-                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
-                                  Review reason: {feedbackModeration.reasons.join(', ')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={handleFeedbackSubmit}
-                        disabled={fbSending}
-                        className="w-full rounded bg-red-700 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-red-600 disabled:opacity-50"
-                      >
-                        {fbSending ? 'Submitting...' : 'Submit Feedback'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              <FeedbackForm
+                hidden={false}
+                seed={feedbackSeed}
+                toolBtnClass={ui.toolBtn}
+                onBack={() => setTab('chat')}
+              />
             )}
           </div>
           </div>{/* /main-chat-area */}

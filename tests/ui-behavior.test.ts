@@ -329,16 +329,17 @@ test('AI assistant closes when clicking outside the assistant', () => {
 })
 
 test('assistant feedback collects optional name and warns before details exceed the limit', () => {
-  const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
+  // The feedback tab is its own component now (code-quality #76).
+  const feedbackFormSource = fs.readFileSync(path.join('components', 'assistant', 'FeedbackForm.tsx'), 'utf8')
 
-  assert.match(assistantSource, /id="feedback-name"/)
-  assert.match(assistantSource, /Name \(Optional\)/)
-  assert.match(assistantSource, /value=\{fbName\}/)
-  assert.match(assistantSource, /setFbName\(event\.target\.value\)/)
-  assert.match(assistantSource, /id="feedback-character-count"/)
-  assert.match(assistantSource, /fbMessage\.length\} \/ \{ASSISTANT_CONFIG\.maxFeedbackChars\}/)
-  assert.match(assistantSource, /maxLength=\{ASSISTANT_CONFIG\.maxFeedbackChars\}/)
-  assert.match(assistantSource, /aria-describedby="feedback-character-count feedback-moderation.strict-status"/)
+  assert.match(feedbackFormSource, /id="feedback-name"/)
+  assert.match(feedbackFormSource, /Name \(Optional\)/)
+  assert.match(feedbackFormSource, /value=\{fbName\}/)
+  assert.match(feedbackFormSource, /setFbName\(event\.target\.value\)/)
+  assert.match(feedbackFormSource, /id="feedback-character-count"/)
+  assert.match(feedbackFormSource, /fbMessage\.length\} \/ \{ASSISTANT_CONFIG\.maxFeedbackChars\}/)
+  assert.match(feedbackFormSource, /maxLength=\{ASSISTANT_CONFIG\.maxFeedbackChars\}/)
+  assert.match(feedbackFormSource, /aria-describedby="feedback-character-count feedback-moderation.strict-status"/)
 })
 
 test('assistant feedback uses local AI-style moderation to flag offensive comments', async () => {
@@ -346,7 +347,8 @@ test('assistant feedback uses local AI-style moderation to flag offensive commen
   const analyzeFeedbackContent = moderationModule.analyzeFeedbackContent as
     | ((text: string) => { flagged: boolean; severity: string; reasons: string[]; guidance: string })
     | undefined
-  const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
+  // Moderation runs inside the feedback form component (code-quality #76).
+  const assistantSource = fs.readFileSync(path.join('components', 'assistant', 'FeedbackForm.tsx'), 'utf8')
   const proxySource = fs.readFileSync(path.join('proxy', 'site-stats.mjs'), 'utf8')
 
   assert.equal(typeof analyzeFeedbackContent, 'function')
