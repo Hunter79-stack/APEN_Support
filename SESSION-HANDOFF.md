@@ -72,6 +72,7 @@ Seventh session (2026-09-22, later):
 - #68 DONE (committed a6b56fb): `map $uri $apen_moved` in nginx/server.conf (http level, next to $apen_zone) + `if ($apen_moved) { return 301 … }` at the top of the HTTPS server block; 31 stub pages and components/common/RedirectStub.tsx deleted; tests/nginx-redirects.test.ts. Live at the next deploy (nginx reload). The stale .next/types/validator.ts was removed locally (build regenerates it; siteupdate's clean step removes .next anyway).
 - #80 DONE: 'exports/**' added to eslint.config.mjs globalIgnores. The config-protection hook blocks the Edit tool on that file, so the one-line change was applied with a python script at the user's explicit request.
 - #84 DONE: "lint": "eslint . --max-warnings 75" (the real count after #80); README says lower it, never raise it.
+- #98 chunk B (partial, committed): three launcher-position guards (25 regex assertions) became two behavioural tests in ui-behavior.test.ts calling shouldShowAssistant / clampAssistantPosition / isAssistantPositionTrapped / resolveAssistantPositionForViewportChange; the token-level remainder (pointer-event wiring, no lg:block hiding) stays as one smaller guard. tests/source-guards.test.ts still holds 35 guards (~330 assertions). Convert the rest when touching the code each pins — the two biggest (admin badge 71 assertions, launcher naming 41) are the least behavioural and the most brittle. #98 is therefore DONE as a split + started as a conversion, not finished.
 Blocked / left open:
 - #80: the config-protection hook refuses edits to eslint.config.mjs. User must add `'exports/**',` to globalIgnores by hand (or disable that hook); #84 ratchet depends on it.
 - #23 remainder: 13 entries in lib/data/announcements.ts carry `date: ''`; real dates unknown, not invented.
@@ -86,7 +87,7 @@ Order (disjoint file sets):
 - a11y/UI: 17, 18, 67, 70, 71, 72, 78, 81 ALL DONE; #77 DONE; remaining: #76 (chat assistant), #73 Navbar, #68 redirect stubs -> nginx map
 - deploy/tooling: 19, 20+79, 97, 29, 85 DONE; 86 reverted; remaining #98 tests split
 - contrast sweep #69+#74 DONE; remaining lint #80 (blocked by hook) + ratchet #84
-- REMAINING: #76 chunks C (useTranscript) + D (AssistantLauncher) — see the #76 notes above; #98 guard-to-behaviour conversions. #64, #68, #73, #80, #84, #96 complete. Everything else in the 53 is done.
+- REMAINING: only #98's guard-to-behaviour conversions (35 guards left, opportunistic). #64, #68, #73, #76, #80, #84, #96 complete. Everything else in the 53 is done.
 
 ## Constraints worth remembering
 - GateGuard hook: first Bash call needs two stated facts; the FIRST Edit of every file is denied once — state importers / affected API / data schema / the user's verbatim instruction, then retry the same edit.

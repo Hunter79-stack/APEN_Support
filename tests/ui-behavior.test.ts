@@ -576,3 +576,43 @@ test('assistant list shapes render as links, whatever spacing the model emits', 
   // The indented item nests one level instead of landing beside its sibling.
   assert.ok(/<ul[^>]*>[\s\S]*<ul/.test(html), 'nested bullet did not render as a nested list')
 })
+
+test('the assistant is hidden on the admin console and only there', async () => {
+  const m = await importComponentModule('../components/ui/APEN-chat-assistant.tsx')
+  const shouldShow = m.shouldShowAssistant as (p: string | null) => boolean
+  for (const p of ['/admin', '/admin/', '/ADMIN/content', '/admin#monitor']) assert.equal(shouldShow(p), false, p)
+  // The rule is a path PREFIX, so a sibling route starting with /admin would be hidden too; none exists.
+  for (const p of ['/', '/home', '/docs/admin-tools', '/applications', null]) assert.equal(shouldShow(p), true, String(p))
+})
+
+test('a dragged launcher never lands off-screen, and a trapped one resets to the default corner', async () => {
+  const m = await importComponentModule('../components/ui/APEN-chat-assistant.tsx')
+  const clamp = m.clampAssistantPosition as (p: { x: number; y: number }, v: { width: number; height: number }) => { x: number; y: number }
+  const trapped = m.isAssistantPositionTrapped as (p: { x: number; y: number }, v: { width: number; height: number }) => boolean
+  const resolve = m.resolveAssistantPositionForViewportChange as (a: {
+    currentPosition: { x: number; y: number } | null
+    viewport: { width: number; height: number }
+    storedPosition: { x: number; y: number }
+    resetToDefault?: boolean
+  }) => { x: number; y: number }
+  const viewport = { width: 1280, height: 800 }
+  const stored = { x: 600, y: 400 }
+
+  // Clamping keeps the whole 65 px button inside the viewport with a 16 px margin.
+  assert.deepEqual(clamp({ x: -50, y: -50 }, viewport), { x: 16, y: 16 })
+  assert.deepEqual(clamp({ x: 5000, y: 5000 }, viewport), { x: 1280 - 65 - 16, y: 800 - 65 - 16 })
+  assert.deepEqual(clamp({ x: 300, y: 200 }, viewport), { x: 300, y: 200 }, 'an in-bounds position is untouched')
+
+  // The top-left corner is the trap (the deprecated left anchor); anywhere else is not.
+  assert.equal(trapped({ x: 16, y: 16 }, viewport), true)
+  assert.equal(trapped({ x: 300, y: 200 }, viewport), false)
+  assert.equal(trapped({ x: 16, y: 16 }, { width: 80, height: 80 }), false, 'no room to reset on a tiny viewport')
+
+  // On a viewport change: a trapped position falls back to the stored one, a
+  // usable one is clamped, and resetToDefault ignores both.
+  assert.deepEqual(resolve({ currentPosition: { x: 16, y: 16 }, viewport, storedPosition: stored }), stored)
+  assert.deepEqual(resolve({ currentPosition: { x: 5000, y: 200 }, viewport, storedPosition: stored }), { x: 1280 - 65 - 16, y: 200 })
+  assert.deepEqual(resolve({ currentPosition: null, viewport, storedPosition: stored }), stored)
+  const reset = resolve({ currentPosition: { x: 300, y: 200 }, viewport, storedPosition: stored, resetToDefault: true })
+  assert.deepEqual(reset, { x: 1280 - 65 - 40, y: 800 - 65 - 40 }, 'default = bottom-right, inset 40 px')
+})

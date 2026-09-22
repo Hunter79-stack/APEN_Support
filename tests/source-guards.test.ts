@@ -114,44 +114,17 @@ test('AI assistant launcher names itself to first-time visitors', () => {
   assert.match(assistantSource, /ASSISTANT_INPUT_PLACEHOLDER/)
 })
 
-test('AI assistant is movable across the site and hidden from the admin console', () => {
+test('AI assistant drag is wired through window pointer events, and nothing hides it below lg', () => {
   const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
-
-  assert.match(assistantSource, /usePathname/)
-  assert.match(assistantSource, /export function shouldShowAssistant\(pathname: string \| null\)/)
-  assert.match(assistantSource, /startsWith\('\/admin'\)/)
-  assert.match(assistantSource, /export function clampAssistantPosition/)
-  assert.match(assistantSource, /Math\.max\(margin, viewport\.width - size - margin\)/)
-  assert.match(assistantSource, /Math\.max\(margin, viewport\.height - size - margin\)/)
-  assert.match(assistantSource, /localStorage/)
   assert.match(assistantSource, /onPointerDown/)
-  assert.match(assistantSource, /window\.addEventListener\('pointermove'/)
-  assert.match(assistantSource, /setPointerCapture/)
-  assert.doesNotMatch(assistantSource, /hidden[\s\S]*lg:block/)
-})
-
-test('AI assistant drag cannot stay trapped in the upper-left corner', () => {
-  const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
-
-  assert.match(assistantSource, /isAssistantPositionTrapped/)
-  assert.match(assistantSource, /return defaultAssistantPosition\(viewport\)/)
   assert.match(assistantSource, /window\.addEventListener\('pointermove'/)
   assert.match(assistantSource, /window\.addEventListener\('pointerup'/)
   assert.match(assistantSource, /window\.removeEventListener\('pointermove'/)
-  assert.match(assistantSource, /resetAssistantPosition/)
+  assert.match(assistantSource, /setPointerCapture/)
   assert.match(assistantSource, /onDoubleClick/)
-})
-
-test('AI assistant snaps back to its default position when the viewport changes', () => {
-  const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
-
-  assert.match(assistantSource, /resolveAssistantPositionForViewportChange/)
-  assert.match(assistantSource, /resetToDefault/)
-  assert.match(assistantSource, /resetToDefault[\s\S]*defaultAssistantPosition\(viewport\)/)
-  assert.match(assistantSource, /const handleResize = \(\) => syncPosition\(true\)/)
   assert.match(assistantSource, /window\.addEventListener\('resize', handleResize\)/)
   assert.match(assistantSource, /window\.removeEventListener\('resize', handleResize\)/)
-  assert.doesNotMatch(assistantSource, /window\.addEventListener\('resize', syncPosition\)/)
+  assert.doesNotMatch(assistantSource, /hidden[\s\S]*lg:block/)
 })
 
 test('AI assistant keeps red pulse glow and footer feedback opens the feedback form', () => {
