@@ -7,7 +7,7 @@ import {
   Send, X, ShieldAlert,
   Sun, Moon, Maximize2, Minimize2, Download, Trash2,
   Copy, Check, ThumbsUp, ThumbsDown, RotateCcw, Paperclip, ArrowDown, MessageSquare,
-  Sparkles, ArrowRight,
+  Sparkles,
 } from 'lucide-react'
 import { API_ENDPOINTS } from '@/lib/data/runtime'
 import {
@@ -18,12 +18,13 @@ import {
   ASSISTANT_INPUT_PLACEHOLDER,
   ASSISTANT_AI_DISCLAIMER,
   ASSISTANT_SHORTCUT,
-  ASSISTANT_PILL_INTRO_MS,
   ASSISTANT_ATTACH_LABEL,
   assistantAttachTooltip,
 } from '@/lib/data/assistant'
 import { FormattedMessage, normalizeAssistantRoute } from '@/components/assistant/FormattedMessage'
 import { FeedbackForm } from '@/components/assistant/FeedbackForm'
+import { GreetingCard } from '@/components/assistant/GreetingCard'
+import { useLauncherIntro } from '@/lib/hooks/useLauncherIntro'
 import {
   ASSISTANT_ATTACHMENT_ACCEPT,
   ASSISTANT_ATTACHMENT_LIMIT_LABEL,
@@ -76,23 +77,6 @@ function readStoredTheme(): 'dark' | 'light' {
    navigates away mid-greeting isn't re-greeted on every subsequent page.
    A storage failure (private mode, blocked cookies) degrades to "not seen",
    which just means the greeting may appear again — never a hard error. */
-function hasSeenAssistantGreeting(): boolean {
-  try {
-    return window.localStorage.getItem(ASSISTANT_GREETING.storageKey) === '1'
-  } catch {
-    return false
-  }
-}
-
-function markAssistantGreetingSeen(): void {
-  try {
-    window.localStorage.setItem(ASSISTANT_GREETING.storageKey, '1')
-  } catch {
-    // Storage unavailable — the greeting simply isn't remembered.
-  }
-}
-
-/** Ignore the global open shortcut while the visitor is typing somewhere else. */
 function isTypingTarget(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null
   if (!element || typeof element.tagName !== 'string') return false
@@ -381,100 +365,17 @@ export function FloatingAiAssistant() {
   // Admin-managed chips (live) fall back to the built-in defaults until loaded.
   const suggestedPrompts = livePrompts ?? (ASSISTANT_SUGGESTED_PROMPTS as readonly string[])
 
-  /* ── First-visit greeting card ──────────────────────────────────────────
-     The proactive introduction that names the widget before anyone has to
-     guess what the robot head does. Retired permanently (for this browser)
-     the first time the panel is opened by ANY route — someone who has found
-     the assistant does not need to be introduced to it. */
-  const [greetingOpen, setGreetingOpen] = useState(false)
   const messageInputRef = useRef<HTMLInputElement>(null)
-
-  /* ── Name pill collapse ─────────────────────────────────────────────────
-     The label introduces itself, then gets out of the way: the capsule
-     retracts around the Voltron head once its introduction is over, leaving
-     the plain circle. "Over" means the greeting card closed (dismissed or
-     timed out), or — on a visit where no greeting is due — a short window
-     elapsed. Hover or keyboard focus brings the label back, so the icon stays
-     self-explanatory without the label living on screen permanently. */
-  const [pillIntroDone, setPillIntroDone] = useState(false)
-  const [pillHovered, setPillHovered] = useState(false)
-  const [pillFocused, setPillFocused] = useState(false)
-  /* Natural (extended) width, measured once. Needed because max-width cannot
-     animate from `auto`; transitioning from a generous fixed cap instead would
-     spend the first slice of the animation doing nothing visible. */
-  const [pillNaturalWidth, setPillNaturalWidth] = useState<number | null>(null)
-  const pillExpanded = !pillIntroDone || pillHovered || pillFocused
-
-  /* Measured in a ref callback rather than an effect: it runs during commit,
-     so there is no post-paint flash, and it avoids a setState-in-effect.
-     offsetWidth (not getBoundingClientRect) because the entrance animation
-     applies a scaleX transform the rect would include and layout width won't. */
-  const measurePill = useCallback((node: HTMLSpanElement | null) => {
-    if (node && pillNaturalWidth === null) setPillNaturalWidth(node.offsetWidth)
-  }, [pillNaturalWidth])
-
-  const dismissGreeting = useCallback(() => {
-    markAssistantGreetingSeen()
-    setGreetingOpen(false)
-    setPillIntroDone(true)
-  }, [])
+  const {
+    greetingOpen, setGreetingOpen, dismissGreeting,
+    pillExpanded, pillNaturalWidth, measurePill, setPillHovered, setPillFocused,
+  } = useLauncherIntro({ isVisible, mounted, open })
 
   const openAssistant = useCallback(() => {
     setGreetingOpen(false)
     setTab('chat')
     setOpen(true)
-  }, [])
-
-  /* Slide the greeting out a few seconds after the page settles — never over
-     an already-open panel, and never for a browser that has seen it before.
-     `mounted` gates on the client so localStorage is safe to read. */
-  useEffect(() => {
-    if (!isVisible || !mounted || open) return
-    if (hasSeenAssistantGreeting()) return
-
-    const showTimer = window.setTimeout(() => setGreetingOpen(true), ASSISTANT_GREETING.delayMs)
-    return () => window.clearTimeout(showTimer)
-  }, [isVisible, mounted, open])
-
-  /* Retract the greeting if it is ignored — and only THEN bank the
-     once-per-browser flag. Banking it at display time (the original approach)
-     meant anyone who reloaded or navigated during the 5s delay, or a few
-     seconds into the card, permanently burned their only impression without
-     ever having really seen it. The flag now records genuine consumption:
-     dismissed, opened, or shown for its full window. */
-  useEffect(() => {
-    if (!greetingOpen) return
-    const hideTimer = window.setTimeout(() => {
-      markAssistantGreetingSeen()
-      setGreetingOpen(false)
-      setPillIntroDone(true)
-    }, ASSISTANT_GREETING.autoHideMs)
-    return () => window.clearTimeout(hideTimer)
-  }, [greetingOpen])
-
-  /* Backstop that retracts the pill when the greeting path never runs — a
-     return visit (card already seen), or a first visit where the panel was
-     opened before the card was due. Sized to outlast the whole greeting
-     sequence so it can never cut a live card short; the dismiss and auto-hide
-     handlers above collapse earlier in the cases that do show one. */
-  useEffect(() => {
-    if (!isVisible || !mounted || pillIntroDone) return
-
-    const introMs = hasSeenAssistantGreeting()
-      ? ASSISTANT_PILL_INTRO_MS
-      : ASSISTANT_GREETING.delayMs + ASSISTANT_GREETING.autoHideMs
-    const introTimer = window.setTimeout(() => setPillIntroDone(true), introMs)
-
-    return () => window.clearTimeout(introTimer)
-  }, [isVisible, mounted, pillIntroDone])
-
-  /* Opening the panel by ANY route (click, shortcut, feedback event, chip)
-     means the assistant has been found — never introduce it again. Every
-     open path already clears greetingOpen itself, so this only has to write
-     the flag; no setState here, and therefore no cascading render. */
-  useEffect(() => {
-    if (open) markAssistantGreetingSeen()
-  }, [open])
+  }, [setGreetingOpen])
 
   /* Move focus into the composer when the panel opens, so the keyboard
      shortcut lands the visitor on the thing they came to use. */
@@ -521,7 +422,7 @@ export function FloatingAiAssistant() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isVisible, open, greetingOpen, headerExportOpen, msgExportOpen, previewHtml, dismissGreeting])
+  }, [isVisible, open, greetingOpen, headerExportOpen, msgExportOpen, previewHtml, dismissGreeting, setGreetingOpen])
 
   useEffect(() => {
     if (!isVisible) return
@@ -534,7 +435,7 @@ export function FloatingAiAssistant() {
 
     window.addEventListener(ASSISTANT_CONFIG.openFeedbackEvent, openFeedbackPanel)
     return () => window.removeEventListener(ASSISTANT_CONFIG.openFeedbackEvent, openFeedbackPanel)
-  }, [isVisible])
+  }, [isVisible, setGreetingOpen])
 
   /* The panel position AND size are intentionally NOT restored on load — the
      window always opens anchored to the bot (bottom-right) at the proportional
@@ -842,7 +743,7 @@ export function FloatingAiAssistant() {
 
     setGreetingOpen(false)
     setOpen((currentOpen) => !currentOpen)
-  }, [])
+  }, [setGreetingOpen])
 
   /* Greeting quick-start chip: open the panel AND fire the question in one
      click, so the card doubles as a working entry point rather than an ad.
@@ -852,7 +753,7 @@ export function FloatingAiAssistant() {
     setTab('chat')
     setOpen(true)
     void handleSend(prompt)
-  }, [handleSend])
+  }, [handleSend, setGreetingOpen])
 
   if (!isVisible) return null
 
@@ -1116,58 +1017,13 @@ export function FloatingAiAssistant() {
           Anchored to the same side/vertical half as the pill so it always
           opens into free screen space. */}
       {greetingOpen && !open && !isDragging && (
-        /* A landmark region, deliberately NOT role="dialog": nothing here traps
-           or receives focus, and announcing an unsolicited modal to a screen
-           reader mid-page would be worse than letting them find it — the
-           trigger button already states what the assistant is. The width cap
-           subtracts the button's 40px corner inset plus a 16px far-side gutter
-           so the card never touches the opposite screen edge on a phone. */
-        <section
-          aria-label={`${ASSISTANT_LAUNCHER.fullName} introduction`}
-          className={`assistant-greeting-card absolute z-20 w-[min(19rem,calc(100vw-3.5rem))] rounded-xl border border-red-700/40 bg-[#040a16]/95 p-3.5 text-left shadow-[0_18px_44px_rgba(0,0,0,0.6)] backdrop-blur-xl ${
-            calloutAnchor.horizontal === 'left' ? 'right-0' : 'left-0'
-          } ${calloutAnchor.vertical === 'up' ? 'bottom-full mb-3' : 'top-full mt-3'}`}
-        >
-          <div className="flex items-start gap-2">
-            <img src={VOLTRON_IMAGE_SRC} alt="" aria-hidden="true" className="h-8 w-8 shrink-0 rounded-full border border-red-700/50 object-cover" />
-            <div className="min-w-0 flex-1 leading-none">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white">{ASSISTANT_LAUNCHER.brand}</p>
-              <p className="mt-1 text-[9px] font-medium uppercase tracking-[0.1em] text-red-300/90">{ASSISTANT_LAUNCHER.role}</p>
-            </div>
-            <button
-              type="button"
-              onClick={dismissGreeting}
-              aria-label={ASSISTANT_GREETING.dismissLabel}
-              className="-mr-1 -mt-1 shrink-0 rounded p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          <p className="mt-3 text-[13px] font-semibold leading-snug text-white">{ASSISTANT_GREETING.title}</p>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-gray-300">{ASSISTANT_GREETING.body}</p>
-
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {suggestedPrompts.slice(0, ASSISTANT_GREETING.maxChips).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => openAssistantWithPrompt(p)}
-                className="rounded border border-white/10 px-2 py-1 text-[10px] text-gray-200 transition-colors hover:bg-white/5"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={openAssistant}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-700 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-600"
-          >
-            {ASSISTANT_GREETING.cta} <ArrowRight size={13} />
-          </button>
-        </section>
+        <GreetingCard
+          anchor={calloutAnchor}
+          prompts={suggestedPrompts.slice(0, ASSISTANT_GREETING.maxChips)}
+          onDismiss={dismissGreeting}
+          onOpen={openAssistant}
+          onPrompt={openAssistantWithPrompt}
+        />
       )}
 
       {/* Assistant Panel */}

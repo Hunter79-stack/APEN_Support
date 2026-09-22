@@ -17,7 +17,12 @@ import path from 'node:path'
 import test from 'node:test'
 
 test('AI assistant launcher names itself to first-time visitors', () => {
-  const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
+  // The launcher's intro state and greeting card live beside the component (code-quality #76).
+  const assistantSource = [
+    path.join('components', 'ui', 'APEN-chat-assistant.tsx'),
+    path.join('lib', 'hooks', 'useLauncherIntro.ts'),
+    path.join('components', 'assistant', 'GreetingCard.tsx'),
+  ].map((f) => fs.readFileSync(f, 'utf8')).join('\n')
   const assistantData = fs.readFileSync(path.join('lib', 'data', 'assistant.ts'), 'utf8')
   const globalStyles = fs.readFileSync(path.join('app', 'globals.css'), 'utf8')
 
