@@ -7,7 +7,7 @@
   "packageManager": "npm@12.0.2",
   "scripts": {
     "dev": "next dev",
-    "build": "npm run validate:images && NEXT_TELEMETRY_DISABLED=1 next build && node scripts/build-search-index.mjs",
+    "build": "npm run validate:images && npm run notices && NEXT_TELEMETRY_DISABLED=1 next build && node scripts/build-search-index.mjs",
     "start": "next start",
     "proxy:voltron": "node proxy/voltron-proxy.mjs",
     "stats": "node proxy/site-stats.mjs",
@@ -16,10 +16,12 @@
     "lint": "eslint .",
     "favicons": "node scripts/build-favicon.mjs",
     "validate:images": "node scripts/validate-image-registry.mjs",
+    "notices": "node scripts/build-third-party-notices.mjs",
     "upgrade": "npx @next/codemod@canary upgrade latest",
     "clean": "rm -rf .next node_modules package-lock.json",
     "reinstall": "npm run clean && npm install",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.proxy.json",
+    "hooks:install": "install -m 0755 scripts/git-hooks/pre-push .git/hooks/pre-push && echo 'pre-push hook installed'",
     "test": "node --import ./scripts/register-test-loader.mjs --test tests/**/*.test.ts",
     "validate": "npm run lint && npm run typecheck && npm test && npm run build"
   },

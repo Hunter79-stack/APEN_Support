@@ -10,6 +10,15 @@
 //   pm2 startup        # run the printed command once to enable boot-start
 //
 // After editing .env.local:  pm2 restart <name> --update-env
+// The OS trust store differs by distribution (Debian/Ubuntu vs RHEL-family);
+// an explicit NODE_EXTRA_CA_CERTS in the environment wins, otherwise the first
+// bundle that exists on this host is used.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- pm2 loads this file as CommonJS
+const { existsSync } = require('fs')
+const CA_BUNDLE = process.env.NODE_EXTRA_CA_CERTS
+  || ['/etc/ssl/certs/ca-certificates.crt', '/etc/pki/tls/certs/ca-bundle.crt'].find(existsSync)
+  || '/etc/ssl/certs/ca-certificates.crt'
+
 module.exports = {
   apps: [
     {
@@ -27,7 +36,7 @@ module.exports = {
       // to be set only in the live pm2 process env, which meant one
       // `pm2 delete` + `pm2 start` silently wiped it — exactly what happened on
       // 2026-08-04. Declaring it here makes it survive restarts and reboots.
-      env: { NODE_ENV: 'production', NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt' },
+      env: { NODE_ENV: 'production', NODE_EXTRA_CA_CERTS: CA_BUNDLE },
     },
     {
       name: 'voltron-proxy',         // AI chat proxy (/api/voltron-chat) — :8787
@@ -40,7 +49,7 @@ module.exports = {
       // Same reason as above — this one reaches an internal HTTPS model
       // endpoint. Its running process still has the variable from an older
       // manual start; declaring it here stops the next restart from losing it.
-      env: { NODE_ENV: 'production', NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt' },
+      env: { NODE_ENV: 'production', NODE_EXTRA_CA_CERTS: CA_BUNDLE },
     },
   ],
 }

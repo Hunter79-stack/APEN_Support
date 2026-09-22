@@ -75,6 +75,8 @@ rsync -a \
   --exclude '.env.local.*' \
   --exclude 'speedtest/logs/' \
   --exclude '**/__pycache__/' \
+  --exclude 'proxy/*.corrupt-*' \
+  --exclude 'proxy/*.tmp-*' \
   --exclude 'proxy/chat-history.json' \
   --exclude 'proxy/admin-sessions.json' \
   --exclude 'proxy/general-sessions.json' \

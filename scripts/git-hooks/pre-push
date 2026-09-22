@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Runs the fast gates before a push. Install once with `npm run hooks:install`
+# (copies this file to .git/hooks/pre-push). Skip for one push with
+# `git push --no-verify`.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+echo "pre-push: lint, typecheck, test"
+npm run lint --silent
+npm run typecheck --silent
+npm test --silent

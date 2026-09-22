@@ -1,0 +1,15 @@
+# Files copied from nginx/ into /etc/nginx/conf.d/apen_support/ on every deploy.
+# Read by customsh/siteupdate.sh, deploy/INSTALL.sh and
+# scripts/install-hardening-upgrade.sh, so a new include only has to be added
+# HERE. tests/nginx-deploy-files.test.ts fails when server.conf or an .inc
+# includes a file this list does not name.
+#
+# Not listed on purpose: loader.conf (installed as conf.d/apen_support.conf),
+# admin-token.inc (authored on the host by proxy/sync-nginx-admin-token.sh),
+# managed-*.conf (written by the /admin nginx editor).
+server.conf
+security-headers.inc
+admin-acl.inc
+blocked-hosts.inc
+proxy-headers.inc
+login-redirect.inc

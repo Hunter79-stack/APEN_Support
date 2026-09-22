@@ -38,6 +38,9 @@ yarn-error.log*
 # contain per-deployment state and PII (feedback authors, IP addresses)
 # that should NEVER be checked in. Keep proxy/infrastructure-nodes.json
 # tracked only if you want a default node list — otherwise add it here too.
+# quarantined / in-flight copies written by proxy/state-files.mjs
+proxy/*.corrupt-*
+proxy/*.tmp-*
 proxy/feedback-history.json
 proxy/notification-settings.json
 proxy/notification-outbox.json

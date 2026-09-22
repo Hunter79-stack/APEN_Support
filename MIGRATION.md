@@ -41,8 +41,7 @@ How to stand this project up on a new server from the backup archive
    ```
 4. **Backends (PM2):**
    ```bash
-   pm2 start proxy/site-stats.mjs   --name apen-stats-api   # :8788
-   pm2 start proxy/voltron-proxy.mjs --name voltron-proxy   # :8787
+   pm2 start ecosystem.config.js    # apen-stats-api :8788, voltron-proxy :8787 — sets NODE_EXTRA_CA_CERTS
    pm2 save && pm2 startup          # run the printed command to enable boot-start
    ```
 5. **nginx:**

@@ -127,6 +127,25 @@ RSYNC_PROTECT=(
   --exclude 'proxy/*.json'
   --exclude 'speedtest/logs/'
 )
+# Two admin-authored artifacts live OUTSIDE proxy/: the published snapshot and
+# the page.tsx generated for each wizard page (app/<category>/<slug>/). Both are
+# this enclave's content, so an update keeps them unless --reset-content.
+CUSTOM_PAGE_COUNT=0
+if [[ "$MODE" == update && $RESET_CONTENT == 0 ]]; then
+  RSYNC_PROTECT+=(--exclude 'lib/data/published-content.json')
+  if [[ -r "$SITE_ROOT/proxy/custom-pages.json" ]]; then
+    while IFS= read -r route; do
+      [[ -n "$route" ]] || continue
+      RSYNC_PROTECT+=(--exclude "app/$route/")
+      CUSTOM_PAGE_COUNT=$((CUSTOM_PAGE_COUNT + 1))
+    done < <(node -e '
+      const pages = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))
+      const ok = (s) => /^[a-z0-9][a-z0-9-]*$/.test(s)
+      for (const p of Array.isArray(pages) ? pages : []) if (ok(p.category) && ok(p.slug)) console.log(`${p.category}/${p.slug}`)
+    ' "$SITE_ROOT/proxy/custom-pages.json" 2>/dev/null)
+    (( CUSTOM_PAGE_COUNT > 0 )) && info "keeping $CUSTOM_PAGE_COUNT wizard page route(s) authored on this enclave"
+  fi
+fi
 if [[ $DRY_RUN == 1 ]]; then
   info "[dry-run] rsync -a --delete ${RSYNC_PROTECT[*]} $HERE/site/ -> $SITE_ROOT/"
 else
@@ -321,14 +340,15 @@ fi
 if [[ $SKIP_NGINX == 0 ]]; then
   say "nginx configuration"
   run "mkdir -p '$NGINX_CONF_DIR'"
-  # This list must stay in sync with customsh/siteupdate.sh — server.conf
-  # includes every one of these, so a missing file fails `nginx -t` outright.
-  for inc in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc proxy-headers.inc login-redirect.inc; do
+  # nginx/DEPLOY-FILES is the one list (shared with customsh/siteupdate.sh) —
+  # server.conf includes every one of these, so a missing file fails `nginx -t`.
+  [[ -r "$HERE/site/nginx/DEPLOY-FILES" ]] || die "bundle is missing nginx/DEPLOY-FILES"
+  while IFS= read -r inc; do
     # Validate against the BUNDLE (always present, including under --dry-run);
     # copy from SITE_ROOT, which is the retargeted copy.
     [[ -e "$HERE/site/nginx/$inc" ]] || die "bundle is missing nginx/$inc — server.conf includes it and nginx -t would fail."
     run "cp '$SITE_ROOT/nginx/$inc' '$NGINX_CONF_DIR/$inc'"
-  done
+  done < <(grep -v -E '^\s*(#|$)' "$HERE/site/nginx/DEPLOY-FILES")
   run "cp '$SITE_ROOT/nginx/loader.conf' /etc/nginx/conf.d/apen_support.conf"
   run "bash '$SITE_ROOT/proxy/sync-nginx-admin-token.sh'"
   if [[ $DRY_RUN == 0 ]]; then
@@ -359,11 +379,14 @@ fi
 
 if [[ $DRY_RUN == 0 ]]; then
   cd "$SITE_ROOT"
+  # ecosystem.config.js is the ONE definition of both apps: it sets
+  # NODE_EXTRA_CA_CERTS, without which every internal HTTPS/LDAPS call fails
+  # with UNABLE_TO_VERIFY_LEAF_SIGNATURE. Starting the scripts by hand loses it.
   pm2_as delete apen-stats-api >/dev/null 2>&1 || true
+  pm2_as delete voltron-proxy >/dev/null 2>&1 || true
   fuser -k -TERM 8788/tcp 2>/dev/null && sleep 1 || true
-  pm2_as start npm --name apen-stats-api -- run stats
-  pm2_as restart voltron-proxy --update-env 2>/dev/null \
-    || pm2_as start proxy/voltron-proxy.mjs --name voltron-proxy
+  fuser -k -TERM 8787/tcp 2>/dev/null && sleep 1 || true
+  pm2_as start ecosystem.config.js --update-env
   pm2_as save
   pm2 startup systemd -u "$RUN_USER" --hp "$(getent passwd "$RUN_USER" | cut -d: -f6)" >/dev/null 2>&1 || \
     warn "could not enable pm2 boot-start automatically — run 'pm2 startup' and follow its instructions."
@@ -379,4 +402,7 @@ fi
 
 say "Done ($MODE install)"
 [[ "$MODE" == update ]] && info "backup of the previous site: $BACKUP_DIR"
+if (( CUSTOM_PAGE_COUNT > 0 )); then
+  warn "the bundle's out/ does not contain this enclave's $CUSTOM_PAGE_COUNT wizard page(s). Their sources were kept; open /admin and run Publish & Rebuild so they are served again."
+fi
 info "admin dashboard: https://$SITE_FQDN/admin  (monitor tab: /admin#monitor)"

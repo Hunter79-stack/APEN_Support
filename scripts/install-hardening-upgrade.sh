@@ -118,6 +118,9 @@ restore_project() {
   fi
 }
 
+# The one list of files that go into the live nginx dir (see nginx/DEPLOY-FILES).
+mapfile -t NGINX_DEPLOY_FILES < <(grep -v -E '^\s*(#|$)' "$PROJECT_ROOT/nginx/DEPLOY-FILES")
+
 restore_live_nginx() {
   [[ -d "$BACKUP/live-nginx" ]] || return 0
 
@@ -127,7 +130,7 @@ restore_live_nginx() {
     done < "$BACKUP/live-nginx-created.txt"
   fi
 
-  for relative in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc; do
+  for relative in "${NGINX_DEPLOY_FILES[@]}"; do
     [[ -f "$BACKUP/live-nginx/$relative" ]] && cp -a -- "$BACKUP/live-nginx/$relative" "$LIVE_NGINX_DIR/$relative"
   done
 }
@@ -147,7 +150,7 @@ if [[ -d "$LIVE_NGINX_DIR" && -w "$LIVE_NGINX_DIR" ]]; then
   mkdir -p "$BACKUP/live-nginx"
   : > "$BACKUP/live-nginx-created.txt"
 
-  for relative in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc; do
+  for relative in "${NGINX_DEPLOY_FILES[@]}"; do
     if [[ -f "$LIVE_NGINX_DIR/$relative" ]]; then
       cp -a -- "$LIVE_NGINX_DIR/$relative" "$BACKUP/live-nginx/$relative"
     else
@@ -155,9 +158,9 @@ if [[ -d "$LIVE_NGINX_DIR" && -w "$LIVE_NGINX_DIR" ]]; then
     fi
   done
 
-  # server.conf and admin-acl.inc both include blocked-hosts.inc; copy the
-  # whole set or nginx -t fails on the missing include.
-  for relative in server.conf security-headers.inc admin-acl.inc blocked-hosts.inc; do
+  # server.conf and the .inc files include each other; copy the whole set
+  # (nginx/DEPLOY-FILES) or nginx -t fails on the missing include.
+  for relative in "${NGINX_DEPLOY_FILES[@]}"; do
     cp -a -- "$PROJECT_ROOT/nginx/$relative" "$LIVE_NGINX_DIR/$relative"
   done
   nginx -t
