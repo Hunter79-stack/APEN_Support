@@ -1,12 +1,12 @@
 # Session handoff — attribution page + code-quality pass
 
-Updated 2026-09-21 (second session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
+Updated 2026-09-22 (seventh session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
 
 ## User request (2026-09-18, still open)
 1. Review SITE-REVIEW-2026-09-17.md. 2. Stand up /attribution listing every third-party asset class. 3. Then start the Code quality findings.
 
 ## State
-- Branch main, base commit df7b285. ALL work is UNCOMMITTED. Nothing deployed: out/ is only rebuilt by /var/www/customsh/siteupdate.sh. Do NOT run `npm run build` (writes the live out/).
+- Branch main. Everything through 08a44ab is COMMITTED; tree clean. NOT DEPLOYED: out/ is only rebuilt by /var/www/customsh/siteupdate.sh, which also restarts pm2 and reloads nginx. Do NOT run `npm run build` (writes the live out/).
 - PRE-DEPLOY GATE (run all four before telling the user to run $SITEUPDATE; `npm run build` itself must not be run by hand): `npm run validate:images`, `npx tsc --noEmit`, `npm test`, `npx eslint . --quiet`. The 2026-09-21 deploy failed because validate:images was never run: it rejects any string in app/, components/, config/, lib/ that STARTS with `/logos/` — reference a `LOGOS` key, or write prose that does not begin with the path.
 - siteupdate.sh deletes the lockfile + node_modules and reinstalls, so deps float within caret ranges on EVERY deploy, and it upgrades npm to latest (packageManager is its offline fallback pin — do not lower it; code-quality #86 was reverted for this reason). Because of the floating install, `npm run build` now runs `npm run notices` so the shipped THIRD-PARTY-NOTICES.txt always matches the installed tree; expect that file to show as modified after a deploy.
 
@@ -74,20 +74,20 @@ Seventh session (2026-09-22, later):
 - #84 DONE: "lint": "eslint . --max-warnings 75" (the real count after #80); README says lower it, never raise it.
 - #98 chunk B (partial, committed): three launcher-position guards (25 regex assertions) became two behavioural tests in ui-behavior.test.ts calling shouldShowAssistant / clampAssistantPosition / isAssistantPositionTrapped / resolveAssistantPositionForViewportChange; the token-level remainder (pointer-event wiring, no lg:block hiding) stays as one smaller guard. tests/source-guards.test.ts still holds 35 guards (~330 assertions). Convert the rest when touching the code each pins — the two biggest (admin badge 71 assertions, launcher naming 41) are the least behavioural and the most brittle. #98 is therefore DONE as a split + started as a conversion, not finished.
 Blocked / left open:
-- #80: the config-protection hook refuses edits to eslint.config.mjs. User must add `'exports/**',` to globalIgnores by hand (or disable that hook); #84 ratchet depends on it.
 - #23 remainder: 13 entries in lib/data/announcements.ts carry `date: ''`; real dates unknown, not invented.
 - #21 remainder: /dren/trellix/ens_tp/ and /dren/trellix/policy_auditor/ do not exist on the file host, so the DREN ENS and Policy Auditor guide steps still point at missing files. Real tree is installer/{el,ub}-trellix-install/{agent,ensl} plus one tarball (cui-/dren-trellix-install.tar.gz), which is what the legacy page told users to download. Needs a content decision.
 - Observation: unauthenticated curl of any /trellix or /evaluate-stig download from this box returns the 34 KB login page (HTTP 200 text/html). Check from a client workstation whether wget/curl in the guides get past the auth gate.
 - #71: CustomPageView anchor not checked yet.
 
-Order (disjoint file sets):
-- proxy chain: [24,25,26,87,88,92 DONE] -> [27,91,94,95,90 DONE] -> [93,89 DONE] -> [96]; #28 DONE. Proxy edits need `pm2 restart voltron-proxy` to go live — ask first, this box is production.
-- admin chain: [14 DONE then 64] on AdminContentEditor; [15 DONE then 66 DONE] on AdminPageWizard, then #65 DONE; [13+63 DONE]; #83 after the admin chain
-- URLs/data: 16, 21, 22, 82 (all touch lib/data/constants.ts); #23 site-updates.ts
-- a11y/UI: 17, 18, 67, 70, 71, 72, 78, 81 ALL DONE; #77 DONE; remaining: #76 (chat assistant), #73 Navbar, #68 redirect stubs -> nginx map
-- deploy/tooling: 19, 20+79, 97, 29, 85 DONE; 86 reverted; remaining #98 tests split
-- contrast sweep #69+#74 DONE; remaining lint #80 (blocked by hook) + ratchet #84
-- REMAINING: only #98's guard-to-behaviour conversions (35 guards left, opportunistic). #64, #68, #73, #76, #80, #84, #96 complete. Everything else in the 53 is done.
+## What is left (2026-09-22)
+1. #98 second half: 35 source-text guards (~330 assertions) in tests/source-guards.test.ts to convert to behavioural tests, opportunistically when their code is touched. Only code-quality item still open.
+2. #23 remainder: 13 `date: ''` entries in lib/data/announcements.ts — real dates from the user.
+3. #21 remainder: DREN ENS / Policy Auditor guide files do not exist on the file host — content decision (publish files or rewrite guides around dren-trellix-install.tar.gz).
+4. Verify from a client workstation that the guides' wget/curl commands get past the login gate (from this box they return the login page).
+5. #71 remainder: CustomPageView download anchor's accessible name not checked.
+6. User's calls: exempt /THIRD-PARTY-NOTICES.txt from the login gate?; delete the unreferenced unknown-origin images?
+7. Next $SITEUPDATE makes everything since 2026-09-21 live and is the first run of the full validate gate before build.
+Deliberately unchanged: customsh/siteupdate.sh's `pm2 start npm -- run stats` (change with the user); Mem0 key and connector auth are the user's.
 
 ## Constraints worth remembering
 - GateGuard hook: first Bash call needs two stated facts; the FIRST Edit of every file is denied once — state importers / affected API / data schema / the user's verbatim instruction, then retry the same edit.
