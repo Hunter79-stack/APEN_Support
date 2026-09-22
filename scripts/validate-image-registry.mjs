@@ -5,7 +5,7 @@ import { parse } from '@babel/parser'
 import _traverse from '@babel/traverse'
 
 // @babel/traverse ships a CJS default export; unwrap it for ESM.
-const traverse = _traverse.default ?? _traverse
+const traverse = /** @type {any} */ (_traverse).default ?? _traverse
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const registryPath = join(projectRoot, 'lib', 'data', 'logos.ts')

@@ -1,0 +1,77 @@
+# Session handoff — attribution page + code-quality pass
+
+Updated 2026-09-21 (second session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
+
+## User request (2026-09-18, still open)
+1. Review SITE-REVIEW-2026-09-17.md. 2. Stand up /attribution listing every third-party asset class. 3. Then start the Code quality findings.
+
+## State
+- Branch main, base commit df7b285. ALL work is UNCOMMITTED. Nothing deployed: out/ is only rebuilt by /var/www/customsh/siteupdate.sh. Do NOT run `npm run build` (writes the live out/).
+- PRE-DEPLOY GATE (run all four before telling the user to run $SITEUPDATE; `npm run build` itself must not be run by hand): `npm run validate:images`, `npx tsc --noEmit`, `npm test`, `npx eslint . --quiet`. The 2026-09-21 deploy failed because validate:images was never run: it rejects any string in app/, components/, config/, lib/ that STARTS with `/logos/` — reference a `LOGOS` key, or write prose that does not begin with the path.
+- siteupdate.sh deletes the lockfile + node_modules and reinstalls, so deps float within caret ranges on EVERY deploy, and it upgrades npm to latest (packageManager is its offline fallback pin — do not lower it; code-quality #86 was reverted for this reason). Because of the floating install, `npm run build` now runs `npm run notices` so the shipped THIRD-PARTY-NOTICES.txt always matches the installed tree; expect that file to show as modified after a deploy.
+
+### Step 2 (attribution) — DONE, audit findings applied
+All 15 confirmed audit findings fixed. The 39 unverified were checked inline; all held except as noted and were fixed:
+- ReactBits/David Haz credit removed everywhere (Jhey Tompkins only); Tailwind added to notices; LGPL-3.0 + GPL-3.0 texts checked in at scripts/licenses/ and printed in Part C with the libvips README licence table; peerDependencies walked (74 packages); whitespace-normalised dedupe; repo URL shorthand fixed.
+- attribution.tsx: owner corrections (swc, Lucide/Feather, lottie, Node.js, nginx, Babel, Fedora->Red Hat, Jupyter->LF Charities, Posit Software PBC, pip/Openfire/VASSAL "no registered owner"), Tux row re-pointed at the real Tux files, unknown-origin illustrations row (pending), Ubuntu mascots pending, vSphere 8 promo graphic row, derived 3D renders row, legacy-webroot marks row, new section F "Vendor software mirrored for entitled users", C2PA wording corrected, Facilitate.com closure noted, scroll wrapper focusable.
+- Evaluate-STIG EULA copied to public/licenses/Evaluate-STIG-EULA.txt and linked; test now checks every FILES href; notices test skips off linux-x64.
+- ELevate CC BY-SA credit: `source` field on RepoGuide (GUIDE_SOURCES in lib/data/repo-guides.ts) rendered by RepoGuideViewer.
+- Visible credit lines on /videos/facpro, /docs/facpro/faq, /docs/vmware, /downloads/vmware. Footer trademark line text-gray-400. LegalWrapper `<main>` -> `<div>` (this is also code-quality #75). nginx/server.conf `charset utf-8;` (needs deploy + reload). Export lottie banner points at LICENSE-lottie-web.txt.
+- NOT done, user's call: (a) exempting /THIRD-PARTY-NOTICES.txt from the login gate (would expose exact dependency versions pre-auth); (b) deleting the unreferenced unknown-origin images (public/logos/linux_penguin*.jpg, restricted/WSL_tux*.png, real/pngegg.webp, ubuntu-*-mascot.*) — they are listed as pending instead.
+- Refuted by the audit, do not redo: footer-only-on-/home, Evaluate-STIG card EULA link, shadcn header version detail, `Old HTML/` inventory, NOTICE copied into out/.
+
+### Step 3 (code quality) — IN PROGRESS
+53 findings: high #13–29 (review lines 340–714), medium #63–98 (lines 1554–2336). Titles + fixes:
+`awk '/^### /{t=$0} /\*\*Code quality ·/{print "\n" t; print; g=1; next} g && /^\*\*Fix\.\*\*/{print; g=0}' SITE-REVIEW-2026-09-17.md`
+Duplicates: #63=#13, #79=#20, #88=#25. #75 done.
+Done so far (all green: tsc clean, npm test 137/137): #75, #14, #81 (behaviour kept: fallthrough = 'high'), #67, #78 (dead classes deleted), #86 REVERTED (see State), #23 (dedupe key only), #16, #22, #82 (+ admin-content DOWNLOAD_BASE_PRESETS), #21 (agent paths only), #17, #70, #71 (DownloadRow anchor), #77.
+Third session (2026-09-21, later) — also done, tsc clean, npm test 139/139:
+- #13/#63: both assistant panels use adminAuthHeaders() / adminAuthHeaders({ write: true }); useAdminJsonResource hook NOT extracted (not needed for the bug). useNginxStatus and InfrastructureNodesPanel hand-build a token header only on GET reads — left.
+- #15: DownloadRowEditor keeps no per-row state; base/filename/external are derived from dl.href via splitDownloadHref() in lib/data/admin-content.ts (tests/download-href.test.ts). No _localKey needed.
+- #24, #25, #26, #87, #88, #92: new proxy/state-files.mjs (loadJson / saveJson). Bad state files are moved aside to <file>.corrupt-<ms>.json (never overwritten), saves are atomic + 0600, every commit*ToDisk is a one-liner, file-library.mjs and nginx-managed.mjs use it too, startup raises a critical /admin alert per quarantined file. .gitignore and make-airgap-bundle.sh exclude proxy/*.corrupt-* and proxy/*.tmp-*. tests/state-files.test.ts. Smoke-tested in a scratch copy on :18788 with two deliberately bad files.
+  NOT LIVE: needs the pm2 app `apen-stats-api` restarted (site-stats.mjs) — do it through /var/www/customsh/siteupdate.sh so NODE_EXTRA_CA_CERTS is forwarded; ask the user first.
+- Setup: caveman statusLine added to ~/.claude/settings.json. Mem0 key and claude.ai connector auth are the user's to do (guidance given).
+Fourth session (2026-09-21, after the first successful-gate deploy fix) — done, full pre-deploy gate green (validate:images OK, tsc clean, npm test 141/141, eslint --quiet clean):
+- #91: new proxy/http-body.mjs (readBody / readJsonBody; Buffers decoded once, so multi-byte characters split across chunks survive; rejections carry status 413/400). site-stats.mjs (readTextBody wrapper, 21 call sites + 4 inline readers), cert-request.mjs and voltron-proxy.mjs all use it. tests/http-body.test.ts. The streamed file-upload reader was left alone (not a JSON body).
+- #27: /api/site-feedback, /api/acknowledged-alerts, /api/notification-settings capped at 64 KB (system-event stays 8 KB); FEEDBACK_MAX_ENTRIES = 500 applied next to every unshift. An oversize body gets the connection closed (same as the old capped reader), not a 413 page.
+- #94: one isSameOriginRequest(req, { requireHeader }); the two public POST routes pass requireHeader: true. Behaviour change: when Origin is present and wrong, a matching Referer no longer rescues the request.
+- #95: requireAdmin(req, res); 37 pasted 401 prologues replaced by exact-match regex (36 + the upload route, which keeps req.resume()). Three source-text tests now assert requireAdmin(req, res) and ldap-domain.test.ts asserts requireAdmin rests on authorizeAdmin + 401. The routes-map idea was NOT done.
+- #90: pruneExpiredSessions() moved from findSessionByCookie to the 60 s flush timer, plus one call at startup (drops malformed/expired records before the first lookup). The login-route prune stays.
+- #66: every field label in AdminPageWizard (14) and InfrastructureNodesPanel NodeForm (9) has htmlFor + a useId()-based id; Tags is a role="group" with aria-labelledby; the two secondary "custom" inputs have aria-label. The file-library delete/attach panels are INLINE regions, not modals, so they got role="region" + aria-label + Escape-to-close instead of the review's role="dialog" aria-modal (which would be false there). No useEscapeToClose hook.
+- #65: latest-request-wins sequence guard in AdminFileLibraryPanel.refresh (covers the folder switch, reload button and post-upload/delete refreshes), same guard in AdminChatTranscriptsPanel and AdminCustomPagesPanel.
+- Scratch smoke run on :18788 confirmed: admin routes 401 without/with wrong token and 200 with the right one, public POSTs 403 without or with a foreign Origin and 200 same-origin, UTF-8 names stored intact.
+  NOT LIVE until the next $SITEUPDATE (restarts apen-stats-api and voltron-proxy).
+Fifth session (2026-09-22) — done, full gate green (validate:images, typecheck incl. proxy, notices --check, eslint --quiet, npm test 143/143):
+- #28: VOLTRON_TIMEOUT_MS (default 60000, clamped 1000–300000) → AbortSignal.timeout on BOTH voltron fetches (chat + attachment summariser); a timeout logs "no response within N ms" and fails over. Documented in README + enclave.env.example. Proven in scratch: hung upstream abandoned at 1.5 s, next upstream answered.
+- #93: notification outbox DELETED (queueNotification, the variable, file constant, commit fn, queuedNotifications). No mail transport exists on the host. GET /api/notification-settings now reports deliveryConfigured:false; the /admin section hint says "Preferences only — no mail transport is connected on this host". The settings themselves stay (recorded preference). .gitignore/bundle excludes for notification-outbox.json left as harmless guards for old installs.
+- #89: admin Publish spawns `npm run validate` (lint, typecheck, test, build); buildStatus.message names the failing stage ("Failed at \"typecheck\" (exit 1)") parsed from npm's per-script announcements.
+- #18: accessibility statement: WCAG 2.1 AA target (partial conformance), evaluation date 2026-09-17, known exceptions (uncaptioned FacilitatePro videos, mirrored vendor PDFs, reduced-motion on old browsers), mailto with subject; footer quick link "Report Accessibility Issue" added.
+- #72: <MotionConfig reducedMotion="user"> in LinksGrid and activity-chart-card (framer-motion kept; the CSS-only rewrite would lose whileInView); StarfallBackground renders TIER_CONFIG.none when getRenderBudget() is 'reduced' instead of emitting particles CSS then hides.
+- #83: hrefLabel is now RENDERED — all 16 nav-card renderers pass ctaLabel={hrefLabel}; HoverRevealCard strips a trailing →/-> because it draws the arrow icon itself. Field kept in types, data and the admin editor.
+- #19: INSTALL.sh update mode protects lib/data/published-content.json and every app/<category>/<slug>/ route named in the enclave's proxy/custom-pages.json (unless --reset-content), and warns at the end that Publish & Rebuild is needed to serve those pages again. proxy/ADMIN_CONTENT.md claim corrected.
+- #20: INSTALL.sh and MIGRATION.md start pm2 with `pm2 start ecosystem.config.js`; ecosystem.config.js picks the host CA bundle (env NODE_EXTRA_CA_CERTS, else Debian path, else RHEL path). customsh/siteupdate.sh still uses `pm2 start npm -- run stats` — NOT changed (it forwards NODE_EXTRA_CA_CERTS itself and is the live path; change deliberately, with the user).
+- #97: nginx/DEPLOY-FILES manifest read by siteupdate.sh, deploy/INSTALL.sh and scripts/install-hardening-upgrade.sh; tests/nginx-deploy-files.test.ts fails when server.conf/.inc includes a file the manifest omits. (The hardening script had only 4 of 6 files.)
+- #29: tsconfig.proxy.json (allowJs+checkJs, proxy/**/*.mjs + scripts/**/*.mjs + proxy/types.d.ts) chained into `npm run typecheck`. Backlog was 31 errors, now 0. IT CAUGHT A REAL BUG: my #91 edit had sliced six helper functions (parseJson, sanitizeMessages, sanitizeAttachment, chunkText, callUpstreamsForText, resolveAttachmentContext) out of voltron-proxy.mjs — restored from HEAD; voltron would have crashed on every chat request after the next deploy.
+- #85: customsh/siteupdate.sh build step is now `npm run validate`; scripts/git-hooks/pre-push (lint, typecheck, test) + `npm run hooks:install` (installed on this box); README documents both.
+- #69/#74: 432 occurrences of text-slate-500/600/700 → text-slate-400 across 63 dark-theme files (components/legal/ excluded — white background, darker shades pass there); --text-muted token → #94a3b8; tests/text-contrast.test.ts blocks reintroduction. Visual hierarchy between the three muted shades is flattened — deliberate, AA everywhere.
+  NOT LIVE until the next $SITEUPDATE. That run will be the first to execute `npm run validate` (lint+typecheck+test) before building.
+Blocked / left open:
+- #80: the config-protection hook refuses edits to eslint.config.mjs. User must add `'exports/**',` to globalIgnores by hand (or disable that hook); #84 ratchet depends on it.
+- #23 remainder: 13 entries in lib/data/announcements.ts carry `date: ''`; real dates unknown, not invented.
+- #21 remainder: /dren/trellix/ens_tp/ and /dren/trellix/policy_auditor/ do not exist on the file host, so the DREN ENS and Policy Auditor guide steps still point at missing files. Real tree is installer/{el,ub}-trellix-install/{agent,ensl} plus one tarball (cui-/dren-trellix-install.tar.gz), which is what the legacy page told users to download. Needs a content decision.
+- Observation: unauthenticated curl of any /trellix or /evaluate-stig download from this box returns the 34 KB login page (HTTP 200 text/html). Check from a client workstation whether wget/curl in the guides get past the auth gate.
+- #71: CustomPageView anchor not checked yet.
+
+Order (disjoint file sets):
+- proxy chain: [24,25,26,87,88,92 DONE] -> [27,91,94,95,90 DONE] -> [93,89 DONE] -> [96]; #28 DONE. Proxy edits need `pm2 restart voltron-proxy` to go live — ask first, this box is production.
+- admin chain: [14 DONE then 64] on AdminContentEditor; [15 DONE then 66 DONE] on AdminPageWizard, then #65 DONE; [13+63 DONE]; #83 after the admin chain
+- URLs/data: 16, 21, 22, 82 (all touch lib/data/constants.ts); #23 site-updates.ts
+- a11y/UI: 17, 18, 67, 70, 71, 72, 78, 81 ALL DONE; #77 DONE; remaining: #76 (chat assistant), #73 Navbar, #68 redirect stubs -> nginx map
+- deploy/tooling: 19, 20+79, 97, 29, 85 DONE; 86 reverted; remaining #98 tests split
+- contrast sweep #69+#74 DONE; remaining lint #80 (blocked by hook) + ratchet #84
+- REMAINING: #64, #73, #76, #96, #98 (large refactors, confirm scope first), #68, #80 (hook-blocked), #84. Everything else in the 53 is done.
+
+## Constraints worth remembering
+- GateGuard hook: first Bash call needs two stated facts; the FIRST Edit of every file is denied once — state importers / affected API / data schema / the user's verbatim instruction, then retry the same edit.
+- node_modules is root-owned (readable, no npm install). Network egress works.
+- Host has 4 CPUs; the audit workflow used 3.4M subagent tokens and hit the account session limit. Ask before launching a large workflow; prefer small inline batches.
