@@ -1,28 +1,20 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import {
   Menu, X, ChevronDown, ChevronRight,
   Home, BookOpen, Download, Shield, LayoutGrid, Video, Lock, Settings, Search, LogOut
 } from 'lucide-react'
 import { StaticLink } from '@/components/common/StaticLink'
 import { ThemedLogo } from '@/components/common/ThemedLogo'
-import {
-  ADMIN_ACKNOWLEDGED_ALERTS_STORAGE_KEY,
-  ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT,
-  STATIC_ADMIN_ALERTS,
-  countAdminNotifications,
-  normalizeAcknowledgedAlertIds,
-  type AdminAlertItem,
-  type AdminNotificationCounts,
-} from '@/lib/data/admin'
-import { alertsNeedingAttention } from '@/lib/data/admin-health'
+import { type AdminNotificationCounts } from '@/lib/data/admin'
 import { LOGOS } from '@/lib/data/logos'
 import { adminNavItems, navItemLogos, publicNavItems, type NavItem } from '@/lib/data/navigation'
-import { API_ENDPOINTS, RUNTIME_INTERVALS } from '@/lib/data/runtime'
+import { API_ENDPOINTS } from '@/lib/data/runtime'
 import { adminContentClient, type CustomPage } from '@/lib/data/admin-content'
 import { useResolvedPageImages } from '@/lib/hooks/useRouteImage'
+import { useAdminNotificationCounts } from '@/lib/hooks/useAdminNotificationCounts'
 
 /* Lucide icon per top-level section */
 const SECTION_ICONS: Record<string, React.ElementType> = {
@@ -36,8 +28,6 @@ const SECTION_ICONS: Record<string, React.ElementType> = {
   DREN:          Lock,
   Admin:         Settings,
 }
-
-const DEFAULT_ADMIN_NOTIFICATION_COUNTS = countAdminNotifications(STATIC_ADMIN_ALERTS)
 
 // Map custom page categories to their parent section labels. Custom tool
 // pages (published at /tools/<slug>) surface under Applications Tools, where
@@ -94,100 +84,56 @@ function buildNavItemsWithCustomPages(baseItems: NavItem[], customPages: CustomP
 }
 
 
-function readAcknowledgedAlertIdsFromStorage() {
-  if (typeof window === 'undefined') return []
-
-  try {
-    return normalizeAcknowledgedAlertIds(JSON.parse(window.localStorage.getItem(ADMIN_ACKNOWLEDGED_ALERTS_STORAGE_KEY) ?? '[]'))
-  } catch {
-    return []
-  }
-}
-
-// Order-insensitive id-set equality, used to avoid re-render loops when the
-// shared acknowledged list comes back from the server unchanged.
-function sameIds(a: string[], b: string[]) {
-  if (a.length !== b.length) return false
-  const set = new Set(a)
-  return b.every((id) => set.has(id))
-}
-
-function useAdminNotificationCounts(active: boolean) {
-  const [counts, setCounts] = useState<AdminNotificationCounts>(DEFAULT_ADMIN_NOTIFICATION_COUNTS)
-  const [acknowledgedAlertIds, setAcknowledgedAlertIds] = useState<string[]>(readAcknowledgedAlertIdsFromStorage)
-
-  useEffect(() => {
-    if (!active) return
-
-    const syncAcknowledgedAlertIdsFromEvent = (event: Event) => {
-      if (event instanceof CustomEvent) {
-        setAcknowledgedAlertIds(normalizeAcknowledgedAlertIds(event.detail))
-      }
-    }
-
-    window.addEventListener(ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT, syncAcknowledgedAlertIdsFromEvent)
-
-    return () => {
-      window.removeEventListener(ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT, syncAcknowledgedAlertIdsFromEvent)
-    }
-  }, [active])
-
-  useEffect(() => {
-    if (!active) return
-    let cancelled = false
-
-    async function syncNotificationCounts() {
-      // Pull the shared acknowledged AND dismissed lists so the badge reflects
-      // what the AlertsPanel actually shows. Acks made by other admins, and
-      // "removed from view" dismissals, both mean "handled — stop nagging."
-      // Without the dismissed list the cog stays red over items that are
-      // invisible in the panel. Fall back to the local ack mirror if the proxy
-      // is unreachable.
-      const [serverAck, dismissals] = await Promise.all([
-        adminContentClient.fetchAcknowledgedAlerts(),
-        adminContentClient.fetchDismissals(),
-      ])
-      const effectiveAck = serverAck ?? acknowledgedAlertIds
-      if (serverAck && !cancelled) {
-        setAcknowledgedAlertIds((prev) => (sameIds(prev, serverAck) ? prev : serverAck))
-      }
-      // Anything acknowledged or dismissed is hidden from the badge. The rule
-      // lives in lib/data/admin-health.ts alongside the one the AlertsPanel
-      // filters with, because these two used to be written out separately here
-      // and in AdminDashboard and could drift without anything noticing.
-      const dismissedIds = Array.isArray(dismissals) ? dismissals.map((d) => d.id) : []
-      const seen = { acknowledged: effectiveAck, dismissed: dismissedIds }
-      try {
-        const response = await fetch(API_ENDPOINTS.siteStats)
-        if (!response.ok) {
-          if (!cancelled) setCounts(countAdminNotifications(alertsNeedingAttention(STATIC_ADMIN_ALERTS, seen)))
-          return
-        }
-        const json = await response.json()
-        const liveAlerts: AdminAlertItem[] = Array.isArray(json.alerts) ? json.alerts : []
-        if (!cancelled) {
-          setCounts(countAdminNotifications(alertsNeedingAttention([...liveAlerts, ...STATIC_ADMIN_ALERTS], seen)))
-        }
-      } catch {
-        if (!cancelled) setCounts(countAdminNotifications(alertsNeedingAttention(STATIC_ADMIN_ALERTS, seen)))
-      }
-    }
-
-    syncNotificationCounts()
-    const syncId = globalThis.setInterval(syncNotificationCounts, RUNTIME_INTERVALS.adminStatsRefreshMs)
-
-    return () => {
-      cancelled = true
-      globalThis.clearInterval(syncId)
-    }
-  }, [active, acknowledgedAlertIds])
-
-  return counts
-}
-
 function getAdminNotificationLabel(counts: AdminNotificationCounts) {
   const total = counts.systemEvents + counts.feedback
   return `Admin, ${total} notifications: ${counts.systemEvents} system events, ${counts.feedback} feedback`
+}
+
+/** Section icon with the Admin notification badge. The desktop sidebar uses
+ *  the 22 px form, the mobile drawer the 16 px one. */
+function NavIcon({ label, size, total }: { label: string; size: 22 | 16; total: number }) {
+  const Icon = SECTION_ICONS[label] ?? Home
+  const box = size === 22 ? 'h-6 w-6' : 'h-5 w-5 opacity-80'
+  return (
+    <span className={`relative flex ${box} flex-shrink-0 items-center justify-center`}>
+      <Icon size={size} aria-hidden="true" />
+      {label === 'Admin' && <AdminNotificationCountBadge total={total} />}
+    </span>
+  )
+}
+
+/** One child row, in the desktop flyout (a menuitem) or the mobile drawer. */
+function NavChildLink({ child, icon, active, variant, onNavigate }: {
+  child: { href: string; label: string }
+  icon: string | undefined
+  active: boolean
+  variant: 'flyout' | 'drawer'
+  onNavigate: () => void
+}) {
+  const isExternal = /^https?:\/\//.test(child.href)
+  const flyout = variant === 'flyout'
+  return (
+    <StaticLink
+      href={child.href}
+      target={isExternal ? '_blank' : undefined}
+      rel={isExternal ? 'noopener noreferrer' : undefined}
+      role={flyout ? 'menuitem' : undefined}
+      tabIndex={flyout ? -1 : undefined}
+      className={flyout
+        ? `sidebar-flyout-item ${active ? 'sidebar-child-active' : ''}`
+        : 'flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-white/5 transition'}
+      // Navigating from a child closes the menu so the new page does not
+      // render with a leftover floating flyout / open drawer.
+      onClick={onNavigate}
+    >
+      {icon ? (
+        <ThemedLogo src={icon} alt={child.label} size="xs" variant="square" glass={false} className={flyout ? 'flex-shrink-0 opacity-70 hover:opacity-100' : 'opacity-70'} />
+      ) : flyout ? (
+        <span className="w-4" />
+      ) : null}
+      <span className="truncate">{child.label}</span>
+    </StaticLink>
+  )
 }
 
 function AdminNotificationCountBadge({ total }: { total: number }) {
@@ -221,6 +167,9 @@ export function Navbar() {
   const [mobileOpen,   setMobileOpen]   = useState(false)
   const [expanded,     setExpanded]     = useState(false)
   const [openSection,  setOpenSection]  = useState<string | null>(null)
+  /** Expanded section in the mobile drawer — separate from the desktop
+   *  flyout's openSection so one never drives the other. */
+  const [mobileSection, setMobileSection] = useState<string | null>(null)
   const [flyoutTop,    setFlyoutTop]    = useState(0)
   const [isAdmin,      setIsAdmin]      = useState(false)
   /** Username of the current session, or null when nobody is signed in.
@@ -233,8 +182,10 @@ export function Navbar() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Combined nav items based on verified access and custom pages
-  const baseNavItems: NavItem[] = isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems
-  const navItems: NavItem[] = buildNavItemsWithCustomPages(baseNavItems, customPages)
+  const navItems: NavItem[] = useMemo(
+    () => buildNavItemsWithCustomPages(isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems, customPages),
+    [isAdmin, customPages],
+  )
   const isAdminRoute = pathname?.startsWith('/admin') ?? false
   // Reconcile the cog badge for ANY admin on ANY page — not just while sitting
   // on /admin. Gating on isAdminRoute (the old behavior) froze the badge at the
@@ -308,7 +259,7 @@ export function Navbar() {
   }, [])
 
   const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href) && href !== '#'
+    href === '/' ? pathname === '/' : (pathname?.startsWith(href) ?? false) && href !== '#'
 
   /**
    * How long the sidebar / flyout stays open after the cursor moves
@@ -503,7 +454,6 @@ export function Navbar() {
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 space-y-0.5 sidebar-scroll">
           {navItems.map((item) => {
-            const Icon = SECTION_ICONS[item.label] ?? Home
             const active = isActive(item.href)
             const hasChildren = !!item.children && item.children.length > 0
             const isAdminItem = item.label === 'Admin'
@@ -530,10 +480,7 @@ export function Navbar() {
                     onClick={() => { cancelClose(); closeAll() }}
                     onKeyDown={(event) => handleDesktopTriggerKeyDown(item.label, event)}
                   >
-                    <span className="relative flex h-6 w-6 flex-shrink-0 items-center justify-center">
-                      <Icon size={22} aria-hidden="true" />
-                      {isAdminItem && <AdminNotificationCountBadge total={notificationTotal} />}
-                    </span>
+                    <NavIcon label={item.label} size={22} total={notificationTotal} />
                     {expanded && (
                       <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
@@ -547,10 +494,7 @@ export function Navbar() {
                     aria-label={isAdminItem ? adminNotificationLabel : item.label}
                     className={`sidebar-item group ${active ? 'sidebar-item-active' : ''}`}
                   >
-                    <span className="relative flex h-6 w-6 flex-shrink-0 items-center justify-center">
-                      <Icon size={22} aria-hidden="true" />
-                      {isAdminItem && <AdminNotificationCountBadge total={notificationTotal} />}
-                    </span>
+                    <NavIcon label={item.label} size={22} total={notificationTotal} />
                     {expanded && <span className="truncate">{item.label}</span>}
                   </StaticLink>
                 )}
@@ -607,32 +551,16 @@ export function Navbar() {
             onMouseLeave={scheduleClose}
             onKeyDown={(event) => handleFlyoutKeyDown(openDesktopItem.label, event)}
           >
-            {openDesktopItem.children.map((child) => {
-              const icon = resolvedPageImages[child.href] ?? navItemLogos[child.href]
-              const childActive = isActive(child.href)
-              const isExternal = /^https?:\/\//.test(child.href)
-              return (
-                <StaticLink
-                  key={child.href}
-                  href={child.href}
-                  target={isExternal ? '_blank' : undefined}
-                  rel={isExternal ? 'noopener noreferrer' : undefined}
-                  role="menuitem"
-                  tabIndex={-1}
-                  className={`sidebar-flyout-item ${childActive ? 'sidebar-child-active' : ''}`}
-                  // Clicking a child link should close the menu so the new
-                  // page doesn't render with a leftover floating flyout.
-                  onClick={() => { cancelClose(); closeAll() }}
-                >
-                  {icon ? (
-                    <ThemedLogo src={icon} alt={child.label} size="xs" variant="square" glass={false} className="flex-shrink-0 opacity-70 hover:opacity-100" />
-                  ) : (
-                    <span className="w-4" />
-                  )}
-                  <span className="truncate">{child.label}</span>
-                </StaticLink>
-              )
-            })}
+            {openDesktopItem.children.map((child) => (
+              <NavChildLink
+                key={child.href}
+                child={child}
+                icon={resolvedPageImages[child.href] ?? navItemLogos[child.href]}
+                active={isActive(child.href)}
+                variant="flyout"
+                onNavigate={() => { cancelClose(); closeAll() }}
+              />
+            ))}
           </div>
       )}
 
@@ -660,9 +588,8 @@ export function Navbar() {
         {mobileOpen && (
           <div className="glass-dropdown border-t border-white/5 px-4 py-3 space-y-0.5 max-h-[80vh] overflow-y-auto">
             {navItems.map((item) => {
-              const Icon = SECTION_ICONS[item.label] ?? Home
               const hasChildren = !!item.children && item.children.length > 0
-              const sectionOpen = openSection === item.label
+              const sectionOpen = mobileSection === item.label
               const isAdminItem = item.label === 'Admin'
 
               return (
@@ -679,14 +606,11 @@ export function Navbar() {
                         className="flex flex-1 items-center gap-2.5 px-3 py-2.5 rounded-lg hover:text-white"
                         onClick={() => setMobileOpen(false)}
                       >
-                        <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center opacity-80">
-                          <Icon size={16} aria-hidden="true" />
-                          {isAdminItem && <AdminNotificationCountBadge total={notificationTotal} />}
-                        </span>
+                        <NavIcon label={item.label} size={16} total={notificationTotal} />
                         <span className="flex-1 text-left">{item.label}</span>
                       </StaticLink>
                       <button
-                        onClick={() => setOpenSection(sectionOpen ? null : item.label)}
+                        onClick={() => setMobileSection(sectionOpen ? null : item.label)}
                         aria-label={`${sectionOpen ? 'Collapse' : 'Expand'} ${item.label} submenu`}
                         aria-expanded={sectionOpen}
                         className="flex-shrink-0 self-stretch px-3 text-slate-400 hover:text-white"
@@ -701,33 +625,23 @@ export function Navbar() {
                       className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5 transition"
                       onClick={() => setMobileOpen(false)}
                     >
-                      <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center opacity-80">
-                        <Icon size={16} aria-hidden="true" />
-                        {isAdminItem && <AdminNotificationCountBadge total={notificationTotal} />}
-                      </span>
+                      <NavIcon label={item.label} size={16} total={notificationTotal} />
                       {item.label}
                     </StaticLink>
                   )}
 
                   {hasChildren && sectionOpen && (
                     <div className="ml-4 pl-3 border-l border-white/8 space-y-0.5 mb-1">
-                      {item.children?.map((child) => {
-                        const icon = resolvedPageImages[child.href] ?? navItemLogos[child.href]
-                        const isExternal = /^https?:\/\//.test(child.href)
-                        return (
-                          <StaticLink
-                            key={child.href}
-                            href={child.href}
-                            target={isExternal ? '_blank' : undefined}
-                            rel={isExternal ? 'noopener noreferrer' : undefined}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-white/5 transition"
-                            onClick={() => setMobileOpen(false)}
-                          >
-                            {icon && <ThemedLogo src={icon} alt={child.label} size="xs" variant="square" glass={false} className="opacity-70" />}
-                            {child.label}
-                          </StaticLink>
-                        )
-                      })}
+                      {item.children?.map((child) => (
+                        <NavChildLink
+                          key={child.href}
+                          child={child}
+                          icon={resolvedPageImages[child.href] ?? navItemLogos[child.href]}
+                          active={isActive(child.href)}
+                          variant="drawer"
+                          onNavigate={() => setMobileOpen(false)}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
