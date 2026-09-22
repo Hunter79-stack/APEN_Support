@@ -1,5 +1,15 @@
 'use client'
 
+/**
+ * Origin of the SPOTLIGHT_STYLES technique below: the CSS "glowing card"
+ * border effect published by Jhey Tompkins ("React Glow Cards – Minimal",
+ * codepen.io/jh3y/pen/WNmQXyE, MIT). The double-gradient mask + mask-composite
+ * trick and the --border-size/--spotlight-size/--glow-hue/--mouse-x/--mouse-y
+ * custom properties are that technique; the React wrapper, GPU-tier gating and
+ * hue handling are APEN's. The same block is duplicated in app/globals.css.
+ * See public/THIRD-PARTY-NOTICES.txt.
+ */
+
 import React, { useEffect, useRef, useState, ReactNode } from 'react'
 import { cn } from '@/lib/data/utils'
 import { getGpuTier } from '@/lib/data/gpuTier'

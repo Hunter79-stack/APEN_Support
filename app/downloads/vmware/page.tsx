@@ -19,6 +19,10 @@ export default function VMwarePage() {
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <VMwareProductCards />
         <CategoryCustomPages category="vmware" />
+        <p className="text-xs text-slate-400">
+          VMware software © Broadcom Inc.; mirrored under the APEN VMware entitlement —{' '}
+          <a href="/attribution" className="underline hover:text-cyan-400">attribution</a>.
+        </p>
       </div>
     </div>
   )

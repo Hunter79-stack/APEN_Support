@@ -1,3 +1,8 @@
+/**
+ * Origin: shadcn/ui (button.tsx, legacy forwardRef registry) — https://github.com/shadcn-ui/ui
+ * MIT License, Copyright (c) 2023 shadcn. Adapted for the APEN dark theme
+ * (colour tokens only). Full notice: public/THIRD-PARTY-NOTICES.txt and /attribution.
+ */
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'

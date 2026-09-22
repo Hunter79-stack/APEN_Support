@@ -17,7 +17,7 @@ export function Footer() {
             <img alt="FCC" src={footerLogos.fcc} loading="lazy" decoding="async" width={64} height={80} className="h-20 w-auto opacity-60 hover:opacity-100 transition-opacity" />
             <img alt="APEN" src={footerLogos.apen} loading="lazy" decoding="async" width={80} height={80} className="h-20 w-auto opacity-60 hover:opacity-100 transition-opacity" />
             <div className="hidden h-6 w-px bg-white/10 xl:block"></div>
-            <span className="hidden font-mono text-[10px] tracking-widest text-slate-500 xl:block">
+            <span className="hidden font-mono text-[10px] tracking-widest text-slate-400 xl:block">
             </span>
           </div>
 
@@ -50,9 +50,15 @@ export function Footer() {
 
         </div>
 
+        {/* Trademark / attribution line — every page renders vendor marks */}
+        <p className="mt-6 text-center text-[10px] leading-relaxed text-gray-400">
+          Product names, logos and brands are property of their respective owners and identify the products this site supports; use does not imply endorsement.{' '}
+          <a href="/attribution" className="underline hover:text-cyan-400 transition-colors">Attribution &amp; third-party notices</a>
+        </p>
+
         {/* Mobile Motto Bar */}
         <div className="mt-8 border-t border-white/5 pt-4 text-center lg:hidden">
-          <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-slate-600">
+          <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-slate-400">
           </p>
         </div>
       </div>

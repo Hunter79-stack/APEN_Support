@@ -20,7 +20,7 @@ const LegalWrapper: React.FC<LegalWrapperProps> = ({ children, pageTitle, lastUp
             By using this IS, you consent to monitoring and have <strong>NO EXPECTATION OF PRIVACY.</strong>
           </p>
         </div>
-        <main className="p-8 md:p-12">
+        <div className="p-8 md:p-12">
           <header className="mb-10 border-b-4 border-black pb-6">
             <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none">
               {pageTitle}
@@ -34,7 +34,7 @@ const LegalWrapper: React.FC<LegalWrapperProps> = ({ children, pageTitle, lastUp
           <article className="space-y-6 text-slate-800 leading-relaxed">
             {children}
           </article>
-        </main>
+        </div>
         <footer className="bg-slate-900 text-slate-400 p-8 text-[10px] uppercase tracking-widest">
           <div className="text-center space-y-2">
             <p className="text-white font-bold">Official U.S. Army Information System</p>

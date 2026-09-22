@@ -34,3 +34,22 @@ Deploy provenance             : every $SITEUPDATE run writes a sha256 manifest
                                 of out/ to /mnt/storage/logs/apen-deploy-manifests/;
                                 scripts/verify-deploy.sh checks the live tree
                                 against it.
+
+Third-party material
+--------------------
+Inventory (owner + basis of use for every asset class, including vendor
+trademarks and documentation) : /attribution  (components/legal/attribution.tsx)
+Licence texts shipped with the export : public/THIRD-PARTY-NOTICES.txt
+  (generated — `npm run notices`; tests/attribution.test.ts fails when stale),
+  public/fonts/Inter-OFL.txt, public/fonts/JetBrainsMono-OFL.txt,
+  public/vendor/lottie_light.LICENSE.txt, public/licenses/Evaluate-STIG-EULA.txt
+Permission determinations still owed by the System Owner (AR 25-1), marked
+"pending" on /attribution: FacilitatePro videos + Leader Guide PDFs + vendor FAQ
+(vendor closed end of 2025 — rely on the contract file), VMware/Broadcom PDF
+mirror and vSphere 8 promotional graphic, Tenable iris artwork, Evaluate-STIG
+distribution statement, PDQ product copy (rewrite), mirrored vendor software
+(Microsoft, Broadcom, PDQ, Trellix, NVIDIA/Trivy entitlement clauses), derived
+3D logo renders under /logos/no_backgrounds, unknown-origin illustrations
+(linux_penguin*.jpg, WSL_tux*.png, pngegg.webp, helpdesk.png) and the Ubuntu
+release mascots — the last two groups are unreferenced (except helpdesk.png)
+and can simply be deleted.

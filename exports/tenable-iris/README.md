@@ -91,3 +91,14 @@ into the AVIF container (color stream + monochrome alpha stream, infinite
 loop). The color plane is flooded solid white — all shape information lives in
 the alpha plane, which is what keeps the file small. Re-render at any size by
 re-running the same pipeline with a different scale.
+
+## Licences and provenance
+
+- `lottie_light.min.js` is lottie-web 5.12.2 (https://github.com/airbnb/lottie-web),
+  MIT License, Copyright (c) 2015 Bodymovin — full text in `LICENSE-lottie-web.txt`.
+  Keep that file next to the player wherever you copy it.
+- The iris animation and the AVIF renders are Tenable, Inc. brand artwork. APEN
+  uses it to identify Tenable Security Center; no permission for further
+  redistribution has been recorded — confirm with Tenable before reusing it on
+  another site.
+- `LottieMark.tsx` and `demo.html` are APEN-authored (U.S. Government work).

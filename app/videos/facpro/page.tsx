@@ -90,7 +90,11 @@ export default function FacProVideosPage() {
             </div>
             <div className="mt-4 px-1">
               <h2 className="text-base font-semibold text-white">{activeVideo.title}</h2>
-              <p className="text-xs text-slate-500 mt-1">Duration: {activeVideo.duration}</p>
+              <p className="text-xs text-slate-400 mt-1">Duration: {activeVideo.duration}</p>
+              <p className="text-xs text-slate-400 mt-3">
+                Videos created by the developers of FacilitatePro, © Facilitate.com, Inc.; hosted for APEN licence holders —{' '}
+                <a href="/attribution" className="underline hover:text-cyan-400">attribution</a>.
+              </p>
             </div>
           </div>
 
@@ -112,7 +116,7 @@ export default function FacProVideosPage() {
                             : 'hover:bg-white/5 border border-transparent'}`}
                       >
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5
-                          ${activeVideo.id === v.id ? 'bg-cyan-400/20 text-cyan-400' : 'bg-white/5 text-slate-600'}`}>
+                          ${activeVideo.id === v.id ? 'bg-cyan-400/20 text-cyan-400' : 'bg-white/5 text-slate-400'}`}>
                           {activeVideo.id === v.id
                             ? <Play size={12} className="ml-0.5" />
                             : <span className="text-xs font-mono">{String(i + 1).padStart(2, '0')}</span>
@@ -122,7 +126,7 @@ export default function FacProVideosPage() {
                           <p className={`text-sm font-medium truncate ${activeVideo.id === v.id ? 'text-cyan-400' : 'text-slate-300'}`}>
                             {v.title}
                           </p>
-                          <p className="text-xs text-slate-600 mt-0.5">{v.duration}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{v.duration}</p>
                         </div>
                         {activeVideo.id === v.id && (
                           <ChevronRight size={14} className="text-cyan-400 flex-shrink-0 mt-1" />

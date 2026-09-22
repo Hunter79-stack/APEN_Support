@@ -19,6 +19,8 @@ export const quickLinks = [
   { label: 'Open Gov (Plain Writing/Strategic Plans)',  href: '/open-gov' },
   { label: 'Information Quality',                       href: '/information-quality' },
   { label: "Veteran's Crisis Line",                     href: '/veterans-crisis-line' },
+  { label: 'Attribution & Notices',                     href: '/attribution' },
+  { label: 'Report Accessibility Issue',                href: 'mailto:cesc@army.mil?subject=Accessibility%20Issue' },
 ];
 
 export const contactInfo = {

@@ -10,6 +10,11 @@ import { useEffect, useRef } from 'react'
  * are served from our own origin (/public → out/), so this works in the
  * static export with no npm dependency and no third-party runtime fetch.
  * Used by HoverRevealCard whenever a card's `logo` ends in `.json`.
+ *
+ * Player provenance: lottie-web 5.12.2 "lottie_light" build,
+ * https://github.com/airbnb/lottie-web (MIT, Copyright (c) 2015 Bodymovin),
+ * vendored at public/vendor/lottie_light.min.js with the licence alongside at
+ * public/vendor/lottie_light.LICENSE.txt. Bump both files together.
  */
 
 declare global {

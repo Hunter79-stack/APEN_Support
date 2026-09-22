@@ -9,7 +9,7 @@
  * than stored per guide.
  */
 import data from './repo-guides.json'
-import { URLS } from '@/lib/data/constants'
+import { APENSUPPORT_HOST, URLS } from '@/lib/data/constants'
 
 export interface RepoGuideItem {
   type: 'text' | 'code'
@@ -28,6 +28,8 @@ export interface RepoGuide {
   label: string
   title: string
   sections: RepoGuideSection[]
+  /** Third-party source credit, rendered under the guide. Set from GUIDE_SOURCES. */
+  source?: string
 }
 
 export interface RepoGuideGroup {
@@ -95,8 +97,20 @@ const RPM_GROUPS: ReadonlyArray<{ name: string; ids: readonly string[] }> = [
   ] },
 ]
 
+/**
+ * Third-party source credits, keyed by guide id. Kept HERE (not in
+ * repo-guides.json) so they survive regeneration. CC BY-SA requires the credit
+ * and the same licence on the adapted text.
+ */
+const ELEVATE_SOURCE =
+  'Adapted from the AlmaLinux ELevate documentation (wiki.almalinux.org/elevate), © AlmaLinux OS Foundation, licensed CC BY-SA 4.0. This adapted guide is offered under the same licence.'
+const GUIDE_SOURCES: Record<string, string> = {
+  'elevate-frequent-issues': ELEVATE_SOURCE,
+  'elevate-offline-guide': ELEVATE_SOURCE,
+}
+
 function groupRpmGuides(groups: RepoGuideGroup[]): RepoGuideGroup[] {
-  const byId = new Map(groups.flatMap((g) => g.guides).map((guide) => [guide.id, guide]))
+  const byId = new Map(groups.flatMap((g) => g.guides).map((guide) => [guide.id, { ...guide, source: GUIDE_SOURCES[guide.id] }]))
   const placed = new Set<string>()
 
   const grouped = RPM_GROUPS.map(({ name, ids }) => {
@@ -150,20 +164,20 @@ export const pipGuideGroups: RepoGuideGroup[] = [
             heading: 'Install a package from the APEN mirror',
             items: [
               { type: 'text', text: 'Pass the index URL on the command line for a one-off install.' },
-              { type: 'code', code: `pip install <package-name> --index-url ${PIP_BASE}/simple/ --trusted-host apensupport.blcse.mil` },
+              { type: 'code', code: `pip install <package-name> --index-url ${PIP_BASE}/ --trusted-host ${APENSUPPORT_HOST}` },
             ],
           },
           {
             heading: 'Or configure pip to always use the APEN mirror',
             items: [
               { type: 'text', text: 'Edit ~/.config/pip/pip.conf so the flags are not needed on every command.' },
-              { type: 'code', code: `[global]\nindex-url = ${PIP_BASE}/simple/\ntrusted-host = apensupport.blcse.mil` },
+              { type: 'code', code: `[global]\nindex-url = ${PIP_BASE}/\ntrusted-host = ${APENSUPPORT_HOST}` },
             ],
           },
           {
             heading: 'Verify connectivity',
             items: [
-              { type: 'code', code: `pip search <package-name> --index ${PIP_BASE}/simple/` },
+              { type: 'code', code: `pip search <package-name> --index ${PIP_BASE}/` },
             ],
           },
         ],
@@ -177,14 +191,14 @@ export const pipGuideGroups: RepoGuideGroup[] = [
             heading: 'Set it with pip config',
             items: [
               { type: 'text', text: "Set the APEN mirror as pip's default index for your user. `pip config set` writes the values to the correct config file for your OS automatically — no manual file editing required." },
-              { type: 'code', code: `pip config set global.index-url ${PIP_BASE}/simple/\npip config set global.trusted-host apensupport.blcse.mil` },
+              { type: 'code', code: `pip config set global.index-url ${PIP_BASE}/\npip config set global.trusted-host ${APENSUPPORT_HOST}` },
             ],
           },
           {
             heading: 'Or edit the config file directly',
             items: [
               { type: 'text', text: 'The file location depends on your OS — Linux/macOS (user): ~/.config/pip/pip.conf · Linux (system-wide): /etc/pip.conf · Windows (user): %APPDATA%\\pip\\pip.ini' },
-              { type: 'code', code: `[global]\nindex-url = ${PIP_BASE}/simple/\ntrusted-host = apensupport.blcse.mil` },
+              { type: 'code', code: `[global]\nindex-url = ${PIP_BASE}/\ntrusted-host = ${APENSUPPORT_HOST}` },
             ],
           },
           {
@@ -210,20 +224,20 @@ export const pipGuideGroups: RepoGuideGroup[] = [
             heading: 'Set the environment variables',
             items: [
               { type: 'text', text: 'uv reads its default index from environment variables. Set them once in your shell profile (~/.bashrc, ~/.zshrc, or Windows environment variables) so every uv command uses the APEN mirror.' },
-              { type: 'code', code: `export UV_DEFAULT_INDEX="${PIP_BASE}/simple/"\n# If your machine does not yet trust the APEN CA over HTTPS:\nexport UV_INSECURE_HOST="apensupport.blcse.mil"` },
+              { type: 'code', code: `export UV_DEFAULT_INDEX="${PIP_BASE}/"\n# If your machine does not yet trust the APEN CA over HTTPS:\nexport UV_INSECURE_HOST="${APENSUPPORT_HOST}"` },
             ],
           },
           {
             heading: 'Or pin it per project',
             items: [
               { type: 'text', text: 'Pin the index in uv.toml, or in the [tool.uv] table of pyproject.toml.' },
-              { type: 'code', code: `[[index]]\nname = "apen"\nurl = "${PIP_BASE}/simple/"\ndefault = true` },
+              { type: 'code', code: `[[index]]\nname = "apen"\nurl = "${PIP_BASE}/"\ndefault = true` },
             ],
           },
           {
             heading: 'Install with uv against the APEN mirror',
             items: [
-              { type: 'code', code: `uv pip install <package-name> --default-index ${PIP_BASE}/simple/` },
+              { type: 'code', code: `uv pip install <package-name> --default-index ${PIP_BASE}/` },
             ],
           },
         ],

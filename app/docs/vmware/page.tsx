@@ -21,6 +21,10 @@ export default function VmwareDocsPage() {
           <SectionTitle>Documentation &amp; Release Notes</SectionTitle>
           <DocumentationCards cards={vmwareDocCards} scope="docs/vmware/cards" />
         </section>
+        <p className="text-xs text-slate-400">
+          VMware documentation © Broadcom Inc.; mirrored under the APEN VMware entitlement —{' '}
+          <a href="/attribution" className="underline hover:text-cyan-400">attribution</a>.
+        </p>
       </div>
     </div>
   )

@@ -48,14 +48,14 @@ export function RepoGuideViewer({ groups, kind }: { groups: RepoGuideGroup[]; ki
   // the guide text, so showing it there would be advice that does not apply.
   const showLinuxBoilerplate = kind !== 'pip'
 
-  if (!active) return <p className="text-sm text-slate-500">No guides available.</p>
+  if (!active) return <p className="text-sm text-slate-400">No guides available.</p>
 
   return (
     <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
       {/* Sidebar */}
       <aside className="lg:sticky lg:top-6 lg:self-start">
         <div className="relative mb-3">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -98,7 +98,7 @@ export function RepoGuideViewer({ groups, kind }: { groups: RepoGuideGroup[]; ki
               </div>
             )
           })}
-          {filteredGroups.length === 0 && <p className="px-1 text-xs text-slate-600">No guides match “{filter}”.</p>}
+          {filteredGroups.length === 0 && <p className="px-1 text-xs text-slate-400">No guides match “{filter}”.</p>}
         </div>
       </aside>
 
@@ -147,6 +147,9 @@ export function RepoGuideViewer({ groups, kind }: { groups: RepoGuideGroup[]; ki
               </section>
             ))}
           </div>
+          {active.source && (
+            <p className="mt-6 border-t border-white/10 pt-3 text-[11px] leading-relaxed text-slate-400">{active.source}</p>
+          )}
         </GlowCard>
       </main>
     </div>

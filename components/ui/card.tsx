@@ -1,3 +1,8 @@
+/**
+ * Origin: shadcn/ui (card.tsx, legacy forwardRef registry) — https://github.com/shadcn-ui/ui
+ * MIT License, Copyright (c) 2023 shadcn. Adapted for the APEN dark theme
+ * (colour tokens only). Full notice: public/THIRD-PARTY-NOTICES.txt and /attribution.
+ */
 import * as React from 'react'
 import { cn } from '@/lib/data/utils'
 
