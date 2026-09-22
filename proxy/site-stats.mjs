@@ -6,7 +6,7 @@
 import { createServer, request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import { lookup as dnsLookup } from 'node:dns/promises'
-import { createReadStream, createWriteStream, accessSync, chmodSync, constants as FS_CONSTANTS, statSync, readFileSync, writeFileSync, renameSync, mkdirSync, rmSync, unlinkSync, existsSync, readdirSync } from 'node:fs'
+import { createReadStream, createWriteStream, accessSync, constants as FS_CONSTANTS, statSync, readFileSync, writeFileSync, renameSync, mkdirSync, rmSync, unlinkSync, existsSync, readdirSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 import { spawn, execFile } from 'node:child_process'
 import { resolve, join } from 'node:path'
@@ -18,6 +18,8 @@ import { getRepoFreshness } from './repo-freshness.mjs'
 import { readSelfHealEvents } from './selfheal-log.mjs'
 import { describeUnexpectedStatus } from './site-stats-probe.mjs'
 import { readRegistry, writeRegistry, writeManagedFragments, validateEntries } from './nginx-managed.mjs'
+import { isPlainObject, loadJson, saveJson, stateFileProblems } from './state-files.mjs'
+import { readBody } from './http-body.mjs'
 import { loadBlockedHosts, normalizeClientIp } from './blocked-hosts.mjs'
 import { acceptedLoginForms, bindEndpoints, realmDefaultDomain, resolveLoginIdentity } from './ldap-domain.mjs'
 import {
@@ -61,7 +63,6 @@ const PORT = Number.isInteger(configuredPort) && configuredPort > 0 ? configured
 const LOG_PATH = process.env.NGINX_ACCESS_LOG || '/var/log/nginx/cui_nginx_access.log'
 const FEEDBACK_FILE = resolve(import.meta.dirname ?? '.', 'feedback-history.json')
 const NOTIFICATION_SETTINGS_FILE = resolve(import.meta.dirname ?? '.', 'notification-settings.json')
-const NOTIFICATION_OUTBOX_FILE = resolve(import.meta.dirname ?? '.', 'notification-outbox.json')
 const ACKNOWLEDGED_ALERTS_FILE = resolve(import.meta.dirname ?? '.', 'acknowledged-alerts.json')
 const DISMISSED_ALERTS_FILE = resolve(import.meta.dirname ?? '.', 'dismissed-alerts.json')
 const CONTENT_OVERRIDES_FILE = resolve(import.meta.dirname ?? '.', 'content-overrides.json')
@@ -76,7 +77,7 @@ const ANNOUNCEMENT_PATHS_FILE = resolve(import.meta.dirname ?? '.', 'announcemen
 /**
  * Path to the Next.js app/ directory. The New Page Wizard generates a real
  * page.tsx under app/<category>/<slug>/ for every published page so the route
- * exists as a static build artifact after `npm run build` (in addition to the
+ * exists as a static build artifact after `npm run validate` (in addition to the
  * runtime fallback via /custom-pages/). Disable by setting
  * GENERATE_CUSTOM_PAGE_SOURCES=0 — useful in environments where the proxy
  * shouldn't touch source files.
@@ -85,7 +86,7 @@ const APP_DIR = resolve(import.meta.dirname ?? '.', '..', 'app')
 const GENERATE_PAGE_SOURCES = process.env.GENERATE_CUSTOM_PAGE_SOURCES !== '0'
 /** Project root + the committed snapshot the static build bakes published
  *  overrides from. The Publish button writes this file (from the current draft
- *  overrides) and triggers `npm run build` so edits become permanent defaults.
+ *  overrides) and triggers `npm run validate` (lint, typecheck, test, build) so edits become permanent defaults.
  *  Disable the build trigger with PUBLISH_BUILD=0 (snapshot is still written). */
 const PROJECT_ROOT = resolve(import.meta.dirname ?? '.', '..')
 const PROJECT_ROOT_DATA_DIR = resolve(PROJECT_ROOT, 'lib', 'data')
@@ -319,13 +320,13 @@ if (!ADMIN_TOKEN && ADMIN_AUTH_DISABLED) {
   console.warn('[site-stats] ADMIN_API_TOKEN is not set — admin API will reject every request. Set ADMIN_API_TOKEN in .env.local, or set ADMIN_AUTH_DISABLED=1 for local dev.')
 }
 
-/* ── 2. PERSISTENCE ── */
-let feedbackStorage = []
-try {
-  feedbackStorage = JSON.parse(readFileSync(FEEDBACK_FILE, 'utf8'))
-} catch {
-  feedbackStorage = []
-}
+/* ── 2. PERSISTENCE ── every JSON state file goes through proxy/state-files.mjs:
+ * bad files are moved aside instead of overwritten, saves are atomic and 0600. */
+const isArrayOrObject = (v) => Array.isArray(v) || isPlainObject(v) // legacy stores were bare arrays
+
+/** Newest-first; every writer trims to this so the store and the file cannot grow without bound. */
+const FEEDBACK_MAX_ENTRIES = 500
+let feedbackStorage = loadJson(FEEDBACK_FILE, [], Array.isArray)
 
 /* ── Chat transcripts ──
  * One record per (realm, username) — a returning user's transcript keeps
@@ -340,19 +341,9 @@ const CHAT_HISTORY_MAX_MESSAGES = 40
 const CHAT_HISTORY_MAX_MESSAGE_CHARS = 20_000
 const CHAT_HISTORY_MAX_RECORDS = 5000
 
-let chatHistoryStorage = []
-try {
-  const parsed = JSON.parse(readFileSync(CHAT_HISTORY_FILE, 'utf8'))
-  if (Array.isArray(parsed)) chatHistoryStorage = parsed
-} catch {
-  chatHistoryStorage = []
-}
+let chatHistoryStorage = loadJson(CHAT_HISTORY_FILE, [], Array.isArray)
 
-function commitChatHistoryToDisk() {
-  try {
-    writeFileSync(CHAT_HISTORY_FILE, JSON.stringify(chatHistoryStorage, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Chat history save failed:', err) }
-}
+function commitChatHistoryToDisk() { saveJson(CHAT_HISTORY_FILE, chatHistoryStorage, 'Chat history') }
 
 function chatHistoryKey(realm, username) {
   return `${realm}::${username}`.toLowerCase()
@@ -379,66 +370,23 @@ const defaultNotificationSettings = {
   lastSavedAt: null,
 }
 
-let notificationSettings = defaultNotificationSettings
-try {
-  notificationSettings = normalizeNotificationSettings(JSON.parse(readFileSync(NOTIFICATION_SETTINGS_FILE, 'utf8')))
-} catch {
-  notificationSettings = defaultNotificationSettings
-}
+const storedNotificationSettings = loadJson(NOTIFICATION_SETTINGS_FILE, null, isPlainObject)
+let notificationSettings = storedNotificationSettings
+  ? normalizeNotificationSettings(storedNotificationSettings)
+  : defaultNotificationSettings
 
-let notificationOutbox = []
-try {
-  notificationOutbox = JSON.parse(readFileSync(NOTIFICATION_OUTBOX_FILE, 'utf8'))
-} catch {
-  notificationOutbox = []
-}
-
-let acknowledgedAlertIds = []
-try {
-  acknowledgedAlertIds = normalizeAcknowledgedAlertIds(JSON.parse(readFileSync(ACKNOWLEDGED_ALERTS_FILE, 'utf8')))
-} catch {
-  acknowledgedAlertIds = []
-}
+let acknowledgedAlertIds = normalizeAcknowledgedAlertIds(loadJson(ACKNOWLEDGED_ALERTS_FILE, [], isArrayOrObject))
 
 // Shared "remove from view" dismissals, each attributed to the admin who made
 // it. Survives refresh, rebuild, and is visible to every admin.
-let dismissals = []
-try {
-  dismissals = normalizeDismissals(JSON.parse(readFileSync(DISMISSED_ALERTS_FILE, 'utf8')))
-} catch {
-  dismissals = []
-}
+let dismissals = normalizeDismissals(loadJson(DISMISSED_ALERTS_FILE, [], isArrayOrObject))
 
 /* ── 2b. ADMIN CONTENT STORE ── */
-let contentOverrides = {}
-try {
-  const parsed = JSON.parse(readFileSync(CONTENT_OVERRIDES_FILE, 'utf8'))
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) contentOverrides = parsed
-} catch {
-  contentOverrides = {}
-}
+let contentOverrides = loadJson(CONTENT_OVERRIDES_FILE, {}, isPlainObject)
+let customPages = loadJson(CUSTOM_PAGES_FILE, [], Array.isArray)
+let contentAuditLog = loadJson(CONTENT_AUDIT_FILE, [], Array.isArray)
 
-let customPages = []
-try {
-  const parsed = JSON.parse(readFileSync(CUSTOM_PAGES_FILE, 'utf8'))
-  if (Array.isArray(parsed)) customPages = parsed
-} catch {
-  customPages = []
-}
-
-let contentAuditLog = []
-try {
-  const parsed = JSON.parse(readFileSync(CONTENT_AUDIT_FILE, 'utf8'))
-  if (Array.isArray(parsed)) contentAuditLog = parsed
-} catch {
-  contentAuditLog = []
-}
-
-function commitContentOverridesToDisk() {
-  try {
-    writeFileSync(CONTENT_OVERRIDES_FILE, JSON.stringify(contentOverrides, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Content overrides save failed:', err) }
-}
+function commitContentOverridesToDisk() { saveJson(CONTENT_OVERRIDES_FILE, contentOverrides, 'Content overrides') }
 
 /* ── Stale-link prevention ──────────────────────────────────
  *
@@ -549,7 +497,7 @@ function runLinkAuditIntoBuildStatus() {
  * Saving a card writes a *draft* override (content-overrides.json) that shows
  * up instantly via the runtime overlay. Publishing snapshots those drafts into
  * lib/data/published-content.json — a git-tracked file the static export bakes
- * in — and runs `npm run build` so the change becomes a permanent default that
+ * in — and runs `npm run validate` so the change becomes a permanent default that
  * survives $SITEUPDATE without anyone editing source. buildStatus is in-memory
  * (resets to idle on proxy restart); the snapshot itself is durable on disk.
  */
@@ -622,7 +570,9 @@ function startPublishBuild(actor) {
     // shell:true resolves `npm` via PATH (PM2 launches this proxy via npm, so
     // npm is on PATH for its daemon). The command string is static — no user
     // input is interpolated — so shell:true carries no injection risk here.
-    const child = spawn('npm run build', { cwd: PROJECT_ROOT, env: process.env, shell: true })
+    // `validate` = lint, typecheck, test, then the same `build`: the artifact
+    // is identical, but a change that breaks a gate cannot reach out/.
+    const child = spawn('npm run validate', { cwd: PROJECT_ROOT, env: process.env, shell: true })
     child.stdout.on('data', collect)
     child.stderr.on('data', collect)
     child.on('error', (err) => {
@@ -630,13 +580,20 @@ function startPublishBuild(actor) {
     })
     child.on('close', (code) => {
       const lastLines = tail.split('\n').filter(Boolean).slice(-8).join('\n')
+      // npm announces each script as it starts ("npm notice run pkg@ver lint" on
+      // npm >= 11, "> pkg@ver lint" before); the last one announced is the one
+      // that failed, so the admin sees WHICH gate stopped the publish.
+      const stages = [...tail.matchAll(/^(?:npm notice run|>) apen-support-site@\S+ ([\w:-]+)$/gm)].map((m) => m[1])
+      const failedStage = stages.filter((name) => name !== 'validate').at(-1)
       buildStatus = {
         state: code === 0 ? 'success' : 'error',
         startedAt: buildStatus.startedAt,
         finishedAt: new Date().toISOString(),
         by: buildStatus.by,
         exitCode: code,
-        message: code === 0 ? 'Build complete — changes are now permanent.' : (lastLines || `Build failed (exit ${code}).`),
+        message: code === 0
+          ? 'Build complete — changes are now permanent.'
+          : `${failedStage ? `Failed at "${failedStage}" (exit ${code}).` : `Build failed (exit ${code}).`}${lastLines ? `\n${lastLines}` : ''}`,
       }
       if (code === 0) runLinkAuditIntoBuildStatus()
     })
@@ -728,50 +685,29 @@ function startNginxManagedPublish(entries, actor) {
  * full-array disk write on nearly every request. Writes are atomic (temp
  * file + rename) so a process kill mid-write can't corrupt either file.
  */
-function loadSessionsFile(path) {
-  try {
-    const parsed = JSON.parse(readFileSync(path, 'utf8'))
-    return Array.isArray(parsed) ? parsed : []
-  } catch { return [] }
-}
-
-function writeSessionsFileAtomic(path, sessions) {
-  const tmpPath = `${path}.tmp-${process.pid}-${Date.now()}`
-  try {
-    // 0600, not the default 0644: these records hold live session ids and CSRF
-    // tokens, and the session id IS the cookie — a world-readable copy lets any
-    // local account on this host replay an admin session. The mode goes on the
-    // temp file so the atomic rename never exposes a 0644 window, and is
-    // re-asserted with chmodSync because writeFileSync's mode is masked by the
-    // process umask (022 → 0644).
-    writeFileSync(tmpPath, JSON.stringify(sessions, null, 2), { encoding: 'utf8', mode: 0o600 })
-    chmodSync(tmpPath, 0o600)
-    renameSync(tmpPath, path)
-  } catch (err) {
-    console.error(`[site-stats] Session store save failed (${path}):`, err)
-    try { rmSync(tmpPath, { force: true }) } catch { /* ignore */ }
-  }
-}
-
-let adminSessions = loadSessionsFile(ADMIN_SESSIONS_FILE)
-let generalSessions = loadSessionsFile(GENERAL_SESSIONS_FILE)
+let adminSessions = loadJson(ADMIN_SESSIONS_FILE, [], Array.isArray)
+let generalSessions = loadJson(GENERAL_SESSIONS_FILE, [], Array.isArray)
 let adminSessionsDirty = false
 let generalSessionsDirty = false
 const LAST_SEEN_FLUSH_INTERVAL_MS = 60_000
 
 function commitAdminSessionsToDisk() {
-  writeSessionsFileAtomic(ADMIN_SESSIONS_FILE, adminSessions)
+  saveJson(ADMIN_SESSIONS_FILE, adminSessions, 'Admin sessions')
   adminSessionsDirty = false
 }
 
 function commitGeneralSessionsToDisk() {
-  writeSessionsFileAtomic(GENERAL_SESSIONS_FILE, generalSessions)
+  saveJson(GENERAL_SESSIONS_FILE, generalSessions, 'General sessions')
   generalSessionsDirty = false
 }
 
 // Periodic flush for the "someone read a session recently" (lastSeenAt-only)
 // case; every OTHER mutation (login/logout/prune) commits immediately itself.
+// Pruning runs here too rather than in findSessionByCookie: that lookup is on
+// the site-wide auth_request path, and it re-checks expiresAt on the session
+// it matches, so an expired entry lingering up to one interval grants nothing.
 const sessionFlushTimer = setInterval(() => {
+  pruneExpiredSessions()
   if (adminSessionsDirty) commitAdminSessionsToDisk()
   if (generalSessionsDirty) commitGeneralSessionsToDisk()
 }, LAST_SEEN_FLUSH_INTERVAL_MS)
@@ -787,12 +723,11 @@ function pruneExpiredSessions() {
   generalSessions = generalSessions.filter((s) => s && typeof s.expiresAt === 'number' && s.expiresAt > now)
   if (generalSessions.length !== beforeGeneral) commitGeneralSessionsToDisk()
 }
+// Once at startup: drops expired and malformed entries from the loaded files,
+// so the per-request lookup never meets a record without an id.
+pruneExpiredSessions()
 
-function commitCustomPagesToDisk() {
-  try {
-    writeFileSync(CUSTOM_PAGES_FILE, JSON.stringify(customPages, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Custom pages save failed:', err) }
-}
+function commitCustomPagesToDisk() { saveJson(CUSTOM_PAGES_FILE, customPages, 'Custom pages') }
 
 /* ─── Custom-page source-code generation ─────────────────────────────────
  *
@@ -879,11 +814,7 @@ function deleteCustomPageSource(category, slug) {
   }
 }
 
-function commitContentAuditLogToDisk() {
-  try {
-    writeFileSync(CONTENT_AUDIT_FILE, JSON.stringify(contentAuditLog, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Content audit save failed:', err) }
-}
+function commitContentAuditLogToDisk() { saveJson(CONTENT_AUDIT_FILE, contentAuditLog, 'Content audit') }
 
 /* ── Workstation identification from the nginx admin ACL ──
  * admin-acl.inc allowlists each admin workstation by IP with a comment that
@@ -1018,17 +949,12 @@ const DEFAULT_NODES = [
   },
 ]
 
-let infrastructureNodes = []
-try {
-  const parsed = JSON.parse(readFileSync(NODES_FILE, 'utf8'))
-  if (Array.isArray(parsed) && parsed.length) infrastructureNodes = parsed
-} catch {
-  infrastructureNodes = []
-}
+// A corrupt nodes file was moved aside by loadJson, never overwritten; the
+// seed below therefore only ever fills an absent or empty file.
+let infrastructureNodes = loadJson(NODES_FILE, [], Array.isArray)
 if (infrastructureNodes.length === 0) {
   infrastructureNodes = DEFAULT_NODES
-  try { writeFileSync(NODES_FILE, JSON.stringify(infrastructureNodes, null, 2), 'utf8') }
-  catch (err) { console.error('[site-stats] Could not seed nodes file:', err) }
+  saveJson(NODES_FILE, infrastructureNodes, 'Infrastructure nodes seed')
 }
 
 /** mtime of infrastructure-nodes.json as last loaded into memory. */
@@ -1055,13 +981,7 @@ function reloadNodesIfChanged() {
 /** Live state per node id. Built lazily as probes run. */
 const nodeStatusCache = new Map()
 
-function commitNodesToDisk() {
-  try {
-    writeFileSync(NODES_FILE, JSON.stringify(infrastructureNodes, null, 2), 'utf8')
-  } catch (err) {
-    console.error('[site-stats] Infrastructure nodes save failed:', err)
-  }
-}
+function commitNodesToDisk() { saveJson(NODES_FILE, infrastructureNodes, 'Infrastructure nodes') }
 
 /**
  * Targets the infrastructure-node monitor will refuse outright. These map
@@ -1426,6 +1346,7 @@ async function readNginxStatus() {
   const now = Date.now()
   if (_nginxStatusCache.data && now - _nginxStatusCache.at < NGINX_STATUS_CACHE_MS) return _nginxStatusCache.data
 
+  /** @type {any} */
   let data = {
     available: false, source: null, error: 'No nginx status source responded (VTS module / stub_status not reachable).',
     nginxVersion: '', uptimeSec: null, connections: null,
@@ -1776,7 +1697,6 @@ function generateOpaqueId() {
 // field is the source of truth for admin-vs-general — the array it happened
 // to be found in is equivalent but callers should check `session.kind`.
 function findSessionByCookie(req) {
-  pruneExpiredSessions()
   const cookies = parseCookies(req)
   const id = cookies[SESSION_COOKIE_NAME]
   if (!id) return null
@@ -1828,26 +1748,9 @@ const AUTH_EVENTS_FILE = resolve(import.meta.dirname ?? '.', 'auth-events.json')
  *  the start of it, small enough to hand to the admin console in one go. */
 const AUTH_EVENTS_MAX = 500
 
-function loadAuthEvents() {
-  try {
-    const parsed = JSON.parse(readFileSync(AUTH_EVENTS_FILE, 'utf8'))
-    return Array.isArray(parsed) ? parsed.slice(-AUTH_EVENTS_MAX) : []
-  } catch { return [] }
-}
+let authEvents = loadJson(AUTH_EVENTS_FILE, [], Array.isArray).slice(-AUTH_EVENTS_MAX)
 
-let authEvents = loadAuthEvents()
-
-function commitAuthEventsToDisk() {
-  const tmpPath = `${AUTH_EVENTS_FILE}.tmp-${process.pid}-${Date.now()}`
-  try {
-    writeFileSync(tmpPath, JSON.stringify(authEvents, null, 2), { encoding: 'utf8', mode: 0o600 })
-    chmodSync(tmpPath, 0o600)
-    renameSync(tmpPath, AUTH_EVENTS_FILE)
-  } catch (err) {
-    console.error('[site-stats] Auth event store save failed:', err)
-    try { rmSync(tmpPath, { force: true }) } catch { /* ignore */ }
-  }
-}
+function commitAuthEventsToDisk() { saveJson(AUTH_EVENTS_FILE, authEvents, 'Auth events') }
 
 /** Strip control characters and bound the length before anything typed by a
  *  stranger is written to a file an admin will later read in a browser. */
@@ -2080,25 +1983,10 @@ function authorizeAdmin(req) {
   return false
 }
 
-function readJsonBody(req, max = MAX_CONTENT_BODY_BYTES) {
-  return new Promise((resolveBody, rejectBody) => {
-    let body = ''
-    let total = 0
-    let aborted = false
-    req.on('data', (chunk) => {
-      total += chunk.length
-      if (total > max) {
-        aborted = true
-        rejectBody(new Error('payload too large'))
-        req.destroy()
-        return
-      }
-      body += chunk.toString()
-    })
-    req.on('end', () => { if (!aborted) resolveBody(body) })
-    req.on('error', (err) => { if (!aborted) rejectBody(err) })
-  })
-}
+/** Request body as text, capped at MAX_CONTENT_BODY_BYTES unless the route passes its own cap. */
+const readTextBody = (req, max = MAX_CONTENT_BODY_BYTES) => readBody(req, max)
+/** Cap for the small public/admin JSON posts (feedback, alert acks, notification settings). */
+const MAX_SMALL_JSON_BYTES = 64_000
 
 /** Read a raw request body without ever retaining more than `max` bytes. */
 function readBinaryBody(req, max = MAX_ADMIN_LOGO_BYTES) {
@@ -2113,9 +2001,7 @@ function readBinaryBody(req, max = MAX_ADMIN_LOGO_BYTES) {
       total += bytes.length
       if (total > max) {
         settled = true
-        const error = new Error('Image exceeds the 6 MiB upload limit.')
-        error.statusCode = 413
-        rejectBody(error)
+        rejectBody(Object.assign(new Error('Image exceeds the 6 MiB upload limit.'), { statusCode: 413 }))
         return
       }
       chunks.push(bytes)
@@ -2212,6 +2098,7 @@ function normalizeNotificationSettings(settings = {}) {
   }
 }
 
+/** @param {any} input a bare id array or `{ alertIds }` */
 function normalizeAcknowledgedAlertIds(input = []) {
   const values = Array.isArray(input)
     ? input
@@ -2224,6 +2111,7 @@ function normalizeAcknowledgedAlertIds(input = []) {
 
 // Mirror of normalizeDismissals in lib/data/admin.ts (kept in sync by hand —
 // this .mjs runtime can't import the TS module). De-dupes by id, last wins.
+/** @param {any} input a bare array or `{ dismissals }` */
 function normalizeDismissals(input = []) {
   const values = Array.isArray(input)
     ? input
@@ -2243,46 +2131,18 @@ function normalizeDismissals(input = []) {
   return Array.from(byId.values())
 }
 
-function commitFeedbackToDisk() {
-  try {
-    writeFileSync(FEEDBACK_FILE, JSON.stringify(feedbackStorage, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Save failed:', err) }
-}
-
-function commitNotificationSettingsToDisk() {
-  try {
-    writeFileSync(NOTIFICATION_SETTINGS_FILE, JSON.stringify(notificationSettings, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Notification settings save failed:', err) }
-}
-
-function commitNotificationOutboxToDisk() {
-  try {
-    writeFileSync(NOTIFICATION_OUTBOX_FILE, JSON.stringify(notificationOutbox, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Notification outbox save failed:', err) }
-}
-
-function commitAcknowledgedAlertIdsToDisk() {
-  try {
-    writeFileSync(ACKNOWLEDGED_ALERTS_FILE, JSON.stringify({ alertIds: acknowledgedAlertIds }, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Acknowledged alerts save failed:', err) }
-}
-
-function commitDismissalsToDisk() {
-  try {
-    writeFileSync(DISMISSED_ALERTS_FILE, JSON.stringify({ dismissals }, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Dismissed alerts save failed:', err) }
-}
+function commitFeedbackToDisk() { saveJson(FEEDBACK_FILE, feedbackStorage, 'Feedback') }
+function commitNotificationSettingsToDisk() { saveJson(NOTIFICATION_SETTINGS_FILE, notificationSettings, 'Notification settings') }
+function commitAcknowledgedAlertIdsToDisk() { saveJson(ACKNOWLEDGED_ALERTS_FILE, { alertIds: acknowledgedAlertIds }, 'Acknowledged alerts') }
+function commitDismissalsToDisk() { saveJson(DISMISSED_ALERTS_FILE, { dismissals }, 'Dismissed alerts') }
 
 /* ── Admin-managed live-announcement scan roots ──
  * Stored as [{ label, category, fsPath, urlPrefix }]. When the file exists
  * (and parses to a non-empty array) it overrides LIVE_ANNOUNCEMENT_PATHS.
  */
 function loadAnnouncementPaths() {
-  try {
-    const data = JSON.parse(readFileSync(ANNOUNCEMENT_PATHS_FILE, 'utf8'))
-    if (Array.isArray(data?.paths) && data.paths.length > 0) return data.paths
-  } catch { /* missing or invalid file → fall back to env/defaults */ }
-  return null
+  const data = loadJson(ANNOUNCEMENT_PATHS_FILE, null, isPlainObject)
+  return Array.isArray(data?.paths) && data.paths.length > 0 ? data.paths : null
 }
 
 function sanitizeAnnouncementPath(raw) {
@@ -2308,11 +2168,7 @@ function sanitizeAnnouncementPath(raw) {
 
 let announcementPaths = loadAnnouncementPaths()
 
-function commitAnnouncementPathsToDisk() {
-  try {
-    writeFileSync(ANNOUNCEMENT_PATHS_FILE, JSON.stringify({ paths: announcementPaths }, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Announcement paths save failed:', err) }
-}
+function commitAnnouncementPathsToDisk() { saveJson(ANNOUNCEMENT_PATHS_FILE, { paths: announcementPaths }, 'Announcement paths') }
 
 /* ── Admin-managed APEN-chat-assistant suggested-prompt chips ──
  * Live-editable from the dashboard. When no override file exists, the chat
@@ -2329,23 +2185,14 @@ function commitAnnouncementPathsToDisk() {
  * The behavior rules (response format, anti-hallucination, scope) are NOT
  * exposed here — see assistant-knowledge.mjs for why. */
 function loadAssistantKnowledge() {
-  try {
-    const data = JSON.parse(readFileSync(ASSISTANT_KNOWLEDGE_FILE, 'utf8'))
-    if (typeof data?.knowledge === 'string' && data.knowledge.trim()) return data.knowledge
-  } catch { /* missing or invalid file → fall back to the built-in default */ }
-  return null
+  const data = loadJson(ASSISTANT_KNOWLEDGE_FILE, null, isPlainObject)
+  return typeof data?.knowledge === 'string' && data.knowledge.trim() ? data.knowledge : null
 }
 
 let assistantKnowledge = loadAssistantKnowledge()
 
 function commitAssistantKnowledgeToDisk() {
-  try {
-    writeFileSync(
-      ASSISTANT_KNOWLEDGE_FILE,
-      JSON.stringify({ knowledge: assistantKnowledge, updatedAt: new Date().toISOString() }, null, 2),
-      'utf8',
-    )
-  } catch (err) { console.error('[site-stats] Assistant knowledge save failed:', err) }
+  saveJson(ASSISTANT_KNOWLEDGE_FILE, { knowledge: assistantKnowledge, updatedAt: new Date().toISOString() }, 'Assistant knowledge')
 }
 
 const ASSISTANT_PROMPTS_FILE = resolve(import.meta.dirname ?? '.', 'assistant-prompts.json')
@@ -2357,11 +2204,8 @@ const DEFAULT_ASSISTANT_PROMPTS = [
 ]
 
 function loadAssistantPrompts() {
-  try {
-    const data = JSON.parse(readFileSync(ASSISTANT_PROMPTS_FILE, 'utf8'))
-    if (Array.isArray(data?.prompts)) return data.prompts.map((p) => String(p))
-  } catch { /* missing or invalid file → fall back to defaults */ }
-  return null
+  const data = loadJson(ASSISTANT_PROMPTS_FILE, null, isPlainObject)
+  return Array.isArray(data?.prompts) ? data.prompts.map((p) => String(p)) : null
 }
 
 function sanitizeAssistantPrompt(raw) {
@@ -2374,11 +2218,7 @@ function effectiveAssistantPrompts() {
   return Array.isArray(assistantPrompts) ? assistantPrompts : DEFAULT_ASSISTANT_PROMPTS
 }
 
-function commitAssistantPromptsToDisk() {
-  try {
-    writeFileSync(ASSISTANT_PROMPTS_FILE, JSON.stringify({ prompts: assistantPrompts }, null, 2), 'utf8')
-  } catch (err) { console.error('[site-stats] Assistant prompts save failed:', err) }
-}
+function commitAssistantPromptsToDisk() { saveJson(ASSISTANT_PROMPTS_FILE, { prompts: assistantPrompts }, 'Assistant prompts') }
 
 /** Env view for the announcements scanner with the admin-managed roots applied. */
 function liveAnnouncementEnv() {
@@ -2389,27 +2229,10 @@ function liveAnnouncementEnv() {
   return { ...process.env, LIVE_ANNOUNCEMENT_PATHS: serialized }
 }
 
-function shouldQueueNotification(alert) {
-  if (!notificationSettings.enabled || !notificationSettings.emailAddress) return false
-  if (alert.category === 'feedback') return notificationSettings.notifyOnFeedback
-  return notificationSettings.notifyOnSystemEvents
-}
-
-function queueNotification(alert) {
-  if (!shouldQueueNotification(alert)) return
-
-  notificationOutbox.unshift({
-    id: `notice-${Date.now()}`,
-    status: 'queued',
-    recipient: notificationSettings.emailAddress,
-    subject: `[APEN Admin] ${alert.title}`,
-    body: `${alert.message}\n\nSource: ${alert.source}\nTimestamp: ${alert.timestamp}`,
-    createdAt: new Date().toISOString(),
-    alertId: alert.id,
-  })
-  notificationOutbox = notificationOutbox.slice(0, 100)
-  commitNotificationOutboxToDisk()
-}
+// No mail transport exists on the host, so alerts are not sent anywhere: the
+// notification settings are a recorded preference for when one is wired in.
+// The former outbox queued messages nothing ever drained; it was removed rather
+// than left implying delivery.
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -2428,14 +2251,20 @@ const ADMIN_PATH_RE = /^\/api\/admin\//
 // Admin-only routes outside /api/admin/ (nginx gates them with admin-acl.inc).
 const ADMIN_ONLY_ROUTES = new Set(['/api/admin', '/api/site-stats', '/api/notification-settings', '/api/acknowledged-alerts'])
 
-function isSameOriginRequest(req) {
+/**
+ * The one same-origin check. Origin is authoritative when present; Referer is
+ * only consulted when there is no Origin.
+ *
+ * Non-browser callers (curl, internal scripts) send neither header. Admin
+ * routes accept that, because the token / session check still applies. The
+ * unauthenticated public POST routes pass `requireHeader: true` so a scripted
+ * post with no headers is refused instead of waved through.
+ */
+function isSameOriginRequest(req, { requireHeader = false } = {}) {
   const host = (req.headers.host || '').toString().toLowerCase()
   const origin = (req.headers.origin || '').toString()
   const referer = (req.headers.referer || '').toString()
-  // Non-browser callers (curl, internal scripts) typically send neither
-  // Origin nor Referer. Allow those — same-origin policy is a
-  // browser-enforced concept and the x-admin-token check still applies.
-  if (!origin && !referer) return true
+  if (!origin && !referer) return !requireHeader
   try {
     if (origin) {
       const u = new URL(origin)
@@ -2462,6 +2291,15 @@ function adminCors(req) {
     'Access-Control-Allow-Credentials': 'true',
     'Vary': 'Origin',
   }
+}
+
+/** Admin gate for a route: answers 401 and returns false unless the caller is an
+ *  admin. Every admin route starts with `if (!requireAdmin(req, res)) return`. */
+function requireAdmin(req, res) {
+  if (authorizeAdmin(req)) return true
+  res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
+  res.end(JSON.stringify({ error: 'Unauthorized' }))
+  return false
 }
 
 /* ── 3. LOG ANALYTICS ──
@@ -2905,7 +2743,7 @@ const server = createServer(async (req, res) => {
         return res.end(JSON.stringify({ error: 'LDAP not configured. Set LDAP_REALMS in .env.local.' }))
       }
       let body
-      try { body = await readJsonBody(req) } catch {
+      try { body = await readTextBody(req) } catch {
         res.writeHead(413, { ...corsHeaders, 'Content-Type': 'application/json' })
         return res.end(JSON.stringify({ error: 'Payload too large.' }))
       }
@@ -3059,7 +2897,7 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'PUT') {
       let body
-      try { body = await readJsonBody(req) } catch {
+      try { body = await readTextBody(req) } catch {
         res.writeHead(413, { 'Content-Type': 'application/json' })
         return res.end(JSON.stringify({ error: 'Payload too large.' }))
       }
@@ -3083,7 +2921,7 @@ const server = createServer(async (req, res) => {
         // Bound total distinct transcripts, evicting the longest-untouched
         // ones first, so the file can't grow unbounded as new users chat.
         if (chatHistoryStorage.length > CHAT_HISTORY_MAX_RECORDS) {
-          chatHistoryStorage.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+          chatHistoryStorage.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
           chatHistoryStorage.length = CHAT_HISTORY_MAX_RECORDS
         }
       }
@@ -3120,133 +2958,102 @@ const server = createServer(async (req, res) => {
     // alerts (the dedup window helps but doesn't stop a single event
     // per key per source). Compare the Origin/Referer header to the
     // Host the proxy was reached on.
-    const origin = (req.headers.origin || '').toString()
-    const referer = (req.headers.referer || '').toString()
-    const host = (req.headers.host || '').toString().toLowerCase()
-    function originMatchesHost(value) {
-      if (!value || !host) return false
-      try {
-        const u = new URL(value)
-        return u.host.toLowerCase() === host
-      } catch { return false }
-    }
-    const sameOrigin = (origin ? originMatchesHost(origin) : false) || originMatchesHost(referer)
-    if (!sameOrigin) {
+    if (!isSameOriginRequest(req, { requireHeader: true })) {
       res.writeHead(403, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'Cross-origin system-event posts are not accepted.' }))
       return
     }
 
-    let body = ''
-    req.on('data', (chunk) => {
-      body += chunk.toString()
-      if (body.length > 8000) { try { req.destroy() } catch { /* ignore */ } }
-    })
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body || '{}')
-        const key = typeof data.key === 'string' ? data.key.trim().slice(0, 120) : ''
-        const title = typeof data.title === 'string' ? data.title.trim().slice(0, 200) : ''
-        const message = typeof data.message === 'string' ? data.message.trim().slice(0, 1500) : ''
-        if (!key || !title || !message) {
-          res.writeHead(400, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: 'key, title, and message are required' }))
-          return
-        }
-        const severity = ['info', 'warning', 'critical'].includes(data.severity) ? data.severity : 'warning'
-        const page = typeof data.page === 'string' ? data.page.slice(0, 200) : ''
-        const sourceLabel = typeof data.source === 'string' && data.source.trim()
-          ? data.source.trim().slice(0, 80)
-          : 'Page diagnostic'
-        const now = Date.now()
-        const nowIso = new Date(now).toISOString()
-        const SYSTEM_EVENT_DEDUP_WINDOW_MS = 30 * 60_000 // 30 min
+    try {
+      const data = JSON.parse((await readTextBody(req, 8000)) || '{}')
+      const key = typeof data.key === 'string' ? data.key.trim().slice(0, 120) : ''
+      const title = typeof data.title === 'string' ? data.title.trim().slice(0, 200) : ''
+      const message = typeof data.message === 'string' ? data.message.trim().slice(0, 1500) : ''
+      if (!key || !title || !message) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'key, title, and message are required' }))
+        return
+      }
+      const severity = ['info', 'warning', 'critical'].includes(data.severity) ? data.severity : 'warning'
+      const page = typeof data.page === 'string' ? data.page.slice(0, 200) : ''
+      const sourceLabel = typeof data.source === 'string' && data.source.trim()
+        ? data.source.trim().slice(0, 80)
+        : 'Page diagnostic'
+      const now = Date.now()
+      const nowIso = new Date(now).toISOString()
+      const SYSTEM_EVENT_DEDUP_WINDOW_MS = 30 * 60_000 // 30 min
 
-        // Look for an existing entry with the same key inside the window.
-        const existing = feedbackStorage.find((entry) =>
-          entry.systemEventKey === key
-          && entry.firstSeenAt
-          && (now - new Date(entry.firstSeenAt).getTime()) < SYSTEM_EVENT_DEDUP_WINDOW_MS,
-        )
+      // Look for an existing entry with the same key inside the window.
+      const existing = feedbackStorage.find((entry) =>
+        entry.systemEventKey === key
+        && entry.firstSeenAt
+        && (now - new Date(entry.firstSeenAt).getTime()) < SYSTEM_EVENT_DEDUP_WINDOW_MS,
+      )
 
-        if (existing) {
-          existing.count = (existing.count || 1) + 1
-          existing.lastSeenAt = nowIso
-          existing.timestamp = new Date().toLocaleString()
-          existing.message = message // refresh in case it carries new detail
-          commitFeedbackToDisk()
-          res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: true, deduped: true, count: existing.count }))
-          return
-        }
-
-        const alert = {
-          id: `sys-${now}-${Math.random().toString(36).slice(2, 8)}`,
-          type: severity === 'critical' ? 'critical' : severity === 'info' ? 'info' : 'warning',
-          category: 'alert',
-          title,
-          message,
-          timestamp: new Date().toLocaleString(),
-          source: page ? `${sourceLabel} · ${page}` : sourceLabel,
-          systemEventKey: key,
-          firstSeenAt: nowIso,
-          lastSeenAt: nowIso,
-          count: 1,
-        }
-        feedbackStorage.unshift(alert)
-        feedbackStorage = feedbackStorage.slice(0, 500)
-        queueNotification(alert)
+      if (existing) {
+        existing.count = (existing.count || 1) + 1
+        existing.lastSeenAt = nowIso
+        existing.timestamp = new Date().toLocaleString()
+        existing.message = message // refresh in case it carries new detail
         commitFeedbackToDisk()
         res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: true, deduped: false }))
-      } catch (err) {
-        console.error('[site-stats] System event save failed:', err)
-        res.writeHead(400, { ...CORS, 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: 'Could not record event' }))
+        res.end(JSON.stringify({ success: true, deduped: true, count: existing.count }))
+        return
       }
-    })
+
+      const alert = {
+        id: `sys-${now}-${Math.random().toString(36).slice(2, 8)}`,
+        type: severity === 'critical' ? 'critical' : severity === 'info' ? 'info' : 'warning',
+        category: 'alert',
+        title,
+        message,
+        timestamp: new Date().toLocaleString(),
+        source: page ? `${sourceLabel} · ${page}` : sourceLabel,
+        systemEventKey: key,
+        firstSeenAt: nowIso,
+        lastSeenAt: nowIso,
+        count: 1,
+      }
+      feedbackStorage.unshift(alert)
+      feedbackStorage = feedbackStorage.slice(0, FEEDBACK_MAX_ENTRIES)
+      commitFeedbackToDisk()
+      res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: true, deduped: false }))
+    } catch (err) {
+      console.error('[site-stats] System event save failed:', err)
+      res.writeHead(400, { ...CORS, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Could not record event' }))
+    }
     return
   }
 
   if (req.method === 'POST' && url === '/api/site-feedback') {
     // Same-origin guard. Only the site's own pages should POST feedback —
     // cross-origin posts would let a third party spam the admin inbox.
-    const origin = (req.headers.origin || '').toString()
-    const referer = (req.headers.referer || '').toString()
-    const host = (req.headers.host || '').toString().toLowerCase()
-    function originMatchesHost(value) {
-      if (!value || !host) return false
-      try { return new URL(value).host.toLowerCase() === host } catch { return false }
-    }
-    const sameOrigin = (origin ? originMatchesHost(origin) : false) || originMatchesHost(referer)
-    if (!sameOrigin) {
+    if (!isSameOriginRequest(req, { requireHeader: true })) {
       res.writeHead(403, { 'Content-Type': 'application/json', ...CORS })
       res.end(JSON.stringify({ error: 'Cross-origin feedback posts are not accepted.' }))
       return
     }
-    let body = ''
-    req.on('data', c => { body += c.toString() })
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body)
-        const moderation = data.moderation && typeof data.moderation === 'object' ? data.moderation : null
-        const flaggedByLocalAi = moderation?.flagged === true
-        const alert = {
-          id: `fb-${Date.now()}`,
-          type: flaggedByLocalAi ? 'warning' : data.category === 'Bug Report' ? 'critical' : 'info',
-          category: 'feedback',
-          title: `${flaggedByLocalAi ? 'Flagged by Local AI - ' : ''}${data.category}: ${data.name || 'Anonymous'}`,
-          message: data.message,
-          timestamp: new Date().toLocaleString(),
-          source: flaggedByLocalAi ? 'AI Assistant - Flagged by Local AI' : 'AI Assistant',
-          moderation,
-        }
-        feedbackStorage.unshift(alert)
-        queueNotification(alert)
-        commitFeedbackToDisk()
-        res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }))
-      } catch { res.writeHead(400, CORS).end() }
-    })
+    try {
+      const data = JSON.parse(await readTextBody(req, MAX_SMALL_JSON_BYTES))
+      const moderation = data.moderation && typeof data.moderation === 'object' ? data.moderation : null
+      const flaggedByLocalAi = moderation?.flagged === true
+      const alert = {
+        id: `fb-${Date.now()}`,
+        type: flaggedByLocalAi ? 'warning' : data.category === 'Bug Report' ? 'critical' : 'info',
+        category: 'feedback',
+        title: `${flaggedByLocalAi ? 'Flagged by Local AI - ' : ''}${data.category}: ${data.name || 'Anonymous'}`,
+        message: data.message,
+        timestamp: new Date().toLocaleString(),
+        source: flaggedByLocalAi ? 'AI Assistant - Flagged by Local AI' : 'AI Assistant',
+        moderation,
+      }
+      feedbackStorage.unshift(alert)
+      feedbackStorage = feedbackStorage.slice(0, FEEDBACK_MAX_ENTRIES)
+      commitFeedbackToDisk()
+      res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }))
+    } catch { res.writeHead(400, CORS).end() }
     return
   }
 
@@ -3254,8 +3061,8 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({
       ...notificationSettings,
-      deliveryConfigured: Boolean(notificationSettings.enabled && notificationSettings.emailAddress),
-      queuedNotifications: notificationOutbox.length,
+      // Honest until a transport exists — nothing on this host sends mail.
+      deliveryConfigured: false,
     }))
     return
   }
@@ -3267,24 +3074,20 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/acknowledged-alerts') {
-    let body = ''
-    req.on('data', c => { body += c.toString() })
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body)
-        const nextIds = normalizeAcknowledgedAlertIds([
-          ...acknowledgedAlertIds,
-          ...(typeof data.alertId === 'string' ? [data.alertId] : []),
-          ...normalizeAcknowledgedAlertIds(data),
-        ])
-        acknowledgedAlertIds = nextIds
-        commitAcknowledgedAlertIdsToDisk()
-        res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: true, alertIds: acknowledgedAlertIds }))
-      } catch {
-        res.writeHead(400, CORS).end()
-      }
-    })
+    try {
+      const data = JSON.parse(await readTextBody(req, MAX_SMALL_JSON_BYTES))
+      const nextIds = normalizeAcknowledgedAlertIds([
+        ...acknowledgedAlertIds,
+        ...(typeof data.alertId === 'string' ? [data.alertId] : []),
+        ...normalizeAcknowledgedAlertIds(data),
+      ])
+      acknowledgedAlertIds = nextIds
+      commitAcknowledgedAlertIdsToDisk()
+      res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: true, alertIds: acknowledgedAlertIds }))
+    } catch {
+      res.writeHead(400, CORS).end()
+    }
     return
   }
 
@@ -3294,11 +3097,7 @@ const server = createServer(async (req, res) => {
    *   DELETE — remove the file override and fall back to env/defaults
    */
   if (req.method === 'GET' && url === '/api/admin/announcement-paths') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     // When no file override exists, seed the editor with the effective
     // env/default roots so admins start from the real current config.
     const effective = announcementPaths
@@ -3314,13 +3113,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/admin/announcement-paths') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       if (!Array.isArray(data?.paths) || data.paths.length === 0 || data.paths.length > 50) {
         throw new Error('paths must be a non-empty array (max 50 entries).')
       }
@@ -3339,11 +3134,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/announcement-paths') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     announcementPaths = null
     try { rmSync(ANNOUNCEMENT_PATHS_FILE, { force: true }) } catch { /* ignore */ }
     clearLiveAnnouncementCache()
@@ -3360,24 +3151,16 @@ const server = createServer(async (req, res) => {
    * The public /api/content-overrides response carries the effective list, so
    * the chat updates on its next page load — no rebuild required. */
   if (req.method === 'GET' && url === '/api/admin/assistant-prompts') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({ prompts: effectiveAssistantPrompts(), source: assistantPrompts ? 'admin' : 'default' }))
     return
   }
 
   if (req.method === 'POST' && url === '/api/admin/assistant-prompts') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       if (!Array.isArray(data?.prompts) || data.prompts.length > 12) {
         throw new Error('prompts must be an array (max 12 chips).')
       }
@@ -3395,11 +3178,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/assistant-prompts') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     assistantPrompts = null
     try { rmSync(ASSISTANT_PROMPTS_FILE, { force: true }) } catch { /* ignore */ }
     appendAuditEntry({ kind: 'assistant-prompts.reset', slug: 'defaults', by: 'admin-ui' }, req)
@@ -3416,11 +3195,7 @@ const server = createServer(async (req, res) => {
    * voltron-proxy.mjs re-reads the file on its next request, so a save is live
    * on the next question asked — no rebuild, no restart. */
   if (req.method === 'GET' && url === '/api/admin/assistant-system-prompt') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({
       knowledge: assistantKnowledge ?? DEFAULT_ASSISTANT_KNOWLEDGE,
@@ -3432,13 +3207,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/admin/assistant-system-prompt') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const knowledge = typeof data?.knowledge === 'string' ? data.knowledge.trim() : ''
       if (!knowledge) {
         throw new Error('The knowledge block cannot be empty. Use Reset to default instead.')
@@ -3460,11 +3231,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/assistant-system-prompt') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     assistantKnowledge = null
     try { rmSync(ASSISTANT_KNOWLEDGE_FILE, { force: true }) } catch { /* ignore */ }
     appendAuditEntry({ kind: 'assistant-prompt.reset', slug: 'default', by: 'admin-ui' }, req)
@@ -3482,11 +3249,7 @@ const server = createServer(async (req, res) => {
    * AUTH_EVENTS_MAX records.
    */
   if (req.method === 'GET' && url === '/api/admin/auth-events') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     // Newest first — an admin opening this panel wants what just happened.
     res.end(JSON.stringify({
@@ -3499,24 +3262,16 @@ const server = createServer(async (req, res) => {
 
   /* ── Shared "remove from view" dismissals (admin-attributed) ── */
   if (req.method === 'GET' && url === '/api/admin/dismissed-alerts') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({ dismissals }))
     return
   }
 
   if (req.method === 'POST' && url === '/api/admin/dismissed-alerts') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const id = String(data?.alertId ?? data?.id ?? '').trim()
       if (!id) throw new Error('alertId is required')
       // Attribute to the admin, same precedence as the content audit log:
@@ -3540,13 +3295,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/dismissed-alerts') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const id = String(data?.alertId ?? data?.id ?? '').trim()
       if (!id) throw new Error('alertId is required')
       dismissals = dismissals.filter((d) => d.id !== id)
@@ -3563,24 +3314,16 @@ const server = createServer(async (req, res) => {
 
   /* ── Admin-wide chat transcript audit ── */
   if (req.method === 'GET' && url === '/api/admin/chat-history') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({ transcripts: chatHistoryStorage }))
     return
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/chat-history') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const id = String(data?.id ?? '').trim()
       if (!id) throw new Error('id is required')
       chatHistoryStorage = chatHistoryStorage.filter((r) => r.id !== id)
@@ -3596,22 +3339,18 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/notification-settings') {
-    let body = ''
-    req.on('data', c => { body += c.toString() })
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body)
-        notificationSettings = normalizeNotificationSettings({
-          ...data,
-          lastSavedAt: new Date().toISOString(),
-        })
-        commitNotificationSettingsToDisk()
-        res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: true, settings: notificationSettings }))
-      } catch {
-        res.writeHead(400, CORS).end()
-      }
-    })
+    try {
+      const data = JSON.parse(await readTextBody(req, MAX_SMALL_JSON_BYTES))
+      notificationSettings = normalizeNotificationSettings({
+        ...data,
+        lastSavedAt: new Date().toISOString(),
+      })
+      commitNotificationSettingsToDisk()
+      res.writeHead(200, { ...CORS, 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: true, settings: notificationSettings }))
+    } catch {
+      res.writeHead(400, CORS).end()
+    }
     return
   }
 
@@ -3641,11 +3380,7 @@ const server = createServer(async (req, res) => {
    *   POST /api/admin/infrastructure-nodes/probe — force-refresh probes now
    */
   if (req.method === 'GET' && url === '/api/admin/infrastructure-nodes') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({
       nodes: infrastructureNodes,
@@ -3664,11 +3399,7 @@ const server = createServer(async (req, res) => {
    *   an error. Gated by authorizeAdmin (nginx also IP-allowlists /api/admin/).
    */
   if (req.method === 'GET' && url === '/api/admin/nginx-stats') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
       const data = await readNginxStatus()
       res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
@@ -3682,11 +3413,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/admin/infrastructure-nodes/probe') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
       await probeAllNodes()
       res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json' })
@@ -3700,13 +3427,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/admin/infrastructure-nodes') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const body = await readJsonBody(req)
+      const body = await readTextBody(req)
       const data = JSON.parse(body)
       const sanitized = sanitizeNode(data)
       const idx = infrastructureNodes.findIndex((n) => n.id === sanitized.id)
@@ -3731,13 +3454,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/infrastructure-nodes') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const body = await readJsonBody(req)
+      const body = await readTextBody(req)
       const data = JSON.parse(body)
       const id = String(data?.id || '').trim()
       if (!id) throw new Error('id is required')
@@ -3765,11 +3484,7 @@ const server = createServer(async (req, res) => {
    * token on this POST, or the existing legacy admin-token fallback.
    */
   if (req.method === 'POST' && url === '/api/admin/logo-upload') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
 
     const declaredLength = Number.parseInt(String(req.headers['content-length'] || ''), 10)
     if (Number.isFinite(declaredLength) && declaredLength > MAX_ADMIN_LOGO_BYTES) {
@@ -3834,11 +3549,7 @@ const server = createServer(async (req, res) => {
    * it buffers the whole body to its own temp dir before we ever see it.
    */
   if (req.method === 'GET' && url === '/api/admin/file-library') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     const requestedDir = new URL(req.url, 'http://localhost').searchParams.get('dir')
     const selected = findLibraryDir(requestedDir)
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
@@ -3852,13 +3563,9 @@ const server = createServer(async (req, res) => {
 
   /* Add or update an admin-defined upload location (built-ins are fixed). */
   if (req.method === 'POST' && url === '/api/admin/file-library') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const result = saveCustomLibraryDir(data, {
         actor: req.adminUser || 'admin-ui',
         createDir: data.createDir === true,
@@ -3881,13 +3588,9 @@ const server = createServer(async (req, res) => {
 
   /* Remove an admin-defined location. The folder and its files are untouched. */
   if (req.method === 'DELETE' && url === '/api/admin/file-library') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const result = deleteCustomLibraryDir(String(data.key || ''), { actor: req.adminUser || 'admin-ui' })
       if (!result.ok) {
         res.writeHead(400, { ...adminCors(req), 'Content-Type': 'application/json' })
@@ -3905,12 +3608,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (url === '/api/admin/file-upload') {
-    if (!authorizeAdmin(req)) {
-      req.resume()
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) { req.resume(); return }
     const query = new URL(req.url, 'http://localhost').searchParams
     const entry = findLibraryDir(query.get('dir'))
     if (!entry) {
@@ -4072,13 +3770,9 @@ const server = createServer(async (req, res) => {
    * file out of its directory or give it a disallowed extension. Partial
    * uploads are excluded on purpose — their name IS the resume key. */
   if (req.method === 'POST' && url === '/api/admin/file-rename') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const entry = findLibraryDir(String(data.dir || ''))
       if (!entry) throw Object.assign(new Error('Unknown upload directory.'), { statusCode: 400 })
       const from = safeLibraryName(entry, String(data.from || ''))
@@ -4127,13 +3821,9 @@ const server = createServer(async (req, res) => {
    * left dangling. Partial uploads are excluded: their name is the resume key,
    * and DELETE /api/admin/file-upload already discards those. */
   if (req.method === 'DELETE' && url === '/api/admin/file-delete') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse(await readJsonBody(req))
+      const data = JSON.parse(await readTextBody(req))
       const entry = findLibraryDir(String(data.dir || ''))
       if (!entry) throw Object.assign(new Error('Unknown upload directory.'), { statusCode: 400 })
       // safeLibraryName is the containment guard: it rejects traversal, absolute
@@ -4178,11 +3868,7 @@ const server = createServer(async (req, res) => {
 
   /* ── ADMIN: content overrides for cards/pages ── */
   if (req.method === 'GET' && url === '/api/admin/content-overrides') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({
       overrides: contentOverrides,
@@ -4220,13 +3906,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/admin/content-overrides') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const body = await readJsonBody(req)
+      const body = await readTextBody(req)
       const data = JSON.parse(body)
       const scope = data.scope
       if (!isSafeScopeKey(scope)) {
@@ -4260,13 +3942,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/content-overrides') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const body = await readJsonBody(req)
+      const body = await readTextBody(req)
       const data = JSON.parse(body)
       const scope = data.scope
       if (!isSafeScopeKey(scope)) {
@@ -4290,22 +3968,14 @@ const server = createServer(async (req, res) => {
 
   /* ── ADMIN: publish — bake drafts into the build snapshot + rebuild ── */
   if (req.method === 'GET' && url === '/api/admin/publish') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({ status: buildStatus }))
     return
   }
 
   if (req.method === 'POST' && url === '/api/admin/publish') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     if (buildStatus.state === 'running') {
       res.writeHead(409, { ...adminCors(req), 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'A publish/build is already in progress.', status: buildStatus }))
@@ -4316,7 +3986,7 @@ const server = createServer(async (req, res) => {
       // is the real actor recorded in the audit log.
       let actor = req.adminUser || 'admin'
       try {
-        const body = await readJsonBody(req)
+        const body = await readTextBody(req)
         if (body) {
           const data = JSON.parse(body)
           if (typeof data.updatedBy === 'string' && data.updatedBy.trim()) actor = data.updatedBy.slice(0, 80)
@@ -4344,11 +4014,7 @@ const server = createServer(async (req, res) => {
 
   /* ── ADMIN: managed nginx zones/upstreams — registry read + save ── */
   if (req.method === 'GET' && url === '/api/admin/nginx-managed') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     const reg = readRegistry(NGINX_MANAGED_FILE)
     res.writeHead(200, { ...adminCors(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
     res.end(JSON.stringify({ entries: reg.entries, updatedAt: reg.updatedAt, updatedBy: reg.updatedBy, reloadStatus: nginxReloadStatus, reloadEnabled: NGINX_MANAGED_RELOAD_ENABLED }))
@@ -4356,13 +4022,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && url === '/api/admin/nginx-managed') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const data = JSON.parse((await readJsonBody(req)) || '{}')
+      const data = JSON.parse((await readTextBody(req)) || '{}')
       const v = validateEntries(data.entries || [])
       if (!v.ok) {
         res.writeHead(400, { ...adminCors(req), 'Content-Type': 'application/json' })
@@ -4383,18 +4045,14 @@ const server = createServer(async (req, res) => {
 
   /* ── ADMIN: managed nginx — Publish & Reload (write fragments + reload nginx) ── */
   if (req.method === 'POST' && url === '/api/admin/nginx-managed/publish') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     if (nginxReloadStatus.state === 'running') {
       res.writeHead(409, { ...adminCors(req), 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'An nginx publish is already in progress.', status: nginxReloadStatus }))
       return
     }
     try {
-      const data = JSON.parse((await readJsonBody(req)) || '{}')
+      const data = JSON.parse((await readTextBody(req)) || '{}')
       // Accept the entries in the publish body (save + publish in one click), or
       // fall back to whatever is already saved in the registry.
       const source = data.entries != null ? data.entries : readRegistry(NGINX_MANAGED_FILE).entries
@@ -4419,13 +4077,9 @@ const server = createServer(async (req, res) => {
 
   /* ── ADMIN: custom pages registry (wizard output) ── */
   if (req.method === 'POST' && url === '/api/admin/custom-pages') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const body = await readJsonBody(req)
+      const body = await readTextBody(req)
       const page = JSON.parse(body)
       if (!isSafeSlug(page.slug)) {
         res.writeHead(400, { ...adminCors(req), 'Content-Type': 'application/json' })
@@ -4555,13 +4209,9 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'DELETE' && url === '/api/admin/custom-pages') {
-    if (!authorizeAdmin(req)) {
-      res.writeHead(401, { ...adminCors(req), 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Unauthorized' }))
-      return
-    }
+    if (!requireAdmin(req, res)) return
     try {
-      const body = await readJsonBody(req)
+      const body = await readTextBody(req)
       const data = JSON.parse(body)
       if (!isSafeSlug(data.slug)) {
         res.writeHead(400, { ...adminCors(req), 'Content-Type': 'application/json' })
@@ -4742,5 +4392,32 @@ const server = createServer(async (req, res) => {
 
   res.writeHead(404, CORS).end()
 })
+
+/** Raise one critical /admin alert per state file that failed to load. Runs
+ *  after every loader, so a quarantined feedback store is already fresh. */
+function reportStateFileProblems() {
+  if (stateFileProblems.length === 0) return
+  const nowIso = new Date().toISOString()
+  for (const { path, reason, movedTo } of stateFileProblems) {
+    feedbackStorage.unshift({
+      id: `sys-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: 'critical',
+      category: 'alert',
+      title: 'State file failed to load',
+      message: movedTo
+        ? `${path} could not be read (${reason}). It was moved to ${movedTo} and the store restarted from defaults. Restore it by hand if the data matters.`
+        : `${path} could not be read (${reason}) and could not be moved aside. Saves to it are refused until it is fixed and the proxy restarted.`,
+      timestamp: new Date().toLocaleString(),
+      source: 'site-stats startup',
+      systemEventKey: `state-file:${path}`,
+      firstSeenAt: nowIso,
+      lastSeenAt: nowIso,
+      count: 1,
+    })
+  }
+  feedbackStorage = feedbackStorage.slice(0, FEEDBACK_MAX_ENTRIES)
+  commitFeedbackToDisk()
+}
+reportStateFileProblems()
 
 server.listen(PORT, HOST, () => console.log(`[site-stats] API Online at http://${HOST}:${PORT}`))

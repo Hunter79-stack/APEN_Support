@@ -35,7 +35,7 @@ test('deleting a server file goes through the same name guard as uploading, and 
   assert.ok(route.length > 0, 'the DELETE /api/admin/file-delete route must exist')
 
   const handler = route.slice(0, route.indexOf('/* ── ADMIN: content overrides'))
-  assert.match(handler, /authorizeAdmin\(req\)/, 'delete must be admin-gated')
+  assert.match(handler, /requireAdmin\(req, res\)/, 'delete must be admin-gated')
   assert.match(handler, /safeLibraryName\(entry,/, 'the filename must go through the containment guard')
   assert.match(handler, /countOverrideReferences\(fileUrl\)/)
   assert.match(handler, /countBuiltReferences\(fileUrl\)/)

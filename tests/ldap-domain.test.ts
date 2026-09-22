@@ -241,13 +241,22 @@ test('refused sign-ins are recorded, and the security log cannot be cleared', ()
   assert.match(source, /severity: result\.severity/)
   // Stored 0600 like the session files: `typed` is whatever was in the
   // username box, and a fat-fingered password must not be world-readable.
+  // The mode lives in saveJson (proxy/state-files.mjs), which every state file goes through
+  // (tests/state-files.test.ts checks the resulting mode on a real file).
   const recorder = source.slice(source.indexOf('function commitAuthEventsToDisk('))
-  assert.match(recorder.slice(0, 600), /mode: 0o600/)
-  assert.match(recorder.slice(0, 600), /chmodSync\(tmpPath, 0o600\)/)
+  assert.match(recorder.slice(0, 200), /saveJson\(AUTH_EVENTS_FILE/)
+  const stateFiles = readFileSync(join('proxy', 'state-files.mjs'), 'utf8')
+  const saver = stateFiles.slice(stateFiles.indexOf('function saveJson('))
+  assert.match(saver.slice(0, 900), /mode: 0o600/)
+  assert.match(saver.slice(0, 900), /chmodSync\(tmpPath, 0o600\)/)
 
   // Admin-gated read endpoint...
   const route = source.slice(source.indexOf("url === '/api/admin/auth-events'"))
-  assert.match(route.slice(0, 400), /authorizeAdmin\(req\)/)
+  assert.match(route.slice(0, 400), /requireAdmin\(req, res\)/)
+  // requireAdmin is the one gate every admin route calls; it must still rest on authorizeAdmin and answer 401.
+  const gate = source.slice(source.indexOf('function requireAdmin('))
+  assert.match(gate.slice(0, 300), /if \(authorizeAdmin\(req\)\) return true/)
+  assert.match(gate.slice(0, 300), /res\.writeHead\(401/)
   // ...and no way to delete the log through the API.
   assert.doesNotMatch(source, /'DELETE' && url === '\/api\/admin\/auth-events'/)
 

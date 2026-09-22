@@ -18,7 +18,8 @@
  * /var/www/customsh write those, and the two must never collide.
  */
 
-import { accessSync, constants as FS, existsSync, mkdirSync, readdirSync, readFileSync, statSync, statfsSync, writeFileSync } from 'node:fs'
+import { accessSync, constants as FS, existsSync, mkdirSync, readdirSync, statSync, statfsSync } from 'node:fs'
+import { isPlainObject, loadJson, saveJson } from './state-files.mjs'
 import { dirname, join, resolve } from 'node:path'
 
 /** Filesystem root the public download URLs resolve against (nginx @legacy_files). */
@@ -250,19 +251,14 @@ const EXTENSION_RE = /^[a-z0-9]{1,12}$/
 
 /** Read the admin-added targets. A missing or corrupt file means "none". */
 export function readCustomLibraryDirs() {
-  try {
-    const parsed = JSON.parse(readFileSync(CUSTOM_DIRS_FILE, 'utf8'))
-    if (Array.isArray(parsed?.dirs)) return parsed.dirs
-  } catch { /* absent registry is the normal first-run state */ }
-  return []
+  // absent registry is the normal first-run state; a corrupt one is moved aside, not overwritten
+  const parsed = loadJson(CUSTOM_DIRS_FILE, null, isPlainObject)
+  return Array.isArray(parsed?.dirs) ? parsed.dirs : []
 }
 
 function writeCustomLibraryDirs(dirs, actor) {
-  writeFileSync(
-    CUSTOM_DIRS_FILE,
-    JSON.stringify({ updatedAt: new Date().toISOString(), updatedBy: actor || 'admin', dirs }, null, 2),
-    'utf8',
-  )
+  const saved = saveJson(CUSTOM_DIRS_FILE, { updatedAt: new Date().toISOString(), updatedBy: actor || 'admin', dirs }, 'File-library targets')
+  if (!saved) throw new Error('Could not save the file-library target list.')
 }
 
 /**

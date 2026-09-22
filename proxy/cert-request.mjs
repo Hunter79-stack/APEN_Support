@@ -25,6 +25,8 @@
 // site-stats.mjs, and make the future implementation easy to
 // review without touching unrelated code.
 
+import { readJsonBody } from './http-body.mjs'
+
 /* ── Configuration (env-driven) ───────────────────────────── */
 const CEP_URL       = (process.env.CERT_REQUEST_CEP_URL       || '').trim()
 const CES_URL       = (process.env.CERT_REQUEST_CES_URL       || '').trim()
@@ -84,27 +86,6 @@ function notConfigured(res, hint = '') {
   })
 }
 
-async function readJsonBody(req, maxBytes = 64_000) {
-  return new Promise((resolveBody, reject) => {
-    let total = 0
-    const chunks = []
-    req.on('data', (chunk) => {
-      total += chunk.length
-      if (total > maxBytes) {
-        reject(Object.assign(new Error('body_too_large'), { status: 413 }))
-        try { req.destroy() } catch { /* ignore */ }
-        return
-      }
-      chunks.push(chunk)
-    })
-    req.on('end', () => {
-      try { resolveBody(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')) }
-      catch { reject(Object.assign(new Error('invalid_json'), { status: 400 })) }
-    })
-    req.on('error', reject)
-  })
-}
-
 /* ── CES/CEP client stubs ─────────────────────────────────── */
 //
 // Each function below is the place to write the real SOAP client
@@ -132,7 +113,8 @@ async function readJsonBody(req, maxBytes = 64_000) {
  *   4. Parse the response policy collection, filter by
  *      ALLOWED_TEMPLATES if set, and return the templates.
  */
-async function fetchTemplates(/* userContext */) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function fetchTemplates(_userContext) {
   throw new Error('CES/CEP client not implemented — see proxy/cert-request.mjs TODO')
 }
 
@@ -149,7 +131,8 @@ async function fetchTemplates(/* userContext */) {
  *
  * TODO: implement once CES is reachable.
  */
-async function submitCsr(/* csrBase64, templateName, userContext */) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function submitCsr(_csrBase64, _templateName, _userContext) {
   throw new Error('CES/CEP client not implemented — see proxy/cert-request.mjs TODO')
 }
 
@@ -161,7 +144,8 @@ async function submitCsr(/* csrBase64, templateName, userContext */) {
  * "RequestSecurityToken" with a `wst:RequestType` of "Query"
  * referencing the prior request ID.
  */
-async function fetchPending(/* requestId, userContext */) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function fetchPending(_requestId, _userContext) {
   throw new Error('CES/CEP client not implemented — see proxy/cert-request.mjs TODO')
 }
 
@@ -208,7 +192,7 @@ export async function handleCertRequest(req, res, url) {
   /* submit — POST { csr: base64, templateName: string } */
   if (req.method === 'POST' && url === SUBMIT_PATH) {
     let body
-    try { body = await readJsonBody(req) }
+    try { body = await readJsonBody(req, 64_000) }
     catch (err) {
       writeJson(res, err.status || 400, { error: err.message || 'bad_request' })
       return true

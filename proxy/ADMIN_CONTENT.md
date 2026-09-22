@@ -79,7 +79,7 @@ Precedence at runtime, newest first:
 
 ```
 draft overlay    proxy/content-overrides.json   fetched at runtime — newest, unpublished saves
-published        lib/data/published-content.json baked at build    — permanent, survives updates
+published        lib/data/published-content.json baked at build    — permanent; an air-gap update keeps it unless --reset-content
 source defaults  lib/data/*.ts                                      — shipped fallback
 ```
 

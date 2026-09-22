@@ -6,6 +6,7 @@ import {
   ASSISTANT_KNOWLEDGE_FILE,
   composeAssistantSystemPrompt,
 } from './assistant-knowledge.mjs'
+import { readBody } from './http-body.mjs'
 
 const ENDPOINT_PATH = '/api/voltron-chat'
 // 16 MB gives headroom over MAX_ATTACHMENT_BYTES for JSON-string escaping
@@ -286,6 +287,10 @@ function getConfig() {
   const maxTokens = Number.isFinite(rawMaxTokens)
     ? Math.min(Math.max(rawMaxTokens, 1), 2000)
     : 1000
+  // Per-upstream deadline. Without one a hung upstream holds the request open
+  // forever and the failover loop below never reaches the next entry.
+  const rawTimeout = Number.parseInt(process.env.VOLTRON_TIMEOUT_MS || '60000', 10)
+  const timeoutMs = Number.isFinite(rawTimeout) ? Math.min(Math.max(rawTimeout, 1000), 300_000) : 60_000
 
   if (!rawApiUrls) {
     throw new HttpError(500, 'AI assistant is not configured. Contact the CESC administrator.')
@@ -297,39 +302,13 @@ function getConfig() {
     throw new HttpError(500, 'AI assistant is not configured. Contact the CESC administrator.')
   }
 
-  return { upstreams, apiKey, model, maxTokens }
+  return { upstreams, apiKey, model, maxTokens, timeoutMs }
 }
 
+/** Shared reader; the 413 is re-thrown as HttpError so the client message is unchanged. */
 function readRequestBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = []
-    let totalBytes = 0
-    let rejected = false
-
-    req.on('data', (chunk) => {
-      totalBytes += chunk.length
-
-      if (totalBytes > MAX_BODY_BYTES) {
-        rejected = true
-        reject(new HttpError(413, 'Request body is too large.'))
-        req.destroy()
-        return
-      }
-
-      chunks.push(chunk)
-    })
-
-    req.on('end', () => {
-      if (!rejected) {
-        resolve(Buffer.concat(chunks).toString('utf8'))
-      }
-    })
-
-    req.on('error', (error) => {
-      if (!rejected) {
-        reject(error)
-      }
-    })
+  return readBody(req, MAX_BODY_BYTES).catch((error) => {
+    throw error?.status === 413 ? new HttpError(413, 'Request body is too large.') : error
   })
 }
 
@@ -381,6 +360,7 @@ async function callUpstreamsForText(config, messages, maxTokens) {
         method: 'POST',
         headers,
         body: JSON.stringify({ model: upstream.model, max_tokens: maxTokens, messages }),
+        signal: AbortSignal.timeout(config.timeoutMs),
       })
 
       if (!upstreamResponse.ok) {
@@ -565,10 +545,14 @@ async function handleVoltronChat(req, res) {
         messages: chatMessages,
       })
 
+      // One signal covers the headers AND the body read: a server that answers
+      // 200 and then stalls mid-body is the same hang as one that never answers.
+      const signal = AbortSignal.timeout(config.timeoutMs)
       const upstreamResponse = await fetch(upstream.url, {
         method: 'POST',
         headers,
         body: upstreamBody,
+        signal,
       })
 
       const rawUpstreamBody = await upstreamResponse.text()
@@ -599,8 +583,10 @@ async function handleVoltronChat(req, res) {
       lastFailure = `HTTP ${upstreamResponse.status}`
       console.warn(`Voltron upstream failed over from ${upstream.url}: ${lastFailure}`)
     } catch (error) {
-      lastFailure = error instanceof Error ? error.message : String(error)
-      console.warn(`Voltron upstream failed over from ${upstream.url}:`, error)
+      lastFailure = error?.name === 'TimeoutError'
+        ? `no response within ${config.timeoutMs} ms`
+        : error instanceof Error ? error.message : String(error)
+      console.warn(`Voltron upstream failed over from ${upstream.url}: ${lastFailure}`)
     }
   }
 

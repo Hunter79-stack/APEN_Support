@@ -159,7 +159,7 @@ test('runtime source retains the public live overlay poll and protected upload v
   const uploadStart = proxySource.indexOf("req.method === 'POST' && url === '/api/admin/logo-upload'")
   assert.notEqual(uploadStart, -1)
   const uploadSource = proxySource.slice(uploadStart, uploadStart + 3_200)
-  assert.match(uploadSource, /authorizeAdmin\(req\)/)
+  assert.match(uploadSource, /requireAdmin\(req, res\)/)
   assert.match(uploadSource, /MAX_ADMIN_LOGO_BYTES/)
   assert.match(uploadSource, /detectAdminLogoType\(buffer\)/)
   assert.match(uploadSource, /storeAdminLogo\(buffer/)

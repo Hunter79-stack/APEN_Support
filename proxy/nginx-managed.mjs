@@ -18,7 +18,8 @@
 // `sub` are display-only (returned to the frontend as JSON, never written to
 // nginx), so they only get a length cap.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
+import { isPlainObject, loadJson, saveJson } from './state-files.mjs'
 
 /** Zone keys owned by the hand-written server.conf — managed entries may not reuse them. */
 export const RESERVED_KEYS = new Set(['main', 'speedtest', 'api', 'winget', 'mirrors', 'apen'])
@@ -125,8 +126,8 @@ export function generateManaged(entries) {
 
 export function readRegistry(file) {
   try {
-    if (!existsSync(file)) return { entries: [] }
-    const j = JSON.parse(readFileSync(file, 'utf8'))
+    const j = loadJson(file, null, isPlainObject)
+    if (!j) return { entries: [] }
     return { entries: Array.isArray(j.entries) ? j.entries : [], updatedAt: j.updatedAt, updatedBy: j.updatedBy }
   } catch {
     return { entries: [] }
@@ -135,7 +136,7 @@ export function readRegistry(file) {
 
 export function writeRegistry(file, entries, updatedBy) {
   const payload = { entries, updatedAt: new Date().toISOString(), updatedBy: updatedBy || 'admin' }
-  writeFileSync(file, JSON.stringify(payload, null, 2), 'utf8')
+  if (!saveJson(file, payload, 'nginx managed registry')) throw new Error('Could not save the nginx managed registry.')
   return payload
 }
 
