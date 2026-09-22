@@ -10,14 +10,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { GlowCard } from '@/components/ui/spotlight-card'
-import {
-  adminContentClient,
-  type CustomPage,
-  type OverrideMap,
-  type AuditEntry,
-  type BuildStatus,
-  type PublishTarget,
-} from '@/lib/data/admin-content'
+import { adminContentClient } from '@/lib/data/admin-content'
 import { setDeep, deepMerge } from '@/lib/data/deep-patch'
 import { AdminFileLibraryPanel, type AttachResult, type AttachTarget } from './AdminFileLibraryPanel'
 import { vmware9Products, vmware8Products, vmware7Products, vmwareToolCards, vmwareCategoryCards, vmwareDocCards } from '@/lib/data/vmware'
@@ -41,6 +34,7 @@ import { SessionGate } from './SessionGate'
 import { RegisteredRouteImageEditor } from './RouteImageEditor'
 import { CardRowEditor } from './CardRowEditor'
 import { getDeep, isListField, slugify, type EditableField, type EditableScope } from './content-editor-fields'
+import { useContentOverrides } from '@/lib/hooks/useContentOverrides'
 
 /* ─── Editable scopes ─── */
 
@@ -789,81 +783,14 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
   // section picker and its card list start blank.
   const [scopeKey, setScopeKey] = useState<string>(EDITABLE_SCOPES[0].scope)
   const [scopeChosen, setScopeChosen] = useState(false)
-  const [overrides, setOverrides] = useState<OverrideMap>({})
-  const [published, setPublished] = useState<OverrideMap>({})
-  const [buildStatus, setBuildStatus] = useState<BuildStatus | null>(null)
-  const [publishTarget, setPublishTarget] = useState<PublishTarget | null>(null)
+  const {
+    overrides, published, buildStatus, publishTarget, customPages, auditLog,
+    unpublishedScopes, building, refresh, publish: handlePublish,
+  } = useContentOverrides()
   // Files uploaded this session. They are already live off the download server,
   // but they only become permanent once the cards pointing at them are baked in,
   // so they belong in the same pending list as unpublished text edits.
   const [pendingUploads, setPendingUploads] = useState<Array<{ name: string; url: string }>>([])
-  const [publishing, setPublishing] = useState(false)
-  const [customPages, setCustomPages] = useState<CustomPage[]>([])
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
-
-  async function refresh() {
-    const data = await adminContentClient.fetchAll()
-    if (data) {
-      setOverrides(data.overrides || {})
-      setPublished(data.published || {})
-      setBuildStatus(data.buildStatus || null)
-      setPublishTarget(data.publishTarget || null)
-      setCustomPages(data.customPages || [])
-      setAuditLog(data.auditLog || [])
-    }
-  }
-
-  /** Scopes whose live (draft) value differs from the last published snapshot —
-   *  i.e. edits that are showing via the runtime overlay but aren't yet baked
-   *  into the build. Compared by serialised value so reverts count too. */
-  const unpublishedScopes = useMemo(() => {
-    const keys = new Set([...Object.keys(overrides), ...Object.keys(published)])
-    const changed: string[] = []
-    for (const key of keys) {
-      const live = JSON.stringify(overrides[key]?.value ?? null)
-      const base = JSON.stringify(published[key]?.value ?? null)
-      if (live !== base) changed.push(key)
-    }
-    return changed
-  }, [overrides, published])
-
-  const building = buildStatus?.state === 'running' || publishing
-
-  // While a build is running, poll its status until it settles, then refresh
-  // so the published snapshot + unpublished count update.
-  useEffect(() => {
-    if (buildStatus?.state !== 'running') return
-    let cancelled = false
-    const timer = setInterval(async () => {
-      const status = await adminContentClient.getBuildStatus()
-      if (cancelled) return
-      if (status) setBuildStatus(status)
-      if (status && status.state !== 'running') {
-        clearInterval(timer)
-        refresh()
-      }
-    }, 2500)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [buildStatus?.state])
-
-  async function handlePublish() {
-    if (building) return
-    setPublishing(true)
-    const result = await adminContentClient.publish('admin-ui')
-    setPublishing(false)
-    if (result.ok) {
-      setBuildStatus(result.status)
-      // Read the snapshot back instead of assuming it landed. The old code set
-      // `published = overrides` optimistically, so a snapshot the proxy could
-      // NOT write (unwritable published-content.json) still cleared the flags —
-      // until the next refresh restored them, which is the flag that "wouldn't
-      // clear" after Publish. The server now 500s on a failed write, and this
-      // reflects whatever actually made it to disk.
-      await refresh()
-    } else {
-      setBuildStatus({ state: 'error', message: result.error })
-    }
-  }
 
   /** Point one existing card at an uploaded file (URL + filename fields). */
   async function attachUploadToCard(target: AttachTarget, cardId: string, file: { name: string; url: string }): Promise<AttachResult> {
