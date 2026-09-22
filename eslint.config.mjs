@@ -12,6 +12,7 @@ export default defineConfig([
     // Checked-in third-party runtimes are deployed as-is and are not authored
     // by this project. Linting their minified sources hides actionable output.
     'public/vendor/**',
+    'exports/**',
     'speedtest/frontend/**',
     'proxy/*.json',
     'public/search-index.json',

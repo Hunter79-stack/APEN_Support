@@ -134,7 +134,9 @@ All page and card artwork is selected in `lib/data/logos.ts`:
 - `BACKGROUNDS` and `GUIDE_IMAGES` are contextual maps that also reference the
   canonical `LOGOS` catalog.
 - Run `npm run hooks:install` once after cloning: it installs a `pre-push` hook that runs
-  lint, typecheck and tests. `npm run validate` is the full gate (those three plus the build)
+  lint, typecheck and tests.
+  `npm run lint` fails above its `--max-warnings` ceiling in package.json: lower the
+  number as warnings are cleared, never raise it. `npm run validate` is the full gate (those three plus the build)
   and is what `siteupdate.sh` and the admin Publish button run.
 - Keep local URLs root-relative (`/logos/...`) and run `npm run validate:images`
   after a swap. It catches paths declared outside the catalog, duplicate paths,
