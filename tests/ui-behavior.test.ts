@@ -26,6 +26,12 @@ function visibleText(html: string): string {
     .replace(/\s+/g, ' ')
 }
 
+/** A page's default export. The path goes through a variable on purpose:
+ *  a literal '.tsx' specifier in import() is a TS5097 error under tsc. */
+async function importDefault(path: string): Promise<unknown> {
+  return (await import(path)).default
+}
+
 async function importComponentModule(path: string): Promise<ModuleExports> {
   const imported = await import(path)
   return (
@@ -739,8 +745,7 @@ test('knowledge base categories each ship quick checks and ticket details, and t
     }
   }
   // The hub offers the categories, not a search box that goes nowhere.
-  const { default: Hub } = await import('../app/support/knowledge-base/page.tsx')
-  const hubHtml = await renderStatic(Hub)
+  const hubHtml = await renderStatic(await importDefault('../app/support/knowledge-base/page.tsx'))
   assert.doesNotMatch(hubHtml, /placeholder="Search/)
   for (const category of categories) assert.ok(hubHtml.includes(`href="${category.href}"`), `${category.title} is not linked from the hub`)
 })
@@ -748,8 +753,7 @@ test('knowledge base categories each ship quick checks and ticket details, and t
 test('the ticket status page sends visitors to TrackIt and promises requester-scoped lookup only', async () => {
   // The guard this replaces pinned phrases living in a commented-out mock
   // block; this reads what the visitor actually sees.
-  const { default: StatusPage } = await import('../app/support/status/page.tsx')
-  const html = await renderStatic(StatusPage)
+  const html = await renderStatic(await importDefault('../app/support/status/page.tsx'))
   const text = visibleText(html)
   assert.match(text, /TrackIt/)
   assert.match(text, /Requester-scoped status tracking/)
