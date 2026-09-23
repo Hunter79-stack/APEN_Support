@@ -80,6 +80,7 @@ Eighth session (2026-09-23):
   Still guards worth converting: admin badge (~68 assertions, AdminDashboard/Navbar/hook/proxy tokens), launcher naming (~38, pill JSX), the admin panel guards (upload/attach/publish/stat tiles). The rest are genuine lint rules (nginx headers, sweeps, wiring) — leave.
 - tests/search-index.test.ts floor 108 → 80. out/ is the PREVIOUS deploy's export: #68's 31 stub removals only surfaced after the 2026-09-22 build (88 pages) and would have failed the NEXT deploy's validate gate. Rule: lower the floor in the same commit as a route removal.
 - Gate green: validate:images OK, typecheck clean, npm test 152/152, eslint --quiet clean (73 warnings, ceiling 75).
+- 2026-09-23 14:27 $SITEUPDATE FAILED at typecheck (lint passed: 73 warnings, ceiling 75; the long warning dump is not a failure). Two TS5097 errors: my `await import('../app/.../page.tsx')` literals in tests/ui-behavior.test.ts — tsc rejects a literal .tsx specifier in import(); yesterday's typecheck passed on the pre-reinstall closure. Fixed with an importDefault(path) helper (path through a variable, like importComponentModule). Second failure waiting behind it: tests/attribution.test.ts "THIRD-PARTY-NOTICES.txt is current" fails whenever the reinstall floats a dependency (today: next 16.3.5→16.3.6, framer-motion 13.4.0→13.4.1, motion-dom 13.3.0→13.4.1) because `validate` ran tests BEFORE build regenerated the file. `validate` is now `npm run notices && lint && typecheck && test && build`; notices regenerated and committed. Build stage dry-run in an in-repo scratch copy (turbopack.root override, node_modules symlink) passed on the new closure: 99 pages. Lesson: the local gate runs on the PREVIOUS deploy's node_modules; a float can add tsc/eslint findings the gate never saw.
 Blocked / left open:
 - #23 remainder: 13 entries in lib/data/announcements.ts carry `date: ''`; real dates unknown, not invented.
 - #21 remainder: /dren/trellix/ens_tp/ and /dren/trellix/policy_auditor/ do not exist on the file host, so the DREN ENS and Policy Auditor guide steps still point at missing files. Real tree is installer/{el,ub}-trellix-install/{agent,ensl} plus one tarball (cui-/dren-trellix-install.tar.gz), which is what the legacy page told users to download. Needs a content decision.
@@ -91,7 +92,7 @@ Blocked / left open:
 3. #21 remainder: DREN ENS / Policy Auditor guide files do not exist on the file host — content decision (publish files or rewrite guides around dren-trellix-install.tar.gz).
 4. Verify from a client workstation that the guides' wget/curl commands get past the login gate (from this box they return the login page).
 5. User's calls: exempt /THIRD-PARTY-NOTICES.txt from the login gate?; delete the unreferenced unknown-origin images?
-6. Next $SITEUPDATE makes #71 live (only CustomPageView changed on the site; the rest is tests) and is the first deploy whose validate gate runs against the 88-page index.
+6. Re-run $SITEUPDATE: the 2026-09-23 14:27 run failed at typecheck (fixed, see eighth-session notes); it will make #71 live and is the first deploy whose validate gate runs against the 88-page index.
 Deliberately unchanged: customsh/siteupdate.sh's `pm2 start npm -- run stats` (change with the user); Mem0 key and connector auth are the user's.
 
 ## Constraints worth remembering
