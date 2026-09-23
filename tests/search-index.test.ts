@@ -68,9 +68,12 @@ test('converted pages still carry their content into the search index', { skip: 
 })
 
 test('no page silently dropped out of the index', { skip: !built && 'no out/ — run npm run build first' }, () => {
-  // 108 at the time the tile rollout landed. A drop means a route stopped
-  // exporting; a rise is fine.
-  assert.ok(pages.length >= 108, `only ${pages.length} pages indexed, expected at least 108`)
+  // 88 since code-quality #68 (2026-09-22) turned the 31 redirect stub pages
+  // into nginx 301s; it was 108+ before that. A drop means a route stopped
+  // exporting; a rise is fine. NOTE: out/ is the PREVIOUS deploy's export, so
+  // a deliberate route removal trips this on the deploy after it — lower the
+  // floor in the same commit as the removal.
+  assert.ok(pages.length >= 80, `only ${pages.length} pages indexed, expected at least 80`)
 })
 
 test('download filenames reach the exported HTML, not just the client', { skip: !built && 'no out/ — run npm run build first' }, () => {

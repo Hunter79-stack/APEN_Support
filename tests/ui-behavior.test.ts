@@ -7,8 +7,24 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
+import type { ComponentType } from 'react'
 
 type ModuleExports = Record<string, unknown>
+
+/** Server-render a component the way a static export does (no effects run). */
+async function renderStatic(component: unknown, props: Record<string, unknown> = {}): Promise<string> {
+  const { renderToStaticMarkup } = await import('react-dom/server')
+  const { createElement } = await import('react')
+  return renderToStaticMarkup(createElement(component as ComponentType<Record<string, unknown>>, props))
+}
+
+/** What a visitor reads: tags stripped, the entities React escapes decoded. */
+function visibleText(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+}
 
 async function importComponentModule(path: string): Promise<ModuleExports> {
   const imported = await import(path)
@@ -615,4 +631,242 @@ test('a dragged launcher never lands off-screen, and a trapped one resets to the
   assert.deepEqual(resolve({ currentPosition: null, viewport, storedPosition: stored }), stored)
   const reset = resolve({ currentPosition: { x: 300, y: 200 }, viewport, storedPosition: stored, resetToDefault: true })
   assert.deepEqual(reset, { x: 1280 - 65 - 40, y: 800 - 65 - 40 }, 'default = bottom-right, inset 40 px')
+})
+
+test('a download row names its link after the file, on custom pages too', async () => {
+  // Code-quality #71: the visible label sits in a sibling <p>, so an anchor
+  // whose only text is ".iso" read as ".iso, link" to a screen reader.
+  const rows = await importComponentModule('../components/cards/DownloadRow.tsx')
+  const iso = await renderStatic(rows.DownloadRow, { label: 'vCenter 8 (ISO)', href: '/vmware/8/VCSA.iso' })
+  assert.match(iso, /<a href="\/vmware\/8\/VCSA\.iso" aria-label="vCenter 8 \(ISO\) \(\.iso\)"/)
+  assert.doesNotMatch(iso, /target="_blank"/, 'a site-relative installer downloads in place')
+  const pdf = await renderStatic(rows.DownloadRow, { label: 'Guide', href: '/docs/guide.pdf' })
+  assert.match(pdf, /aria-label="Guide \(\.pdf\)"/)
+  assert.match(pdf, /target="_blank" rel="noopener noreferrer"/, 'documents open in a tab')
+  const forced = await renderStatic(rows.DownloadRow, { label: 'Notes', href: '/x/notes.docx', external: true })
+  assert.match(forced, /target="_blank"/, 'an admin-marked document opens in a tab whatever its extension')
+
+  // Admin-authored pages render that same row (they carried a private copy
+  // with no accessible name), and each expandable card is ONE native
+  // disclosure button — never a widget role wrapped around nested controls.
+  const view = await importComponentModule('../components/common/CustomPageView.tsx')
+  const html = await renderStatic(view.CustomPageView, {
+    page: {
+      slug: 'p',
+      title: 'P',
+      cards: [
+        { id: 'a', title: 'A', description: 'd', tags: [], downloads: [{ label: 'L', href: '/f.zip' }] },
+        { id: 'b', title: 'B', description: 'd', tags: [] },
+      ],
+    },
+  })
+  assert.match(html, /<button type="button"[^>]*aria-expanded="false"[^>]*aria-controls="custom-card-panel-a"/)
+  assert.equal((html.match(/<button/g) ?? []).length, 1, 'a card with nothing to expand is not a button')
+  assert.doesNotMatch(html, /role="button"/)
+})
+
+test('the feedback form labels its fields and counts characters against the real limit', async () => {
+  const form = await importComponentModule('../components/assistant/FeedbackForm.tsx')
+  const { ASSISTANT_CONFIG } = await importComponentModule('../lib/data/assistant.ts') as { ASSISTANT_CONFIG: { maxFeedbackChars: number } }
+  const html = await renderStatic(form.FeedbackForm, { hidden: false, seed: null, toolBtnClass: '', onBack() {} })
+
+  // Every control has a real <label for>, and the name says it is optional.
+  assert.match(html, /<label for="feedback-name"[^>]*>Name \(Optional\)<\/label>/)
+  assert.match(html, /<input id="feedback-name"/)
+  assert.match(html, /<label for="feedback-details"/)
+  // The live counter and the textarea's hard cap quote the same limit, and the
+  // textarea points at both the counter and the moderation status.
+  const max = ASSISTANT_CONFIG.maxFeedbackChars
+  assert.match(html, new RegExp(`<span id="feedback-character-count" aria-live="polite"[^>]*>0 / ${max}</span>`))
+  assert.match(html, new RegExp(`<textarea id="feedback-details"[^>]*maxLength="${max}"`))
+  assert.match(html, /aria-describedby="feedback-character-count feedback-moderation\.strict-status"/)
+})
+
+test('SVG logos load eagerly only when marked priority, and hover cards always mark theirs', async () => {
+  const logo = await importComponentModule('../components/common/ThemedLogo.tsx')
+  assert.match(await renderStatic(logo.ThemedLogo, { src: '/logos/x.svg', alt: 'x', priority: true }), /<img[^>]*loading="eager"/)
+  assert.match(await renderStatic(logo.ThemedLogo, { src: '/logos/x.svg', alt: 'x' }), /<img[^>]*loading="lazy"/)
+  // A hover card's logo is revealed with streamed content, so it must not
+  // wait for a lazy trigger, and it is sized so the reveal never reflows.
+  const hover = await importComponentModule('../components/cards/HoverRevealCard.tsx')
+  const card = await renderStatic(hover.HoverRevealCard, { title: 'T', description: 'd', href: '/x', logo: '/logos/x.svg' })
+  assert.match(card, /<img src="\/logos\/x\.svg"[^>]*loading="eager"[^>]*decoding="async"[^>]*width="56" height="56"/)
+})
+
+test('home support pathways lead to ticket intake and the knowledge base, nowhere else', async () => {
+  const home = await importComponentModule('../lib/data/homepage.ts')
+  const support = await importComponentModule('../lib/data/support.ts')
+  type Link = { href: string; title: string; external?: boolean }
+  const pathways = home.homepageSupportPathways as readonly Link[]
+  const serviceCards = support.SUPPORT_SERVICE_CARDS as readonly Link[]
+
+  // Technician intake appears exactly once per surface, and the retired
+  // account-access / password-reset shortcuts never come back.
+  assert.deepEqual(pathways.map((p) => p.href), ['/support/ticket', '/support/knowledge-base'])
+  assert.equal(pathways[0].title, 'Open a support ticket')
+  assert.equal(serviceCards.filter((c) => c.href === '/support/ticket').length, 1)
+  for (const link of [...pathways, ...serviceCards]) {
+    assert.doesNotMatch(link.href, /password-reset/, link.title)
+    assert.doesNotMatch(link.title, /Account & Access Help|Request account access help|Report an outage or blocker/)
+    assert.notEqual(link.external, true, `${link.href} must stay an internal route`)
+  }
+  // The hero is copy only: the intake actions live in the pathway section under it.
+  const hero = await importComponentModule('../components/home/HomeHero.tsx')
+  assert.doesNotMatch(await renderStatic(hero.HomeHero), /Open Support Request|Track Requests|<a |<button/)
+
+  // Every site-relative link on the home page and support hub is an exported
+  // App Router page — a closed enclave has no server to catch a 404.
+  const lists = [pathways, home.serviceLinks, home.servicePortals, home.supportLinks, serviceCards, support.KNOWLEDGE_BASE_CATEGORIES] as ReadonlyArray<readonly Link[]>
+  const missing = lists.flat().map((l) => l.href)
+    .filter((href) => href.startsWith('/') && href !== '#')
+    .filter((href) => !fs.existsSync(path.join('app', ...href.split(/[?#]/)[0].split('/').filter(Boolean), 'page.tsx')))
+  assert.deepEqual(missing, [])
+})
+
+test('knowledge base categories each ship quick checks and ticket details, and the pages render them', async () => {
+  const support = await importComponentModule('../lib/data/support.ts')
+  const details = support.KNOWLEDGE_BASE_CATEGORY_DETAILS as Record<string, { quickChecks: string[]; ticketDetails: string[] }>
+  const categories = support.KNOWLEDGE_BASE_CATEGORIES as Array<{ id: string; title: string; href: string }>
+  assert.deepEqual(categories.map((c) => c.id).sort(), Object.keys(details).sort())
+
+  const page = await importComponentModule('../components/common/SupportKnowledgeCategoryPage.tsx')
+  for (const [key, category] of Object.entries(details)) {
+    assert.ok(fs.existsSync(path.join('app', 'support', 'knowledge-base', key, 'page.tsx')), `${key} has no route`)
+    assert.ok(category.quickChecks.length > 0 && category.ticketDetails.length > 0, `${key} has no guidance`)
+    const text = visibleText(await renderStatic(page.SupportKnowledgeCategoryPage, { categoryKey: key }))
+    for (const line of [...category.quickChecks, ...category.ticketDetails]) {
+      assert.ok(text.includes(line), `${key}: "${line}" is not rendered`)
+    }
+  }
+  // The hub offers the categories, not a search box that goes nowhere.
+  const { default: Hub } = await import('../app/support/knowledge-base/page.tsx')
+  const hubHtml = await renderStatic(Hub)
+  assert.doesNotMatch(hubHtml, /placeholder="Search/)
+  for (const category of categories) assert.ok(hubHtml.includes(`href="${category.href}"`), `${category.title} is not linked from the hub`)
+})
+
+test('the ticket status page sends visitors to TrackIt and promises requester-scoped lookup only', async () => {
+  // The guard this replaces pinned phrases living in a commented-out mock
+  // block; this reads what the visitor actually sees.
+  const { default: StatusPage } = await import('../app/support/status/page.tsx')
+  const html = await renderStatic(StatusPage)
+  const text = visibleText(html)
+  assert.match(text, /TrackIt/)
+  assert.match(text, /Requester-scoped status tracking/)
+  assert.match(html, /href="\/support\/knowledge-base"/)
+})
+
+test('the footer renders both logos lazily at one height and every quick link in the compact row', async () => {
+  const footer = await importComponentModule('../components/layout/Footer.tsx')
+  const data = await importComponentModule('../lib/data/footer.ts')
+  const html = await renderStatic(footer.Footer)
+  for (const alt of ['FCC', 'APEN']) {
+    assert.match(html, new RegExp(`<img alt="${alt}"[^>]*loading="lazy"[^>]*class="h-20 w-auto opacity-60 hover:opacity-100 transition-opacity"`))
+  }
+  const compact = 'flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-widest text-gray-400'
+  assert.equal(html.split(compact).length - 1, 2, 'the links row and the support group share the compact style')
+
+  // Every quick link is rendered, and every internal one is an exported App Router page.
+  const quickLinks = data.quickLinks as Array<{ label: string; href: string }>
+  const missing: string[] = []
+  for (const link of quickLinks) {
+    assert.ok(html.includes(`href="${link.href.replace(/&/g, '&amp;')}"`), `${link.label} is not rendered`)
+    if (link.href.startsWith('/') && !fs.existsSync(path.join('app', ...link.href.split('/').filter(Boolean), 'page.tsx'))) {
+      missing.push(`${link.label} -> ${link.href}`)
+    }
+  }
+  assert.deepEqual(missing, [])
+})
+
+test('the card palette hands out unique glows across every home-page group', async () => {
+  const colors = await importComponentModule('../lib/data/card-colors.ts')
+  const families = colors.TAILSCAN_COLOR_FAMILIES as readonly string[]
+  const shades = colors.CARD_GLOW_SHADES as readonly string[]
+  const palette = colors.CARD_GLOW_PALETTE as readonly string[]
+  const getCardGlowColor = colors.getCardGlowColor as (index: number, offset?: number) => string
+  const getUnique = colors.getUniqueCardGlowColors as (count: number, offset?: number) => string[]
+  const define = colors.getCardColorDefinition as (color: string) => { hue: [number, number]; from: string }
+  const spotlight = colors.getGlowSpotlightDefinition as (color: string) => { base: number; spread: number }
+
+  assert.equal(new Set(palette).size, families.length * shades.length)
+  assert.ok(palette.every((entry) => /^[a-z]+-\d{3}$/.test(entry)))
+  // Index wraps instead of running off the end, negatives included.
+  assert.equal(getCardGlowColor(palette.length), palette[0])
+  assert.equal(getCardGlowColor(-1), palette[palette.length - 1])
+  assert.equal(new Set(getUnique(palette.length)).size, palette.length)
+  assert.throws(() => getUnique(palette.length + 1))
+  // A bare family means its 500 shade; other shades of it differ in lightness, not hue.
+  assert.deepEqual(define('cyan'), define('cyan-500'))
+  assert.notEqual(define('cyan-300').from, define('cyan-700').from)
+  assert.equal(spotlight('cyan').base, spotlight('cyan-300').base)
+
+  // Each home-page group has at least as many distinct glows as cards, so no two neighbours share one.
+  const home = await importComponentModule('../lib/data/homepage.ts')
+  for (const [colorsKey, listKey] of [
+    ['supportPathwayColors', 'homepageSupportPathways'],
+    ['serviceLinkColors', 'serviceLinks'],
+    ['servicePortalColors', 'servicePortals'],
+    ['supportLinkColors', 'supportLinks'],
+  ] as const) {
+    const list = home[colorsKey] as string[]
+    assert.equal(new Set(list).size, list.length, `${colorsKey} repeats a colour`)
+    assert.ok(list.length >= (home[listKey] as unknown[]).length, `${colorsKey} has fewer colours than ${listKey} has cards`)
+  }
+})
+
+test('VMware Tools exposes its download list to the attach and edit flows', async () => {
+  const editor = await importComponentModule('../app/admin/AdminContentEditor.tsx')
+  type Cards = Array<Record<string, unknown>>
+  const attach = editor.DOWNLOAD_ATTACH_SCOPES as Array<{ scope: { scope: string; defaults: Cards }; urlField: string }>
+  // Its links live in a `downloads` list, not a single href; without a
+  // list-aware URL field the section had no "Use in a card" and no editable links.
+  const tools = attach.find((entry) => entry.scope.scope === 'vmware/tools')
+  assert.ok(tools, 'vmware/tools is not an attach target')
+  assert.equal(tools.urlField, 'downloads.0.href')
+  // The section spans two folders: the URL dropdown must offer both, and the
+  // upload target is the folder most of its links agree on.
+  const downloadPrefixes = editor.downloadPrefixes as (cards: Cards) => string[]
+  const commonDownloadPrefix = editor.commonDownloadPrefix as (cards: Cards) => string
+  const prefixes = downloadPrefixes(tools.scope.defaults)
+  assert.ok(prefixes.includes('/vmware/vmware-tools') && prefixes.includes('/vmware/vmrc'), prefixes.join(', '))
+  assert.equal(commonDownloadPrefix(tools.scope.defaults), prefixes[0])
+  // Cards that link to site routes map to no folder at all.
+  assert.equal(commonDownloadPrefix([{ href: '/downloads/iso' }, { links: [{ href: '/docs/vmware' }] }]), '')
+})
+
+test('every documentation page has an editable scope whose description names its route', async () => {
+  const editor = await importComponentModule('../app/admin/AdminContentEditor.tsx')
+  type Field = { key: string; type: string; columns?: Array<{ field: string }> }
+  const scopes = editor.EDITABLE_SCOPES as Array<{ scope: string; description: string; fields: Field[] }>
+  const scopeRoute = editor.scopeRoute as (description: string) => string
+
+  // The four /docs pages were the only card grids with no admin scope at all.
+  for (const name of ['docs/vmware/cards', 'docs/trellix/cards', 'docs/evaluate-stig/cards', 'docs/microsoft-products/cards']) {
+    const scope = scopes.find((s) => s.scope === name)
+    assert.ok(scope, `${name} is not editable`)
+    const links = scope.fields.find((f) => f.key === 'links')
+    assert.equal(links?.type, 'list', `${name} has no document-link list`)
+    assert.ok(links?.columns?.some((c) => c.field === 'href'), `${name} has no editable link URL`)
+  }
+  // Pickers show "section — /route", derived from each description, so every
+  // description must carry a route for it to derive.
+  assert.ok(scopes.length >= 30, `only ${scopes.length} scopes`)
+  for (const scope of scopes) assert.notEqual(scopeRoute(scope.description), '', `no route in "${scope.description}"`)
+  assert.equal(scopeRoute('Three cards on /vmware/tools — VMware Tools.'), '/vmware/tools')
+  assert.equal(scopeRoute('no route here'), '')
+  // AMI is spelled out on the upgrade-guide card.
+  const vmware = await importComponentModule('../lib/data/vmware.ts')
+  assert.ok(JSON.stringify(vmware.vmwareDocCards).includes('Upgrade vCenter using the Appliance Management Interface (PDF)'))
+})
+
+test('the launcher and greeting name the assistant, and the greeting is remembered per browser', async () => {
+  const data = await importComponentModule('../lib/data/assistant.ts')
+  const launcher = data.ASSISTANT_LAUNCHER as { brand: string; role: string; fullName: string; openLabel: string; closeLabel: string }
+  const greeting = data.ASSISTANT_GREETING as { storageKey: string; delayMs: number; autoHideMs: number }
+  // The floating robot head must never again ship as an unlabeled icon.
+  assert.equal(launcher.fullName, 'Voltron Virtual Assistant')
+  assert.equal(`${launcher.brand} ${launcher.role}`.toLowerCase(), launcher.fullName.toLowerCase())
+  for (const label of [launcher.openLabel, launcher.closeLabel]) assert.ok(label.includes(launcher.fullName), label)
+  assert.equal(greeting.storageKey, 'apen-ai-assistant-greeting-seen')
+  assert.ok(greeting.autoHideMs > greeting.delayMs, 'the card must stay long enough to be read')
 })

@@ -1,26 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileText, ExternalLink, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { GlowCard } from '@/components/ui/spotlight-card'
 import { ThemedLogo } from '@/components/common/ThemedLogo'
+import { DownloadRow } from '@/components/cards/DownloadRow'
 import { getCardGlowColor, type GlowColorName } from '@/lib/data/card-colors'
 import type { CustomPage, CustomPageCard } from '@/lib/data/admin-content'
-
-function pickDownloadIcon(download: { href: string; isDoc?: boolean }) {
-  if (download.isDoc) return FileText
-  if (/^https?:\/\//i.test(download.href) && !download.href.includes('apensupport')) return ExternalLink
-  return Download
-}
-
-function fileTypeFromHref(href: string): string {
-  const match = href.match(/\.([a-z0-9]{1,6})(?:[?#].*)?$/i)
-  if (!match) return 'Open'
-  const extension = match[1].toLowerCase()
-  if (extension === 'pdf') return 'PDF'
-  return `.${extension}`
-}
 
 export function CustomPageView({ page }: { page: CustomPage }) {
   return (
@@ -110,7 +97,7 @@ function CustomPageCardsGrid({ page }: { page: CustomPage }) {
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Downloads</p>
                         <div className="space-y-2">
                           {card.downloads!.map((download, downloadIndex) => (
-                            <DownloadRow key={`${download.href}-${downloadIndex}`} download={download} />
+                            <DownloadRow key={`${download.href}-${downloadIndex}`} label={download.label} href={download.href} external={download.isDoc} />
                           ))}
                         </div>
                       </div>
@@ -163,29 +150,5 @@ function CardSummary({
         </span>
       )}
     </>
-  )
-}
-
-function DownloadRow({ download }: { download: NonNullable<CustomPageCard['downloads']>[number] }) {
-  const Icon = pickDownloadIcon(download)
-  const isExternal = /^https?:\/\//i.test(download.href) && !download.href.includes('apensupport')
-  return (
-    <div
-      className="flex items-center justify-between py-2 px-3 rounded-lg border border-white/5 hover:border-white/10 transition-all duration-150 group/row"
-      style={{ background: 'rgba(6,9,18,0.6)' }}
-    >
-      <p className="text-xs text-slate-300 group-hover/row:text-white transition-colors flex-1 truncate">
-        {download.label}
-      </p>
-      <a
-        href={download.href}
-        target={isExternal || download.isDoc ? '_blank' : undefined}
-        rel={isExternal || download.isDoc ? 'noopener noreferrer' : undefined}
-        className="btn-download flex-shrink-0 ml-2 text-xs px-2 py-1 flex items-center gap-1"
-      >
-        <Icon size={11} aria-hidden="true" />
-        {download.isDoc ? 'PDF' : fileTypeFromHref(download.href)}
-      </a>
-    </div>
   )
 }

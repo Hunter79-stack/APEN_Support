@@ -23,11 +23,9 @@ test('AI assistant launcher names itself to first-time visitors', () => {
     path.join('lib', 'hooks', 'useLauncherIntro.ts'),
     path.join('components', 'assistant', 'GreetingCard.tsx'),
   ].map((f) => fs.readFileSync(f, 'utf8')).join('\n')
-  const assistantData = fs.readFileSync(path.join('lib', 'data', 'assistant.ts'), 'utf8')
   const globalStyles = fs.readFileSync(path.join('app', 'globals.css'), 'utf8')
 
   // The floating robot head must never again ship as an unlabeled icon.
-  assert.match(assistantData, /fullName: 'Voltron Virtual Assistant'/)
   assert.match(assistantSource, /ASSISTANT_LAUNCHER\.brand/)
   assert.match(assistantSource, /ASSISTANT_LAUNCHER\.role/)
   assert.match(assistantSource, /assistant-launcher-pill/)
@@ -104,7 +102,6 @@ test('AI assistant launcher names itself to first-time visitors', () => {
   assert.match(assistantSource, /assistant-greeting-card/)
   assert.match(assistantSource, /hasSeenAssistantGreeting/)
   assert.match(assistantSource, /markAssistantGreetingSeen/)
-  assert.match(assistantData, /storageKey: 'apen-ai-assistant-greeting-seen'/)
 
   // Keyboard access and the AI transparency line.
   assert.match(assistantSource, /window\.addEventListener\('keydown', handleKeyDown\)/)
@@ -157,19 +154,6 @@ test('AI assistant closes when clicking outside the assistant', () => {
   assert.match(assistantSource, /ref=\{assistantRootRef\}/)
 })
 
-test('assistant feedback collects optional name and warns before details exceed the limit', () => {
-  // The feedback tab is its own component now (code-quality #76).
-  const feedbackFormSource = fs.readFileSync(path.join('components', 'assistant', 'FeedbackForm.tsx'), 'utf8')
-
-  assert.match(feedbackFormSource, /id="feedback-name"/)
-  assert.match(feedbackFormSource, /Name \(Optional\)/)
-  assert.match(feedbackFormSource, /value=\{fbName\}/)
-  assert.match(feedbackFormSource, /setFbName\(event\.target\.value\)/)
-  assert.match(feedbackFormSource, /id="feedback-character-count"/)
-  assert.match(feedbackFormSource, /fbMessage\.length\} \/ \{ASSISTANT_CONFIG\.maxFeedbackChars\}/)
-  assert.match(feedbackFormSource, /maxLength=\{ASSISTANT_CONFIG\.maxFeedbackChars\}/)
-  assert.match(feedbackFormSource, /aria-describedby="feedback-character-count feedback-moderation.strict-status"/)
-})
 
 test('site inspection is blocked for everyone except admin-ACL members', () => {
   const guardPath = path.join('components', 'common', 'SiteInspectionGuard.tsx')
@@ -190,104 +174,26 @@ test('site inspection is blocked for everyone except admin-ACL members', () => {
   assert.match(guardSource, /addEventListener\('keydown'/)
 })
 
-test('card logos load eagerly after streamed static page content is revealed', () => {
-  const hoverCardSource = fs.readFileSync(path.join('components', 'cards', 'HoverRevealCard.tsx'), 'utf8')
+test('raster card logos pass priority through to next/image', () => {
+  // The SVG branch and the hover card are rendered in ui-behavior.test.ts;
+  // this pins the raster branch, which the test loader cannot render.
   const expandableGridSource = fs.readFileSync(path.join('components', 'cards', 'ExpandableCardGrid.tsx'), 'utf8')
   const themedLogoSource = fs.readFileSync(path.join('components', 'common', 'ThemedLogo.tsx'), 'utf8')
-
-  assert.match(hoverCardSource, /<img[\s\S]*src=\{logo\}[\s\S]*loading="eager"/)
-  assert.match(hoverCardSource, /decoding="async"/)
-  assert.match(hoverCardSource, /width=\{56\}/)
-  assert.match(hoverCardSource, /height=\{56\}/)
-  assert.doesNotMatch(hoverCardSource, /src=\{logo\}[\s\S]*loading="lazy"/)
   assert.match(expandableGridSource, /<ThemedLogo[\s\S]*src=\{card\.logo\}[\s\S]*priority/)
-  assert.match(themedLogoSource, /loading=\{priority \? 'eager' : 'lazy'\}/)
   assert.match(themedLogoSource, /priority=\{priority\}/)
 })
 
-test('homepage prioritizes APEN service and support intake routes', () => {
-  // The home hub page moved from app/page.tsx (now the intro) to app/home/page.tsx
-  // when the click-through intro was added. The hero was also slimmed: it no
-  // longer renders the SUPPORT_SERVICE_CARDS side panel, nor the "Open Support
-  // Request" / "Track Requests" action buttons — those support-intake actions
-  // are already the focus of the HomeSupportPathway section directly below, so
-  // the duplicate hero controls were dropped. The hero is now just the heading
-  // and intro copy; the intake routes are asserted via the pathway/data below.
+test('the home page mounts the support pathway section', () => {
+  // The pathway data itself (one ticket route, no password-reset shortcut,
+  // every href an exported page) is asserted in ui-behavior.test.ts.
   const pageSource = fs.readFileSync(path.join('app', 'home', 'page.tsx'), 'utf8')
-  const heroSource = fs.readFileSync(path.join('components', 'home', 'HomeHero.tsx'), 'utf8')
   const pathwaySource = fs.readFileSync(path.join('components', 'HomeSupportPathway.tsx'), 'utf8')
-  const homepageDataSource = fs.readFileSync(path.join('lib', 'data', 'homepage.ts'), 'utf8')
-  const supportDataSource = fs.readFileSync(path.join('lib', 'data', 'support.ts'), 'utf8')
-
   assert.match(pageSource, /HomeSupportPathway/)
-  assert.doesNotMatch(heroSource, /Open Support Request/)
-  assert.doesNotMatch(heroSource, /Track Requests/)
   assert.match(pathwaySource, /homepageSupportPathways/)
-  assert.match(homepageDataSource, /homepageSupportPathways/)
-  assert.match(homepageDataSource, /support\/ticket/)
-  assert.match(homepageDataSource, /support\/knowledge-base/)
-  assert.match(homepageDataSource, /Open a support ticket/)
-  assert.doesNotMatch(homepageDataSource, /Request account access help/)
-  assert.doesNotMatch(homepageDataSource, /Report an outage or blocker/)
-  assert.doesNotMatch(homepageDataSource, /support\/password-reset/)
-  assert.doesNotMatch(supportDataSource, /support\/password-reset/)
-  assert.doesNotMatch(supportDataSource, /Unlock your AD account or reset your password/)
-
-  const pathwayListSource = homepageDataSource.match(/homepageSupportPathways = \[([\s\S]*?)\] as const/)?.[1] ?? ''
-  const supportCardListSource = supportDataSource.match(/SUPPORT_SERVICE_CARDS = \[([\s\S]*?)\] as const/)?.[1] ?? ''
-
-  assert.equal((pathwayListSource.match(/href:\s*'\/support\/ticket'/g) ?? []).length, 1)
-  assert.equal((supportCardListSource.match(/href:\s*'\/support\/ticket'/g) ?? []).length, 1)
-  assert.doesNotMatch(supportCardListSource, /Account & Access Help/)
 })
 
-test('homepage and support entry links stay inside exported app routes for closed environments', () => {
-  const homepageDataSource = fs.readFileSync(path.join('lib', 'data', 'homepage.ts'), 'utf8')
-  const supportDataSource = fs.readFileSync(path.join('lib', 'data', 'support.ts'), 'utf8')
 
-  assert.doesNotMatch(homepageDataSource, /external:\s*true/)
-  assert.doesNotMatch(homepageDataSource, /EXTERNAL_URLS\./)
 
-  const internalLinks = Array.from(
-    `${homepageDataSource}\n${supportDataSource}`.matchAll(/href:\s*['"]([^'"]+)['"]/g),
-  )
-    .map((match) => match[1])
-    .filter((href) => href.startsWith('/'))
-
-  const missingRoutes = internalLinks
-    .filter((href) => href !== '#')
-    .filter((href) => !fs.existsSync(path.join('app', ...href.split('/').filter(Boolean), 'page.tsx')))
-    .sort()
-
-  assert.deepEqual(missingRoutes, [])
-})
-
-test('support knowledge base category routes provide usable guidance', () => {
-  const supportDataSource = fs.readFileSync(path.join('lib', 'data', 'support.ts'), 'utf8')
-  const knowledgePageSource = fs.readFileSync(path.join('app', 'support', 'knowledge-base', 'page.tsx'), 'utf8')
-  const categoryPageSource = fs.readFileSync(path.join('components', 'common', 'SupportKnowledgeCategoryPage.tsx'), 'utf8')
-
-  for (const category of ['network', 'hardware', 'access', 'software']) {
-    assert.ok(fs.existsSync(path.join('app', 'support', 'knowledge-base', category, 'page.tsx')))
-    assert.match(supportDataSource, new RegExp(`${category}:\\s*{`))
-  }
-
-  assert.match(supportDataSource, /quickChecks/)
-  assert.match(supportDataSource, /ticketDetails/)
-  assert.match(categoryPageSource, /category\.quickChecks\.map/)
-  assert.match(categoryPageSource, /category\.ticketDetails\.map/)
-  assert.doesNotMatch(knowledgePageSource, /placeholder="Search for articles, guides, or error codes/)
-})
-
-test('ticket status page explains requester-only scope', () => {
-  const statusPageSource = fs.readFileSync(path.join('app', 'support', 'status', 'page.tsx'), 'utf8')
-
-  assert.match(statusPageSource, /Requester scope/)
-  assert.match(statusPageSource, /not a global ticket queue/)
-  assert.match(statusPageSource, /customer\.email/)
-  assert.match(statusPageSource, /signed-in requester/)
-  assert.match(statusPageSource, /Static preview/)
-})
 
 test('admin nav shows event and feedback notification badges with dashboard email settings', () => {
   const adminSource = fs.readFileSync(path.join('app', 'admin', 'AdminDashboard.tsx'), 'utf8')
@@ -382,30 +288,7 @@ test('admin nav shows event and feedback notification badges with dashboard emai
   assert.match(proxySource, /NOTIFICATION_EMAIL_TO/)
 })
 
-test('internal footer links resolve to App Router pages', async () => {
-  const footerSource = fs.readFileSync(path.join('lib', 'data', 'footer.ts'), 'utf8')
-  const quickLinksSource = footerSource.match(/export const quickLinks = \[([\s\S]*?)\];/)?.[1] ?? ''
-  const quickLinks = Array.from(quickLinksSource.matchAll(/label:\s*['"]([^'"]+)['"][\s\S]*?href:\s*['"]([^'"]+)['"]/g)).map(
-    (match) => ({ label: match[1], href: match[2] }),
-  )
 
-  const missingRoutes = quickLinks
-    .filter((link) => link.href.startsWith('/'))
-    .filter((link) => !fs.existsSync(path.join('app', ...link.href.split('/').filter(Boolean), 'page.tsx')))
-    .map((link) => `${link.label} -> ${link.href}`)
-
-  assert.deepEqual(missingRoutes, [])
-})
-
-test('footer logos and support group use compact footer styling', () => {
-  const footerSource = fs.readFileSync(path.join('components', 'layout', 'Footer.tsx'), 'utf8')
-
-  assert.match(footerSource, /alt="FCC"[\s\S]*?className="h-20 w-auto opacity-60 hover:opacity-100 transition-opacity"/)
-  assert.match(footerSource, /alt="APEN"[\s\S]*?className="h-20 w-auto opacity-60 hover:opacity-100 transition-opacity"/)
-
-  const compactLinksClass = 'flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-bold uppercase tracking-widest text-gray-400'
-  assert.equal((footerSource.match(new RegExp(compactLinksClass.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) ?? []).length, 2)
-})
 
 test('shared layouts use responsive grids and viewport-bounded chrome', () => {
   const globalStyles = fs.readFileSync(path.join('app', 'globals.css'), 'utf8')
@@ -434,57 +317,17 @@ test('shared layouts use responsive grids and viewport-bounded chrome', () => {
   assert.match(assistantSource, /w-\[calc\(100vw-2rem\)\][\s\S]*max-w-\[440px\]/)
 })
 
-test('card palette provides enough unique colors for page card groups', () => {
-  const paletteSource = fs.readFileSync(path.join('lib', 'data', 'card-colors.ts'), 'utf8')
-  const homepageSource = fs.readFileSync(path.join('lib', 'data', 'homepage.ts'), 'utf8')
-  const linksGridSource = fs.readFileSync(path.join('components', 'home', 'LinksGrid.tsx'), 'utf8')
-  const hoverGridSource = fs.readFileSync(path.join('components', 'cards', 'HoverRevealGrid.tsx'), 'utf8')
-  const expandableGridSource = fs.readFileSync(path.join('components', 'cards', 'ExpandableCardGrid.tsx'), 'utf8')
-  const announcementSource = fs.readFileSync(path.join('components', 'home', 'AnnouncementList.tsx'), 'utf8')
-
-  const familiesMatch = paletteSource.match(/TAILSCAN_COLOR_FAMILIES\s*=\s*\[([\s\S]*?)\]\s*as const/)
-  assert.ok(familiesMatch)
-  const families = Array.from(familiesMatch[1].matchAll(/'([^']+)'/g)).map((match) => match[1])
-  assert.deepEqual(families, [
-    'cyan',
-    'emerald',
-    'sky',
-    'violet',
-    'amber',
-    'rose',
-    'teal',
-    'orange',
-    'fuchsia',
-    'indigo',
-    'green',
-    'purple',
-    'red',
-    'lime',
-    'yellow',
-    'blue',
-    'pink',
-    'slate',
-    'gray',
-    'zinc',
-    'neutral',
-    'stone',
-  ])
-
-  const paletteMatch = paletteSource.match(/CARD_GLOW_PALETTE\s*=\s*CARD_GLOW_SHADES\.flatMap/)
-  assert.ok(paletteMatch)
-  assert.match(paletteSource, /type GlowColorName = TailscanColorFamily \| `\$\{TailscanColorFamily\}-\$\{TailscanColorShade\}`/)
-  assert.match(paletteSource, /getCardColorDefinition/)
-  assert.match(paletteSource, /getGlowSpotlightDefinition/)
-  assert.match(paletteSource, /CARD_GLOW_SHADES[\s\S]*'300'[\s\S]*'700'/)
-
-  for (const exportName of ['serviceLinkColors', 'supportLinkColors']) {
-    assert.match(homepageSource, new RegExp(`${exportName}\\s*=\\s*getUniqueCardGlowColors`))
+test('page card grids take their glow from the shared palette', () => {
+  // The palette's size, wrap-around and uniqueness per home group are
+  // asserted on the module in ui-behavior.test.ts; this pins the consumers.
+  for (const file of [
+    path.join('components', 'home', 'LinksGrid.tsx'),
+    path.join('components', 'cards', 'HoverRevealGrid.tsx'),
+    path.join('components', 'cards', 'ExpandableCardGrid.tsx'),
+    path.join('components', 'home', 'AnnouncementList.tsx'),
+  ]) {
+    assert.match(fs.readFileSync(file, 'utf8'), /getCardGlowColor/, `${file} does not use the shared palette`)
   }
-
-  assert.match(linksGridSource, /getCardGlowColor/)
-  assert.match(hoverGridSource, /getCardGlowColor/)
-  assert.match(expandableGridSource, /getCardGlowColor/)
-  assert.match(announcementSource, /getCardGlowColor/)
 })
 
 test('page card components do not hard-code repeated open-state glow colors', () => {
@@ -545,12 +388,6 @@ test('nav sign-out kills the session server-side and forces re-authentication', 
   assert.equal(source.match(/onClick=\{handleSignOut\}/g)?.length, 2)
 })
 
-test('custom cards use a native disclosure button without nested interactive controls', () => {
-  const source = fs.readFileSync(path.join('components', 'common', 'CustomPageView.tsx'), 'utf8')
-  assert.match(source, /<button[\s\S]*type="button"[\s\S]*aria-expanded=\{isOpen\}/)
-  assert.match(source, /aria-controls=\{panelId\}/)
-  assert.doesNotMatch(source, /role=\{isExpandable \? 'button'/)
-})
 
 test('privacy headers suppress referrers without blocking same-origin embeds', () => {
   const headerSource = fs.readFileSync(path.join('nginx', 'security-headers.inc'), 'utf8')
@@ -706,14 +543,6 @@ test('a finished upload becomes a pending item on the publish card', () => {
   assert.match(editor, /unpublishedScopes\.length === 0 && pendingUploads\.length === 0/)
 })
 
-test('download-list cards expose their links to the attach and edit flows', () => {
-  const editor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
-  // Without a URL field in its scope, VMware Tools was skipped by
-  // DOWNLOAD_ATTACH_SCOPES entirely: no "Use in a card", no editable links.
-  assert.match(editor, /const DOWNLOAD_LIST_FIELDS/)
-  assert.match(editor, /'downloads\.0\.href'/)
-  assert.match(editor, /fields: \[\.\.\.COMMON_CARD_FIELDS, \.\.\.DOWNLOAD_LIST_FIELDS\]/)
-})
 
 test('the attach editor never opens without a card selected', () => {
   const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
@@ -739,17 +568,9 @@ test('stat tiles open the console section holding their detail', () => {
   assert.match(dashboard, /requestAnimationFrame\(\(\) => \{/)
 })
 
-test('every documentation page is editable and every picker names its page', async () => {
-  const editor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
-
-  // The four /docs pages were the only card grids with no admin scope at all.
-  for (const scope of ['docs/vmware/cards', 'docs/trellix/cards', 'docs/evaluate-stig/cards', 'docs/microsoft-products/cards']) {
-    assert.match(editor, new RegExp(`scope: '${scope}'`), `missing editable scope ${scope}`)
-  }
-  assert.match(editor, /const LINKS_LIST_FIELDS/)
-  assert.match(editor, /'links\.0\.href'/)
-
-  // Each page passes its scope through the shared grid component.
+test('every documentation page is wired to its editable scope', () => {
+  // The scopes, their link fields and the route in every description are
+  // asserted on EDITABLE_SCOPES in ui-behavior.test.ts; this pins the wiring.
   for (const [page, scope] of [
     ['vmware', 'docs/vmware/cards'], ['trellix', 'docs/trellix/cards'],
     ['evaluate-stig', 'docs/evaluate-stig/cards'], ['microsoft-products', 'docs/microsoft-products/cards'],
@@ -761,20 +582,9 @@ test('every documentation page is editable and every picker names its page', asy
     fs.readFileSync(path.join('components', 'cards', 'DocumentationCards.tsx'), 'utf8'),
     /useCardOverrides<DocCard>\(scope, cards\)/,
   )
-
-  // Pickers name the page each section edits, derived from its description —
-  // and every section's description must actually contain a route to derive.
-  assert.match(editor, /function scopeRoute\(/)
+  // Pickers name the page each section edits.
+  const editor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
   assert.match(editor, /\{s\.sectionName\}\{route \? ` — \$\{route\}` : ''\}\{flag\}/)
-  const described = [...editor.matchAll(/description: '([^']+)'/g)].map((m) => m[1])
-  assert.ok(described.length >= 30, `only ${described.length} scope descriptions found`)
-  for (const description of described) {
-    assert.match(description, /\/[A-Za-z0-9_/-]+/, `description lacks a route: "${description}"`)
-  }
-
-  // AMI is spelled out on the upgrade-guide card.
-  const vmware = fs.readFileSync(path.join('lib', 'data', 'vmware.ts'), 'utf8')
-  assert.match(vmware, /Upgrade vCenter using the Appliance Management Interface \(PDF\)/)
 })
 
 test('URL fields offer the server files of every folder their section links into', () => {
@@ -785,11 +595,6 @@ test('URL fields offer the server files of every folder their section links into
   // external links.
   assert.match(editor, /<datalist id="admin-scope-file-options">/)
   assert.match(rowEditor, /list=\{field\.type === 'url' \? 'admin-scope-file-options' : undefined\}/)
-  // ALL of a section's folders feed it, not just the most-linked one — the
-  // Tools / VMRC section spans /vmware/vmware-tools AND /vmware/vmrc, and a
-  // best-prefix-only list would leave the VMRC field with nothing to offer.
-  assert.match(editor, /function downloadPrefixes\(/)
-  assert.match(editor, /prefixes\.includes\(entry\.urlPath\)/)
   // Unfinished uploads never appear as pickable URLs.
   assert.match(editor, /if \(!file\.partial\) collected\.push\(file\.url\)/)
 })
@@ -832,6 +637,8 @@ test('every download card renders its files through the shared v8-style row', ()
     'app/downloads/iso/linux/enterprise/LINUXOSCards.tsx',
     'app/downloads/iso/linux/ubuntu/UbuntuOSCards.tsx',
     'components/cards/DocumentationCards.tsx',
+    // Admin-authored pages (code-quality #71): the row's accessible name comes from the shared component.
+    'components/common/CustomPageView.tsx',
   ]
   // The compact tile layout routes its links through the SAME file: TileGrid
   // renders DownloadButton for a single file and DownloadRow for a list, both

@@ -615,7 +615,7 @@ const EDITABLE_SCOPE_DEFINITIONS: EditableScope[] = [
   },
 ]
 
-const EDITABLE_SCOPES: EditableScope[] = EDITABLE_SCOPE_DEFINITIONS.map((scope) => {
+export const EDITABLE_SCOPES: EditableScope[] = EDITABLE_SCOPE_DEFINITIONS.map((scope) => {
   const defaultsWithLogos = scope.defaults.filter((item) => typeof item.logo === 'string')
   const allLogosManagedByRoutes = defaultsWithLogos.length > 0 && defaultsWithLogos.every((item) => (
     typeof item.href === 'string' && Object.prototype.hasOwnProperty.call(PAGE_LOGOS, item.href)
@@ -724,7 +724,7 @@ function downloadPrefixVotes(cards: ReadonlyArray<Record<string, unknown>>): Map
   return votes
 }
 
-function commonDownloadPrefix(cards: ReadonlyArray<Record<string, unknown>>): string {
+export function commonDownloadPrefix(cards: ReadonlyArray<Record<string, unknown>>): string {
   let best = ''
   let bestCount = 0
   for (const [prefix, count] of downloadPrefixVotes(cards)) {
@@ -735,7 +735,7 @@ function commonDownloadPrefix(cards: ReadonlyArray<Record<string, unknown>>): st
 
 /** EVERY folder a section's cards link into, most-linked first. A section like
  *  Tools / VMRC spans two folders — its URL dropdown must offer both. */
-function downloadPrefixes(cards: ReadonlyArray<Record<string, unknown>>): string[] {
+export function downloadPrefixes(cards: ReadonlyArray<Record<string, unknown>>): string[] {
   return [...downloadPrefixVotes(cards).entries()].sort((a, b) => b[1] - a[1]).map(([prefix]) => prefix)
 }
 
@@ -745,7 +745,7 @@ function downloadPrefixes(cards: ReadonlyArray<Record<string, unknown>>): string
  * admin never has to guess which page a section maps to — and derived rather
  * than configured, so it can't go stale separately.
  */
-function scopeRoute(description: string): string {
+export function scopeRoute(description: string): string {
   return /(\/[A-Za-z0-9_/-]+)/.exec(description)?.[1] ?? ''
 }
 
