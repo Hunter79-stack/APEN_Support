@@ -33,6 +33,9 @@ export default defineConfig([
       'react-hooks/refs': 'warn',
       'react-hooks/static-components': 'warn',
       'react/no-unescaped-entities': 'warn',
+      // Dropping a field through rest destructuring (`{ _localKey, ...card }`)
+      // is the omission idiom, not an unused binding.
+      '@typescript-eslint/no-unused-vars': ['warn', { ignoreRestSiblings: true }],
     },
   },
 ])
