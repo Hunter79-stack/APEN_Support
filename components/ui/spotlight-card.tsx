@@ -84,7 +84,6 @@ export function GlowCard({
   // server/client hydration mismatches (Math.random & getGpuTier differ
   // between SSR and the browser).
   const [glowHue, setGlowHue] = useState(base)
-  const [blurPx, setBlurPx] = useState(12)
 
   const [gpuTier, setGpuTier] = useState<'high' | 'mid' | 'none'>('high')
 
@@ -93,7 +92,6 @@ export function GlowCard({
     setGlowHue(base + Math.random() * spread)
     const tier = getGpuTier()
     setGpuTier(tier)
-    setBlurPx(tier === 'none' ? 0 : tier === 'high' ? 12 : 6)
   }, [base, spread])
 
   // Skip mouse tracking entirely on software renderers — saves CPU

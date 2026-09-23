@@ -1,8 +1,4 @@
-import {
-  DOWNLOADS_PAGE_LOGOS,
-  ROOT_PAGE_LOGOS,
-  SECURITY_PAGE_LOGOS,
-} from '@/lib/data/logos'
+import { DOWNLOADS_PAGE_LOGOS, ROOT_PAGE_LOGOS } from '@/lib/data/logos'
 import type { NavCard } from '@/lib/types/cards'
 
 /**

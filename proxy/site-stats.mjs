@@ -4270,8 +4270,7 @@ const server = createServer(async (req, res) => {
   if ((req.method === 'GET' || req.method === 'POST') && url === '/api/speedtest/empty') {
     if (req.method === 'POST') {
       // Drain the upload body so the client's measured upload speed is real.
-      let bytes = 0
-      req.on('data', (chunk) => { bytes += chunk.length })
+      req.resume()
       req.on('end', () => {
         res.writeHead(200, { ...CORS, ...SPEEDTEST_NO_CACHE, 'Content-Length': '0' })
         res.end()

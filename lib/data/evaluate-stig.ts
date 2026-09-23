@@ -6,7 +6,7 @@
  * can patch any field through the AdminContentEditor.
  */
 
-import { DOCS_PAGE_LOGOS, DOWNLOADS_PAGE_LOGOS, LOGOS } from '@/lib/data/logos'
+import { DOCS_PAGE_LOGOS, LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 import type { BaseCard, DownloadLink, NavCard, DocCard } from '@/lib/types/cards'
 

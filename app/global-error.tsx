@@ -5,8 +5,8 @@
  * This component must render its own <html> and <body> tags because
  * the root layout has already failed at this point.
  */
+// `error` stays in the prop type (Next passes it) but this boundary only offers a retry.
 export default function GlobalError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string }
