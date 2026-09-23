@@ -1,6 +1,6 @@
 # Session handoff — attribution page + code-quality pass
 
-Updated 2026-09-22 (seventh session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
+Updated 2026-09-23 (eighth session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
 
 ## User request (2026-09-18, still open)
 1. Review SITE-REVIEW-2026-09-17.md. 2. Stand up /attribution listing every third-party asset class. 3. Then start the Code quality findings.
@@ -73,20 +73,25 @@ Seventh session (2026-09-22, later):
 - #80 DONE: 'exports/**' added to eslint.config.mjs globalIgnores. The config-protection hook blocks the Edit tool on that file, so the one-line change was applied with a python script at the user's explicit request.
 - #84 DONE: "lint": "eslint . --max-warnings 75" (the real count after #80); README says lower it, never raise it.
 - #98 chunk B (partial, committed): three launcher-position guards (25 regex assertions) became two behavioural tests in ui-behavior.test.ts calling shouldShowAssistant / clampAssistantPosition / isAssistantPositionTrapped / resolveAssistantPositionForViewportChange; the token-level remainder (pointer-event wiring, no lg:block hiding) stays as one smaller guard. tests/source-guards.test.ts still holds 35 guards (~330 assertions). Convert the rest when touching the code each pins — the two biggest (admin badge 71 assertions, launcher naming 41) are the least behavioural and the most brittle. #98 is therefore DONE as a split + started as a conversion, not finished.
+Eighth session (2026-09-23):
+- DEPLOYED: $SITEUPDATE ran 2026-09-22 14:37, after handoff commit 67b5abc, so everything through the seventh session is live. It left a root-owned, untracked package-lock.json (harmless; ignore it).
+- #71 DONE: CustomPageView renders the shared components/cards/DownloadRow (its private row + pickDownloadIcon/fileTypeFromHref deleted), so every custom-page download link carries aria-label "label (.ext)". `isDoc` maps to the row's `external` (forces a new tab). Behaviour drift from the shared rule: any absolute URL now opens in a new tab (before, absolute apensupport URLs stayed in-tab) and the button reads ".pdf" not "PDF". CustomPageView added to the shared-row sweep in source-guards.
+- #98 continued: 8 guards deleted, 4 trimmed to wiring-only (75 assertions gone; 27 guards / 270 assertions remain), replaced by 11 behavioural tests in tests/ui-behavior.test.ts. New helpers there: renderStatic(component, props) (react-dom/server renderToStaticMarkup via createElement — hooks work) and visibleText(html). Renders fine under the test loader: FeedbackForm, ThemedLogo (SVG branch only — next/image's default import is an object under the loader), HoverRevealCard, CustomPageView, Footer, HomeHero, SupportKnowledgeCategoryPage, the support/status and knowledge-base pages (import pages with `(await import(...)).default`, NOT importComponentModule, which unwraps default). Does NOT render: ExpandableCardGrid (needs config.scaleFactor), anything using next/navigation. Exported for tests from AdminContentEditor.tsx: EDITABLE_SCOPES, commonDownloadPrefix, downloadPrefixes, scopeRoute (card-overrides.test.ts anchors on EDITABLE_SCOPE_DEFINITIONS, unaffected).
+  Still guards worth converting: admin badge (~68 assertions, AdminDashboard/Navbar/hook/proxy tokens), launcher naming (~38, pill JSX), the admin panel guards (upload/attach/publish/stat tiles). The rest are genuine lint rules (nginx headers, sweeps, wiring) — leave.
+- tests/search-index.test.ts floor 108 → 80. out/ is the PREVIOUS deploy's export: #68's 31 stub removals only surfaced after the 2026-09-22 build (88 pages) and would have failed the NEXT deploy's validate gate. Rule: lower the floor in the same commit as a route removal.
+- Gate green: validate:images OK, typecheck clean, npm test 152/152, eslint --quiet clean (73 warnings, ceiling 75).
 Blocked / left open:
 - #23 remainder: 13 entries in lib/data/announcements.ts carry `date: ''`; real dates unknown, not invented.
 - #21 remainder: /dren/trellix/ens_tp/ and /dren/trellix/policy_auditor/ do not exist on the file host, so the DREN ENS and Policy Auditor guide steps still point at missing files. Real tree is installer/{el,ub}-trellix-install/{agent,ensl} plus one tarball (cui-/dren-trellix-install.tar.gz), which is what the legacy page told users to download. Needs a content decision.
 - Observation: unauthenticated curl of any /trellix or /evaluate-stig download from this box returns the 34 KB login page (HTTP 200 text/html). Check from a client workstation whether wget/curl in the guides get past the auth gate.
-- #71: CustomPageView anchor not checked yet.
 
-## What is left (2026-09-22)
-1. #98 second half: 35 source-text guards (~330 assertions) in tests/source-guards.test.ts to convert to behavioural tests, opportunistically when their code is touched. Only code-quality item still open.
+## What is left (2026-09-23)
+1. #98 second half: 27 source-text guards (~270 assertions) left in tests/source-guards.test.ts; the three worth converting are named in the eighth-session notes. Only code-quality item still open.
 2. #23 remainder: 13 `date: ''` entries in lib/data/announcements.ts — real dates from the user.
 3. #21 remainder: DREN ENS / Policy Auditor guide files do not exist on the file host — content decision (publish files or rewrite guides around dren-trellix-install.tar.gz).
 4. Verify from a client workstation that the guides' wget/curl commands get past the login gate (from this box they return the login page).
-5. #71 remainder: CustomPageView download anchor's accessible name not checked.
-6. User's calls: exempt /THIRD-PARTY-NOTICES.txt from the login gate?; delete the unreferenced unknown-origin images?
-7. Next $SITEUPDATE makes everything since 2026-09-21 live and is the first run of the full validate gate before build.
+5. User's calls: exempt /THIRD-PARTY-NOTICES.txt from the login gate?; delete the unreferenced unknown-origin images?
+6. Next $SITEUPDATE makes #71 live (only CustomPageView changed on the site; the rest is tests) and is the first deploy whose validate gate runs against the 88-page index.
 Deliberately unchanged: customsh/siteupdate.sh's `pm2 start npm -- run stats` (change with the user); Mem0 key and connector auth are the user's.
 
 ## Constraints worth remembering
