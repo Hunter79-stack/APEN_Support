@@ -401,7 +401,6 @@ export function RegisteredRouteImageEditor({
 
         <div className="flex min-h-44 items-center justify-center rounded-xl border border-white/10 bg-black/30 p-4">
           {draftPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={draftPreview} alt={`Preview for ${selectedRoute}`} className="max-h-36 w-full object-contain" />
           ) : (
             <p className="text-center text-xs text-slate-400">Choose a valid image to preview it.</p>

@@ -186,7 +186,6 @@ function LogoPicker({
       <div className="mt-1 flex items-stretch gap-2">
         {value && (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40 p-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={value} alt="" className="max-h-full max-w-full object-contain" />
           </div>
         )}

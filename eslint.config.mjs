@@ -28,7 +28,16 @@ export default defineConfig([
      * be refactored without changing runtime behavior.
      */
     rules: {
-      'react-hooks/set-state-in-effect': 'warn',
+      // Off, not warn (user decision 2026-09-24). The rule traces into a
+      // component's own async loader and flags `useEffect(() => { void load() })`
+      // even when every setState sits after an await, and it flags the
+      // hydration-safe browser reads (localStorage, window.location, GPU tier).
+      // Neither has a rewrite that is not lint-gaming; the prop-to-state cases
+      // it was right about were fixed in 3130b21.
+      'react-hooks/set-state-in-effect': 'off',
+      // Static export with images.unoptimized: next/image renders the same <img>
+      // with no optimizer behind it, so this rule has nothing to offer here.
+      '@next/next/no-img-element': 'off',
       'react-hooks/preserve-manual-memoization': 'warn',
       'react-hooks/refs': 'warn',
       'react-hooks/static-components': 'warn',

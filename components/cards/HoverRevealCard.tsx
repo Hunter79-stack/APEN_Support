@@ -179,7 +179,6 @@ export function HoverRevealCard({
                   className={cn('w-full h-full p-6', resolvedImageClassName)}
                 />
               ) : (
-              /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={logo}
                 alt={title}

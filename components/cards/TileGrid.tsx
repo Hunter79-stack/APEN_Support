@@ -109,7 +109,6 @@ export function TileIcon({ src, alt, size = 48, fallback = LOGOS.msStore }: {
 }) {
   const [failed, setFailed] = useState(false)
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- static export, no image loader
     <img
       src={failed || !src ? fallback : src}
       alt={alt}
