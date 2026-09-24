@@ -10,7 +10,7 @@ export default function DRENTrellixPage() {
     <div className="page-enter">
       <PageHeader
         title="Trellix for Linux on DREN"
-        subtitle="DREN-specific Trellix Agent, ENS, and Policy Auditor installation guides for Enterprise Linux and Ubuntu systems."
+        subtitle="DREN-specific Trellix Agent and ENS installation guides for Enterprise Linux and Ubuntu systems — one bundle, one installer."
         badge="DREN"
         backHref="/dren"
         backColor="cyan"

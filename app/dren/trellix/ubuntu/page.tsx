@@ -12,7 +12,7 @@ export default function DRENTrellixUbuntuPage() {
     <div className="page-enter">
       <PageHeader
         title="Ubuntu"
-        subtitle="Install the Trellix Agent, Endpoint Security (ENS), and Policy Auditor on Ubuntu 22 and Ubuntu 24 systems connected to the DREN network."
+        subtitle="Install the Trellix Agent and Endpoint Security (ENS) on Ubuntu 22 and Ubuntu 24 systems connected to the DREN network."
         badge="DREN Trellix"
         backHref="/dren/trellix"
         backColor="cyan"

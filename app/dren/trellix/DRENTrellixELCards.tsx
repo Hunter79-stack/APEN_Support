@@ -11,8 +11,7 @@ import { Callout } from '@/components/layout/PageHeader'
 import { DREN_PAGE_LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 
-const BASE     = URLS.drenTrellixAgentEl
-const ENS_BASE = URLS.drenTrellixEns
+const INSTALLER = URLS.drenTrellixInstaller
 
 function Step({ n, text }: { n: number; text: string }) {
   return (
@@ -26,110 +25,69 @@ function Step({ n, text }: { n: number; text: string }) {
 function DRENNotice() {
   return (
     <Callout type="important">
-      This guide is <strong>DREN-specific</strong>. Scripts are downloaded from the DREN-side server
-      and are restricted to internal DREN and OOBN addresses. Ensure your system is on the approved
+      This guide is <strong>DREN-specific</strong>. The installer is downloaded from the DREN-side server
+      and is restricted to internal DREN and OOBN addresses. Ensure your system is on the approved
       network before proceeding.
     </Callout>
   )
 }
 
-function AgentContent() {
+/* One bundle, one script: dren-trellix-install.tar.gz unpacks to ./installer,
+ * whose install.sh picks the EL or Ubuntu branch by package manager, adds the
+ * CUI CA to the trust store, installs the Trellix Agent, installs ENS Threat
+ * Prevention with on-access scan off, syncs policy with ePO and prints the
+ * Agent and ENS status. Mirrors the legacy dren-trellix-on-linux page. */
+function InstallContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
       <DRENNotice />
       <p className="text-xs text-slate-400 italic">Tested on AlmaLinux 8, AlmaLinux 9, RockyLinux 8, and CentOS 7.</p>
+      <Callout type="important">
+        One installer does everything: it adds the CUI CA to the trusted store, installs the Trellix Agent,
+        installs ENS Threat Prevention with on-access scan off, syncs policy with ePO, and prints the Agent
+        and ENS status at the end. Run it as root from any working directory.
+      </Callout>
       <div className="space-y-2">
-        <Step n={1} text="Disable and stop firewalld, then verify." />
-        <CodeBlock code="sudo systemctl disable firewalld.service" />
-        <CodeBlock className="mt-1" code="sudo systemctl stop firewalld.service" />
-        <CodeBlock className="mt-1" code="sudo systemctl status firewalld.service" />
-      </div>
-      <div className="space-y-2"><Step n={2} text="Ensure unzip is installed." /><CodeBlock code="sudo yum install unzip" /></div>
-      <div className="space-y-2"><Step n={3} text="Create temp directory." /><CodeBlock code="sudo mkdir /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={4} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
-      <div className="space-y-2">
-        <Step n={5} text="Download install scripts from the DREN server." />
+        <Step n={1} text="Download the installer bundle from the DREN server (about 270 MB)." />
         <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/el/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
-        <CodeBlock code={`sudo wget ${BASE}/install.sh`} />
-        <CodeBlock className="mt-1" code={`sudo wget ${BASE}/installrpm.sh`} />
+        <CodeBlock code={`sudo curl ${INSTALLER} -o dren-trellix-install.tar.gz`} />
       </div>
       <div className="space-y-2">
-        <Step n={6} text="Set permissions and run." />
-        <CodeBlock code="sudo chmod +x install.sh installrpm.sh" />
-        <CodeBlock className="mt-1" code="sudo ./install.sh -i" />
-      </div>
-      <div className="space-y-2"><Step n={7} text="Verify installation." /><CodeBlock code="ls /opt/McAfee/agent/bin" /></div>
-      <div className="space-y-2"><Step n={8} text="Verify version." /><CodeBlock code="cd /opt/McAfee/agent/bin && sudo ./cmdagent -i" /></div>
-      <div className="space-y-2"><Step n={9} text="Delete temp directory." /><CodeBlock code="sudo rm -rf /trellixtemp" /></div>
-      <div className="space-y-2">
-        <Step n={10} text="Re-enable and start firewalld." />
-        <CodeBlock code="sudo systemctl enable firewalld.service && sudo systemctl start firewalld.service" />
-        <CodeBlock className="mt-1" code="sudo systemctl status firewalld.service" />
-      </div>
-    </div>
-  )
-}
-
-function ENSContent() {
-  return (
-    <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-      <DRENNotice />
-      <p className="text-xs text-slate-400 italic">Tested on AlmaLinux 8, AlmaLinux 9, RockyLinux 8, and CentOS 7.</p>
-      <div className="space-y-2">
-        <Step n={1} text="Disable and stop firewalld, then verify." />
-        <CodeBlock code="sudo systemctl disable firewalld.service" />
-        <CodeBlock className="mt-1" code="sudo systemctl stop firewalld.service" />
-        <CodeBlock className="mt-1" code="sudo systemctl status firewalld.service" />
-      </div>
-      <div className="space-y-2"><Step n={2} text="Create temp directory." /><CodeBlock code="sudo mkdir /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={3} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
-      <div className="space-y-2">
-        <Step n={4} text="Download the ENS package from the DREN server." />
-        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/el/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
-        <CodeBlock code={`sudo wget ${ENS_BASE}/ens_tp.tar.gz`} />
-      </div>
-      <div className="space-y-2"><Step n={5} text="Extract the installation files." /><CodeBlock code="sudo tar -zxvf ens_tp.tar.gz" /></div>
-      <div className="space-y-2">
-        <Step n={6} text="Run the installer (scroll to bottom of EULA, type 'accept')." />
-        <Callout type="important">The <code className="code-inline">oasoff</code> flag prevents OAS from being enabled during installation.</Callout>
-        <CodeBlock code="sudo ./install-mfetp.sh oasoff" />
+        <Step n={2} text="Extract the bundle and remove the archive." />
+        <CodeBlock code="sudo tar -xzvf dren-trellix-install.tar.gz" />
+        <CodeBlock className="mt-1" code="sudo rm dren-trellix-install.tar.gz" />
       </div>
       <div className="space-y-2">
-        <Step n={7} text="Disable McAfee GTI (BLCSE is not internet-connected)." />
-        <CodeBlock code="cd /opt/McAfee/ens/tp/bin" />
-        <CodeBlock className="mt-1" code="sudo ./mfetpcli --setoasglobalconfig --gti --state disable" />
-        <CodeBlock className="mt-1" code="sudo ./mfetpcli --getoasconfig --summary" />
+        <Step n={3} text="Run the installer. It detects dnf and runs the Enterprise Linux branch (RPM packages)." />
+        <CodeBlock code="sudo bash ./installer/install.sh" />
       </div>
-      <div className="space-y-2"><Step n={8} text="Delete temp directory." /><CodeBlock code="sudo rm -rf /trellixtemp" /></div>
       <div className="space-y-2">
-        <Step n={9} text="Re-enable and start firewalld." />
-        <CodeBlock code="sudo systemctl enable firewalld.service && sudo systemctl start firewalld.service" />
-        <CodeBlock className="mt-1" code="sudo systemctl status firewalld.service" />
+        <Step n={4} text="Check the status block the script prints last (AgentMode, Version, EpoServerList, ENS version), or query it again." />
+        <CodeBlock code="sudo /opt/McAfee/agent/bin/cmdagent -i" />
+        <CodeBlock className="mt-1" code="sudo /opt/McAfee/ens/tp/bin/mfetpcli --version" />
       </div>
+      <div className="space-y-2">
+        <Step n={5} text="Disable McAfee GTI lookups (BLCSE is not internet-connected)." />
+        <CodeBlock code="sudo /opt/McAfee/ens/tp/bin/mfetpcli --setoasglobalconfig --gti --state disable" />
+        <CodeBlock className="mt-1" code="sudo /opt/McAfee/ens/tp/bin/mfetpcli --getoasconfig --summary" />
+      </div>
+      <div className="space-y-2"><Step n={6} text="Remove the installation files." /><CodeBlock code="sudo rm -rf ./installer" /></div>
     </div>
   )
 }
 
 const cards = [
   {
-    id: 'el-agent',
-    title: 'Trellix Agent Installation',
-    description: 'Install the Trellix Agent on Enterprise Linux systems connected to the DREN network.',
-    tags: ['Agent', 'RPM', 'AlmaLinux', 'CentOS'],
+    id: 'el-install',
+    title: 'Trellix Agent + ENS Installation',
+    description: 'One-shot installer for Enterprise Linux systems on the DREN network: CUI CA trust, Trellix Agent, and ENS Threat Prevention.',
+    tags: ['Agent', 'ENS', 'RPM', 'AlmaLinux', 'CentOS'],
     glowColor: 'cyan' as const,
-  },
-  {
-    id: 'el-ens',
-    title: 'Trellix ENS Installation',
-    description: 'Install Trellix Endpoint Security (ENS) on Enterprise Linux via the DREN-side server.',
-    tags: ['ENS', 'Endpoint Security', 'DREN'],
-    glowColor: 'indigo' as const,
   },
 ]
 
 const contentMap: Record<string, React.ReactNode> = {
-  'el-agent': <AgentContent />,
-  'el-ens':   <ENSContent />,
+  'el-install': <InstallContent />,
 }
 
 export function DRENTrellixELCards() {
@@ -182,4 +140,3 @@ export function DRENTrellixELCards() {
     </div>
   )
 }
-

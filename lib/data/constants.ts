@@ -90,13 +90,11 @@ export const URLS = {
   videos:       `${APENSUPPORT_BASE}/videos`,
   videosFacpro: `${APENSUPPORT_BASE}/videos/facpro`,
   dren:         `${APENSUPPORT_BASE}/dren`,
-  drenTrellixAgentEl:     `${APENSUPPORT_ABSOLUTE}/dren/trellix/installer/el-trellix-install/agent`,
-  drenTrellixAgentUbuntu: `${APENSUPPORT_ABSOLUTE}/dren/trellix/installer/ub-trellix-install/agent`,
-  // NOTE: ens_tp/ and policy_auditor/ do not exist on the file host (2026-09-21); the DREN ENS/PAA
-  // guide steps stay broken until those files are published or the guides are rewritten around
-  // dren-trellix-install.tar.gz.
-  drenTrellixEns: `${APENSUPPORT_ABSOLUTE}/dren/trellix/ens_tp`,
-  drenTrellixPolicyAuditor: `${APENSUPPORT_ABSOLUTE}/dren/trellix/policy_auditor`,
+  // ABSOLUTE: lands in the guides' curl command. One self-contained bundle (CA trust +
+  // Agent + ENS for EL and Ubuntu; installer/install.sh picks the branch by package manager).
+  // This is the only DREN Trellix artefact on the file host — the per-component ens_tp/,
+  // policy_auditor/ and agent/ trees the guides once pointed at were never published there.
+  drenTrellixInstaller: `${APENSUPPORT_ABSOLUTE}/dren/trellix/dren-trellix-install.tar.gz`,
 } as const
 
 /*

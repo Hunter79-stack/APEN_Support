@@ -11,9 +11,7 @@ import { Callout } from '@/components/layout/PageHeader'
 import { DREN_PAGE_LOGOS } from '@/lib/data/logos'
 import { URLS } from '@/lib/data/constants'
 
-const AGENT_BASE = URLS.drenTrellixAgentUbuntu
-const ENS_BASE   = URLS.drenTrellixEns
-const PAA_BASE   = URLS.drenTrellixPolicyAuditor
+const INSTALLER = URLS.drenTrellixInstaller
 
 function Step({ n, text }: { n: number; text: string }) {
   return (
@@ -27,132 +25,69 @@ function Step({ n, text }: { n: number; text: string }) {
 function DRENNotice() {
   return (
     <Callout type="important">
-      This guide is <strong>DREN-specific</strong>. Scripts are downloaded from the DREN-side server
-      and are restricted to internal DREN and OOBN addresses. Ensure your system is on the approved
+      This guide is <strong>DREN-specific</strong>. The installer is downloaded from the DREN-side server
+      and is restricted to internal DREN and OOBN addresses. Ensure your system is on the approved
       network before proceeding.
     </Callout>
   )
 }
 
-function AgentContent() {
+/* One bundle, one script: dren-trellix-install.tar.gz unpacks to ./installer,
+ * whose install.sh picks the EL or Ubuntu branch by package manager, adds the
+ * CUI CA to the trust store, installs the Trellix Agent, installs ENS Threat
+ * Prevention with on-access scan off, syncs policy with ePO and prints the
+ * Agent and ENS status. Mirrors the legacy dren-trellix-on-linux page. */
+function InstallContent() {
   return (
     <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
       <DRENNotice />
       <p className="text-xs text-slate-400 italic">Tested on Ubuntu 22 and Ubuntu 24.</p>
-      <div className="space-y-2"><Step n={1} text="Disable ufw and verify." /><CodeBlock code="sudo ufw disable && sudo ufw status" /></div>
-      <div className="space-y-2"><Step n={2} text="Ensure unzip is installed." /><CodeBlock code="sudo apt install unzip" /></div>
-      <div className="space-y-2"><Step n={3} text="Create temp directory." /><CodeBlock code="sudo mkdir /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={4} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
+      <Callout type="important">
+        One installer does everything: it adds the CUI CA to the trusted store, installs the Trellix Agent,
+        installs ENS Threat Prevention with on-access scan off, syncs policy with ePO, and prints the Agent
+        and ENS status at the end. Run it as root from any working directory.
+      </Callout>
       <div className="space-y-2">
-        <Step n={5} text="Download install scripts from the DREN server." />
+        <Step n={1} text="Download the installer bundle from the DREN server (about 270 MB)." />
         <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
-        <CodeBlock code={`sudo wget ${AGENT_BASE}/install.sh`} />
-        <CodeBlock className="mt-1" code={`sudo wget ${AGENT_BASE}/installdeb.sh`} />
+        <CodeBlock code={`sudo curl ${INSTALLER} -o dren-trellix-install.tar.gz`} />
       </div>
       <div className="space-y-2">
-        <Step n={6} text="Set permissions and run." />
-        <CodeBlock code="sudo chmod +x install.sh installdeb.sh" />
-        <CodeBlock className="mt-1" code="sudo ./install.sh -i" />
-      </div>
-      <div className="space-y-2"><Step n={7} text="Verify installation." /><CodeBlock code="ls /opt/McAfee/agent/bin" /></div>
-      <div className="space-y-2"><Step n={8} text="Verify version." /><CodeBlock code="cd /opt/McAfee/agent/bin && sudo ./cmdagent -i" /></div>
-      <div className="space-y-2"><Step n={9} text="Delete temp directory." /><CodeBlock code="sudo rm -rf /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={10} text="Re-enable ufw." /><CodeBlock code="sudo ufw enable && sudo ufw status" /></div>
-    </div>
-  )
-}
-
-function ENSContent() {
-  return (
-    <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-      <DRENNotice />
-      <p className="text-xs text-slate-400 italic">Tested on Ubuntu 22 and Ubuntu 24.</p>
-      <div className="space-y-2"><Step n={1} text="Disable ufw and verify." /><CodeBlock code="sudo ufw disable && sudo ufw status" /></div>
-      <div className="space-y-2"><Step n={2} text="Create temp directory." /><CodeBlock code="sudo mkdir /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={3} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
-      <div className="space-y-2">
-        <Step n={4} text="Download the ENS package from the DREN server." />
-        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
-        <CodeBlock code={`sudo curl ${ENS_BASE}/ens_tp.tar.gz -o ens_tp.tar.gz`} />
-      </div>
-      <div className="space-y-2"><Step n={5} text="Extract the installation files." /><CodeBlock code="sudo tar -zxvf ens_tp.tar.gz" /></div>
-      <div className="space-y-2">
-        <Step n={6} text="Run the installer (scroll to bottom of EULA, type 'accept')." />
-        <Callout type="important">The <code className="code-inline">oasoff</code> flag prevents OAS from being enabled during installation.</Callout>
-        <CodeBlock code="sudo ./install-mfetp.sh oasoff" />
+        <Step n={2} text="Extract the bundle and remove the archive." />
+        <CodeBlock code="sudo tar -xzvf dren-trellix-install.tar.gz" />
+        <CodeBlock className="mt-1" code="sudo rm dren-trellix-install.tar.gz" />
       </div>
       <div className="space-y-2">
-        <Step n={7} text="Disable McAfee GTI (BLCSE is not internet-connected)." />
-        <CodeBlock code="cd /opt/McAfee/ens/tp/bin" />
-        <CodeBlock className="mt-1" code="sudo ./mfetpcli --setoasglobalconfig --gti --state disable" />
-        <CodeBlock className="mt-1" code="sudo ./mfetpcli --getoasconfig --summary" />
-      </div>
-      <div className="space-y-2"><Step n={8} text="Delete temp directory." /><CodeBlock code="sudo rm -rf /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={9} text="Re-enable ufw." /><CodeBlock code="sudo ufw enable && sudo ufw status" /></div>
-    </div>
-  )
-}
-
-function PAAContent() {
-  return (
-    <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-      <DRENNotice />
-      <p className="text-xs text-slate-400 italic">Tested on Ubuntu 22 and Ubuntu 24.</p>
-      <div className="space-y-2"><Step n={1} text="Disable ufw and verify." /><CodeBlock code="sudo ufw disable && sudo ufw status" /></div>
-      <div className="space-y-2"><Step n={2} text="Create temp directory." /><CodeBlock code="sudo mkdir /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={3} text="Change to directory." /><CodeBlock code="cd /trellixtemp" /></div>
-      <div className="space-y-2">
-        <Step n={4} text="Download Policy Auditor files from the DREN server." />
-        <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
-        <CodeBlock code={`sudo curl ${PAA_BASE}/install.sh -o install.sh`} />
-        <CodeBlock className="mt-1" code={`sudo curl ${PAA_BASE}/paa-install.tar -o paa-install.tar`} />
-      </div>
-      <div className="space-y-2"><Step n={5} text="Run the installation shell." /><CodeBlock code="sudo bash install.sh" /></div>
-      <div className="space-y-2">
-        <Step n={6} text="Run the installer (scroll to bottom of EULA, type 'accept')." />
-        <Callout type="important">The <code className="code-inline">oasoff</code> flag prevents OAS from being enabled during installation.</Callout>
-        <CodeBlock code="sudo ./install-mfetp.sh oasoff" />
+        <Step n={3} text="Run the installer. It detects apt and runs the Ubuntu branch (DEB packages)." />
+        <CodeBlock code="sudo bash ./installer/install.sh" />
       </div>
       <div className="space-y-2">
-        <Step n={7} text="Disable McAfee GTI (BLCSE is not internet-connected)." />
-        <CodeBlock code="cd /opt/McAfee/ens/tp/bin" />
-        <CodeBlock className="mt-1" code="sudo ./mfetpcli --setoasglobalconfig --gti --state disable" />
-        <CodeBlock className="mt-1" code="sudo ./mfetpcli --getoasconfig --summary" />
+        <Step n={4} text="Check the status block the script prints last (AgentMode, Version, EpoServerList, ENS version), or query it again." />
+        <CodeBlock code="sudo /opt/McAfee/agent/bin/cmdagent -i" />
+        <CodeBlock className="mt-1" code="sudo /opt/McAfee/ens/tp/bin/mfetpcli --version" />
       </div>
-      <div className="space-y-2"><Step n={8} text="Delete temp directory." /><CodeBlock code="sudo rm -rf /trellixtemp" /></div>
-      <div className="space-y-2"><Step n={9} text="Re-enable ufw." /><CodeBlock code="sudo ufw enable && sudo ufw status" /></div>
+      <div className="space-y-2">
+        <Step n={5} text="Disable McAfee GTI lookups (BLCSE is not internet-connected)." />
+        <CodeBlock code="sudo /opt/McAfee/ens/tp/bin/mfetpcli --setoasglobalconfig --gti --state disable" />
+        <CodeBlock className="mt-1" code="sudo /opt/McAfee/ens/tp/bin/mfetpcli --getoasconfig --summary" />
+      </div>
+      <div className="space-y-2"><Step n={6} text="Remove the installation files." /><CodeBlock code="sudo rm -rf ./installer" /></div>
     </div>
   )
 }
 
 const cards = [
   {
-    id: 'ub-agent',
-    title: 'Trellix Agent Installation',
-    description: 'Install the Trellix Agent on Ubuntu 22 and Ubuntu 24 systems via the DREN network.',
-    tags: ['Agent', 'DEB', 'Ubuntu 22', 'Ubuntu 24'],
+    id: 'ub-install',
+    title: 'Trellix Agent + ENS Installation',
+    description: 'One-shot installer for Ubuntu 22 and Ubuntu 24 systems on the DREN network: CUI CA trust, Trellix Agent, and ENS Threat Prevention.',
+    tags: ['Agent', 'ENS', 'DEB', 'Ubuntu 22', 'Ubuntu 24'],
     glowColor: 'cyan' as const,
-  },
-  {
-    id: 'ub-ens',
-    title: 'Trellix ENS Installation',
-    description: 'Install Trellix Endpoint Security (ENS) on Ubuntu systems via the DREN-side server.',
-    tags: ['ENS', 'Endpoint Security', 'DREN'],
-    glowColor: 'indigo' as const,
-  },
-  {
-    id: 'ub-paa',
-    title: 'Trellix Policy Auditor',
-    description: 'Install the Trellix Policy Auditor Agent (PAA) on Ubuntu 22 and Ubuntu 24 via the DREN network.',
-    tags: ['PAA', 'Policy Auditor', 'Ubuntu'],
-    glowColor: 'orange' as const,
   },
 ]
 
 const contentMap: Record<string, React.ReactNode> = {
-  'ub-agent': <AgentContent />,
-  'ub-ens':   <ENSContent />,
-  'ub-paa':   <PAAContent />,
+  'ub-install': <InstallContent />,
 }
 
 export function DRENTrellixUbuntuCards() {
@@ -161,7 +96,7 @@ export function DRENTrellixUbuntuCards() {
 
   return (
     <div className="relative">
-      <div className="grid md:grid-cols-3 gap-6 items-start">
+      <div className="grid md:grid-cols-2 gap-6 items-start">
         {cards.map((card, index) => {
           const isOpen = openCard === card.id
           return (
@@ -205,4 +140,3 @@ export function DRENTrellixUbuntuCards() {
     </div>
   )
 }
-
