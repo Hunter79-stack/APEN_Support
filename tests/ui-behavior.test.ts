@@ -390,6 +390,16 @@ test('home announcements carry product and document updates only', async () => {
   ])
 })
 
+test('every curated announcement is dated: the feed only announces additions', async () => {
+  // The home feed tells visitors what they can now view or download and sorts
+  // by date. An undated entry can neither sort nor earn its NEW badge, so the
+  // undated legacy backlog was dropped rather than given invented dates.
+  const announcements = await importComponentModule('../lib/data/announcements.ts')
+  const manual = announcements.MANUAL_ANNOUNCEMENTS as Array<{ date: string; text: string }>
+  assert.ok(manual.length > 0)
+  for (const a of manual) assert.match(a.date, /^\d{4}-\d{2}-\d{2}$/, `undated announcement: ${a.text}`)
+})
+
 test('site history is hidden from home and listed in the admin console', async () => {
   const announcements = await importComponentModule('../lib/data/announcements.ts')
   const isSiteHistory = announcements.isSiteHistoryAnnouncement as (a: { text: string; category?: string }) => boolean

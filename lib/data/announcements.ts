@@ -6,6 +6,10 @@
  *   • Items ≤ 30 days old automatically receive a "NEW" badge at runtime
  *   • Build-time autosensed items are merged from lib/data/site-updates.ts
  *   • Use this file for high-quality manually curated overrides
+ *   • Every entry announces something a visitor can now view or download and
+ *     carries the date it was added — an undated entry cannot sort or earn its
+ *     badge. The undated 2024–2025 backlog was dropped 2026-09-24 (git history
+ *     has it); tests/ui-behavior.test.ts enforces the date.
  *   • date format: 'YYYY-MM-DD'
  */
 
@@ -35,60 +39,6 @@ export const MANUAL_ANNOUNCEMENTS: Announcement[] = [
   {
     text: 'Evaluate-STIG updated to version 1.2604.2.',
     href: '/security/evaluate-stig', linkLabel: 'View', date: '2026-05-15', Time: '', category: 'Security',
-  },
-  // ── 2025 ─────────────────────────────────────────────────────
-  {
-    text: 'VMware vCenter 8.0 Update 3h (Build 25092719) and ESXi 8.0 Update 3h patches added.',
-    href: '/downloads/vmware', linkLabel: 'View Patches', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'MS Store AppX Packages added — Paint, Snipping Tool, Windows Terminal, HEVC, HEIF, AV1, MPEG-2, VP9 Extensions.',
-    href: '/mssoftware', linkLabel: 'View', date: '', Time: '', category: 'Software',
-  },
-  {
-    text: 'PDQ Deploy and Inventory now available for Windows software deployment and inventory.',
-    href: '/PDQ', linkLabel: 'View', date: '', Time: '', category: 'Software',
-  },
-  {
-    text: 'VMware vCenter 8.0 Update 3g (Build 24853646) patches added.',
-    href: '/downloads/vmware', linkLabel: 'View Patches', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'VMware vCenter 7.0 Update 3s and ESXi 7.0 Update 3s added.',
-    href: '/downloads/vmware', linkLabel: 'View', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'AD Join/Leave, CA Trust, OpenSSL, Cron Job, and Systemctl guides added for Enterprise Linux and Ubuntu.',
-    href: '/docs', linkLabel: 'View Docs', date: '', Time: '', category: 'Docs',
-  },
-  {
-    text: 'VMware vCenter 8.0 Update 3e (Build 24674346) patches added.',
-    href: '/downloads/vmware', linkLabel: 'View Patches', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'VMware vCenter 7.0 Update 3r and ESXi 7.0 Update 3r added.',
-    href: '/downloads/vmware', linkLabel: 'View', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'WSUS Policy updated to support Windows 10 and 11 Features on Demand installation.',
-    href: null, linkLabel: null, date: '', Time: '', category: 'Software',
-  },
-  // ── 2024 ─────────────────────────────────────────────────────
-  {
-    text: 'Windows 11 64Bit 21H2 SHB-A and Windows Server 2022 64Bit 21H2 added to Software and ISOs.',
-    href: '/downloads/iso', linkLabel: 'View', date: '', Time: '', category: 'Software',
-  },
-  {
-    text: 'VMware vCenter 8.0 Update 3d (Build 24322831) patches added.',
-    href: '/downloads/vmware', linkLabel: 'View Patches', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'VMware vCenter 8.0 Update 3c (Build 24305161) patches added.',
-    href: '/downloads/vmware', linkLabel: 'View Patches', date: '', Time: '', category: 'VMware',
-  },
-  {
-    text: 'VMware vCenter 8.0 Update 3b (Build 24262322) patches added.',
-    href: '/downloads/vmware', linkLabel: 'View Patches', date: '', Time: '',  category: 'VMware',
   },
 ]
 
