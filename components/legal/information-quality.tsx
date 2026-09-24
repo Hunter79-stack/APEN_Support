@@ -9,7 +9,7 @@ const InformationQuality: React.FC = () => {
       </p>
       <h2 className="text-xl font-bold border-b pb-2">Experimentation Data Disclaimer</h2>
       <p>
-        Information hosted within APEN designated as "Experimentation" or "Beta" is intended for internal evaluation and may not represent finalized Army positions or official disseminated data. Users should verify the status of data before utilizing it for formal decision-making.
+        Information hosted within APEN designated as &quot;Experimentation&quot; or &quot;Beta&quot; is intended for internal evaluation and may not represent finalized Army positions or official disseminated data. Users should verify the status of data before utilizing it for formal decision-making.
       </p>
     </LegalWrapper>
   );

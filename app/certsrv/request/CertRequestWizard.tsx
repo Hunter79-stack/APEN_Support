@@ -733,7 +733,7 @@ function StepPasteCert({
       <Callout type="info">
         Renewal uses your <strong>existing private key</strong>. Keep the
         <code className="code-inline mx-1">.key</code> file
-        (Linux) or the existing certificate's key in the Local Machine store (Windows)
+        (Linux) or the existing certificate&apos;s key in the Local Machine store (Windows)
         in place — the wizard will reference it in the commands on the final step.
       </Callout>
 
@@ -1321,10 +1321,12 @@ function StepSubmit({ onBack }: { onBack: () => void }) {
 
   // Once status arrives, default to API when configured, portal otherwise.
   const apiAvailable = Boolean(status?.configured)
-  const [path, setPath] = useState<SubmissionPath>('portal')
-  useEffect(() => {
+  const [path, setPath] = useState<SubmissionPath>(apiAvailable ? 'api' : 'portal')
+  const [seenApiAvailable, setSeenApiAvailable] = useState(apiAvailable)
+  if (apiAvailable !== seenApiAvailable) {
+    setSeenApiAvailable(apiAvailable)
     if (apiAvailable) setPath('api')
-  }, [apiAvailable])
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -1438,16 +1440,22 @@ function ApiSubmitPanel({ allowedTemplates }: { allowedTemplates: string[] | nul
   const [csr,          setCsr]          = useState('')
   const [templates,    setTemplates]    = useState<string[] | null>(allowedTemplates)
   const [templatesErr, setTemplatesErr] = useState<string | null>(null)
-  const [selectedTpl,  setSelectedTpl]  = useState('')
+  const [selectedTpl,  setSelectedTpl]  = useState(allowedTemplates?.[0] ?? '')
   const [result,       setResult]       = useState<ApiResult>({ kind: 'idle' })
+  // An env-pinned list that arrives after mount replaces whatever was loaded
+  // (adjusted during render rather than in an effect).
+  const [seenAllowed, setSeenAllowed] = useState(allowedTemplates)
+  if (allowedTemplates !== seenAllowed) {
+    setSeenAllowed(allowedTemplates)
+    if (allowedTemplates && allowedTemplates.length > 0) {
+      setTemplates(allowedTemplates)
+      if (!selectedTpl) setSelectedTpl(allowedTemplates[0])
+    }
+  }
 
   // Load templates from CEP if we don't already have an env-pinned list.
   useEffect(() => {
-    if (allowedTemplates && allowedTemplates.length > 0) {
-      setTemplates(allowedTemplates)
-      setSelectedTpl((cur) => cur || allowedTemplates[0])
-      return
-    }
+    if (allowedTemplates && allowedTemplates.length > 0) return
     let cancelled = false
     fetch('/api/cert-request/templates', { cache: 'no-store' })
       .then(async (r) => {

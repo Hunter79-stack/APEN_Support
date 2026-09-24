@@ -253,8 +253,10 @@ export function InfrastructureNodesPanel({ services }: InfrastructureNodesPanelP
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const [adminAvailable, setAdminAvailable] = useState<boolean | null>(null)
 
-  // Sync the parent's services into local state whenever the parent refreshes.
-  useEffect(() => { setLiveServices(services) }, [services])
+  // Sync the parent's services into local state whenever the parent refreshes
+  // (adjusted during render rather than in an effect: no extra commit).
+  const [seenServices, setSeenServices] = useState(services)
+  if (services !== seenServices) { setSeenServices(services); setLiveServices(services) }
 
   /** Pull the admin-only payload (which includes raw node config). Probes the
    *  proxy without a token first so an "open" proxy (no ADMIN_API_TOKEN set,

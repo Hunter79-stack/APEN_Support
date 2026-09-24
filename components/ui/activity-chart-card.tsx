@@ -242,12 +242,13 @@ export function ActivityChartCard({
   }, [showTopIPs])
 
   // A bucket of one period means nothing in another, and the bars themselves
-  // change, so drop the scope whenever the period does.
-  React.useEffect(() => { setBucketIndex(null) }, [selected])
-
-  // Collapse any open connection rows when the period changes — the IDs differ
-  // per window, so stale open rows would be meaningless.
-  React.useEffect(() => { setExpandedIps(new Set()) }, [selected])
+  // change, so drop the scope whenever the period does. Open connection rows
+  // go too — the IDs differ per window, so stale open rows would be meaningless.
+  const selectPeriod = (opt: typeof selected) => {
+    setSelected(opt)
+    setBucketIndex(null)
+    setExpandedIps(new Set())
+  }
   const toggleIp = React.useCallback((ip: string) => {
     setExpandedIps((prev) => {
       const next = new Set(prev)
@@ -285,7 +286,7 @@ export function ActivityChartCard({
     bucketIndex,
   })
 
-  const maxValue = React.useMemo(() => Math.max(...activeData.map((d) => d.value), 1), [activeData])
+  const maxValue = Math.max(...activeData.map((d) => d.value), 1)
 
   const chartVariants: Variants = {
     hidden:  { opacity: 0 },
@@ -337,7 +338,7 @@ export function ActivityChartCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {dropdownOptions.map((opt) => (
-                  <DropdownMenuItem key={opt} onSelect={() => setSelected(opt)} className="text-xs">
+                  <DropdownMenuItem key={opt} onSelect={() => selectPeriod(opt)} className="text-xs">
                     {opt}
                   </DropdownMenuItem>
                 ))}

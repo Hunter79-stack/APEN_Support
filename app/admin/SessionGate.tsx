@@ -166,7 +166,7 @@ export function SessionGate({ onAuthorized }: { onAuthorized: () => void }) {
           back in to pick it up (session privilege is decided once, at login, not re-checked on every page).
         </p>
         <button
-          onClick={async () => { await adminContentClient.logout(); window.location.href = '/login/' }}
+          onClick={async () => { await adminContentClient.logout(); window.location.href = new URL('/login/', window.location.origin).href }}
           className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-cyan-400/30 hover:text-cyan-300"
         >
           <LogOut size={12} /> Sign out

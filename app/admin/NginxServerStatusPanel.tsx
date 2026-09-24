@@ -14,7 +14,7 @@
  * to honest empty states or "—"; nothing is fabricated (that's the mock's job).
  */
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState, useSyncExternalStore } from 'react'
 import {
   WifiOff, Lock, RefreshCw, Activity, Zap, Shield, AlertCircle, AlertTriangle,
 } from 'lucide-react'
@@ -296,12 +296,13 @@ const TABS: { id: Tab; label: string }[] = [
 
 /* ── main panel ────────────────────────────────────────────────── */
 
+const subscribeNever = () => () => {}
+
 export function NginxServerStatusPanel() {
   const [pollMs, setPollMs] = useState(5000)
   const { data, rates, history, live, reachable, unauthorized, loading, error, refresh } = useNginxStatus(pollMs)
   const [tab, setTab] = useState<Tab>('dash')
-  const [host, setHost] = useState('')
-  useEffect(() => { setHost(window.location.host) }, [])
+  const host = useSyncExternalStore(subscribeNever, () => window.location.host, () => '')
 
   // Friendly labels for admin-managed zones (added via NginxManagedEditor), keyed
   // by zone key. Layered over the built-in HTTP_ZONE_ANNOTATIONS so managed zones

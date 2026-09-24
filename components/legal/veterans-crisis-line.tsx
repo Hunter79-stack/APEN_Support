@@ -25,9 +25,9 @@ const VeteransCrisisLine: React.FC = () => {
       </div>
 
       {/* ── About the service ── */}
-      <h2 className="text-xl font-bold border-b pb-2">About the Military &amp; Veteran's Crisis Line</h2>
+      <h2 className="text-xl font-bold border-b pb-2">About the Military &amp; Veteran&apos;s Crisis Line</h2>
       <p>
-        The <strong>Military Crisis Line</strong> connects active-duty service members, National Guard and Reserve members, veterans, and their family members with qualified Department of Veterans Affairs responders. It is the same service as the <strong>Veteran's Crisis Line</strong> — the &ldquo;Military&rdquo; routing reaches responders trained for service-member and family situations, including deployment stress, transition issues, military sexual trauma, traumatic brain injury, and post-traumatic stress.
+        The <strong>Military Crisis Line</strong> connects active-duty service members, National Guard and Reserve members, veterans, and their family members with qualified Department of Veterans Affairs responders. It is the same service as the <strong>Veteran&apos;s Crisis Line</strong> — the &ldquo;Military&rdquo; routing reaches responders trained for service-member and family situations, including deployment stress, transition issues, military sexual trauma, traumatic brain injury, and post-traumatic stress.
       </p>
       <p>
         You do not need to be enrolled in VA benefits or registered for VA health care to use the service.
@@ -141,7 +141,7 @@ const VeteransCrisisLine: React.FC = () => {
       {/* ── Sourcing ── */}
       <h2 className="text-xl font-bold border-b pb-2">Source &amp; verification</h2>
       <p className="text-sm text-slate-700">
-        Phone numbers and contact paths on this page reflect the published Military / Veteran's Crisis Line guidance from the U.S. Department of Veterans Affairs as of the effective date above. Numbers should be verified against the current published guidance on a non-air-gapped network before they are printed on cards, posters, or other distributed materials.
+        Phone numbers and contact paths on this page reflect the published Military / Veteran&apos;s Crisis Line guidance from the U.S. Department of Veterans Affairs as of the effective date above. Numbers should be verified against the current published guidance on a non-air-gapped network before they are printed on cards, posters, or other distributed materials.
       </p>
     </LegalWrapper>
   );

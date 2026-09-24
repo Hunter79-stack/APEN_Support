@@ -220,7 +220,6 @@ export default function RootLayout({
           browser parses fast enough that body already exists.
         */}
         <script
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: GPU_TIER_INLINE_SCRIPT }}
         />
       </head>

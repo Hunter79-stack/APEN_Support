@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { GlowCard } from '@/components/ui/spotlight-card'
@@ -25,17 +25,16 @@ function readSlugFromUrl(): string {
   return params.get('slug') || ''
 }
 
+const subscribeToHistory = (onChange: () => void) => {
+  window.addEventListener('popstate', onChange)
+  return () => window.removeEventListener('popstate', onChange)
+}
+
 export function CustomPageRenderer() {
   const [pages, setPages] = useState<CustomPage[]>([])
   const [loading, setLoading] = useState(true)
-  const [slug, setSlug] = useState<string>('')
-
-  useEffect(() => {
-    setSlug(readSlugFromUrl())
-    const onPop = () => setSlug(readSlugFromUrl())
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
+  // '' on the server render, the real slug once hydrated, re-read on back/forward.
+  const slug = useSyncExternalStore(subscribeToHistory, readSlugFromUrl, () => '')
 
   useEffect(() => {
     let cancelled = false

@@ -146,7 +146,7 @@ function Step1({ onNext }: { onNext: () => void }) {
 
       <Callout type="info">
         You must be connected to the APEN network to access the CA server.
-        If the link doesn't open, check your network connection first.
+        If the link doesn&apos;t open, check your network connection first.
       </Callout>
 
       {/* CA server card */}
@@ -339,7 +339,7 @@ function Step3({
           <h2 className="text-xl font-bold text-white">Commands for {osLabel}</h2>
           <p className="text-slate-400 text-sm mt-1">
             Run these commands on your system to add <code className="code-inline">{baseName}</code> to the trusted CA store.
-            Make sure you're in the directory where the certificate file is saved.
+            Make sure you&apos;re in the directory where the certificate file is saved.
           </p>
         </div>
       </div>
@@ -397,7 +397,7 @@ function Step3({
         <CodeBlock code={cmds.update} />
         {os === 'ubuntu' && (
           <p className="text-xs text-slate-400 mt-1">
-            You'll see a message like <em>"1 added, 0 removed"</em> if the certificate was added successfully.
+            You&apos;ll see a message like <em>&quot;1 added, 0 removed&quot;</em> if the certificate was added successfully.
           </p>
         )}
       </div>
@@ -410,8 +410,8 @@ function Step3({
         </div>
         <CodeBlock code={cmds.verify} />
         <p className="text-xs text-slate-400 mt-1">
-          If the cert is trusted, you'll see the certificate label in the output.
-          No output means it wasn't found — re-check the filename and repeat Step 1.
+          If the cert is trusted, you&apos;ll see the certificate label in the output.
+          No output means it wasn&apos;t found — re-check the filename and repeat Step 1.
         </p>
       </div>
 

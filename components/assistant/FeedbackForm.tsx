@@ -7,7 +7,7 @@
  * `seed` from "send feedback on this response" pre-fills an empty message.
  * Split out of APEN-chat-assistant.tsx (code-quality #76).
  */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ArrowLeft, CheckCircle, ShieldAlert } from 'lucide-react'
 import { API_ENDPOINTS } from '@/lib/data/runtime'
 import { ASSISTANT_CONFIG, FEEDBACK_CATEGORIES, type FeedbackCategory } from '@/lib/data/assistant'
@@ -23,17 +23,19 @@ export function FeedbackForm({ hidden, seed, toolBtnClass, onBack }: {
 }) {
   const [fbName, setFbName] = useState('')
   const [fbCategory, setFbCategory] = useState<FeedbackCategory>('General Feedback')
-  const [fbMessage, setFbMessage] = useState('')
+  const [fbMessage, setFbMessage] = useState(seed?.text ?? '')
   const [fbSending, setFbSending] = useState(false)
   const [fbSent, setFbSent] = useState(false)
   const feedbackModeration = analyzeFeedbackContent(fbMessage)
   const feedbackCharactersRemaining = ASSISTANT_CONFIG.maxFeedbackChars - fbMessage.length
   const feedbackCounterTone = feedbackCharactersRemaining <= 100 ? 'text-amber-300' : 'text-gray-500'
 
-  useEffect(() => {
-    if (!seed) return
-    setFbMessage((cur) => (cur.trim() ? cur : seed.text))
-  }, [seed])
+  // A new seed pre-fills an EMPTY message (adjusted during render, no effect).
+  const [seenSeed, setSeenSeed] = useState(seed)
+  if (seed !== seenSeed) {
+    setSeenSeed(seed)
+    if (seed && !fbMessage.trim()) setFbMessage(seed.text)
+  }
 
   const handleFeedbackSubmit = async () => {
     if (!fbMessage.trim() || fbSending) return

@@ -102,8 +102,10 @@ function NotificationSettingsPanel({
 }) {
   const [draft, setDraft] = useState<AdminNotificationSettings>(settings)
   const [status, setStatus] = useState('')
-
-  useEffect(() => setDraft(settings), [settings])
+  // Reset the draft when the parent hands down new settings. Adjusted during
+  // render rather than in an effect, so there is no extra commit.
+  const [seenSettings, setSeenSettings] = useState(settings)
+  if (settings !== seenSettings) { setSeenSettings(settings); setDraft(settings) }
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

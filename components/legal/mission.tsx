@@ -14,7 +14,7 @@ const Mission: React.FC = () => {
       </p>
       <h2 className="text-xl font-bold border-b pb-2">Organization</h2>
       <p>
-        APEN is a constituent environment supporting the Army's modernization priorities, operating in coordination with <strong>Army Futures Command (AFC)</strong> and the <strong>Futures and Concepts Center (FCC)</strong>.
+        APEN is a constituent environment supporting the Army&apos;s modernization priorities, operating in coordination with <strong>Army Futures Command (AFC)</strong> and the <strong>Futures and Concepts Center (FCC)</strong>.
       </p>
     </LegalWrapper>
   );

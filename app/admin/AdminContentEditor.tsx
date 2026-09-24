@@ -865,7 +865,7 @@ export function AdminContentEditor({ onCustomPagesChanged }: { onCustomPagesChan
     document.getElementById('page-card-text')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const scopeOverride = (overrides[scopeKey]?.value as Record<string, unknown>) || {}
+  const scopeOverride = useMemo(() => (overrides[scopeKey]?.value as Record<string, unknown>) || {}, [overrides, scopeKey])
   const publishedScopeOverride = (published[scopeKey]?.value as Record<string, unknown>) || {}
 
   /** Counts cards with UNPUBLISHED changes per scope (draft patch differs from

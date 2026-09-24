@@ -449,8 +449,10 @@ test('clicking a traffic bar shows THAT bucket, not the whole period', async () 
   assert.match(chart, /onClick=\{\(\) => openConnections\(i\)\}/)
   assert.match(chart, /aria-controls=\{showTopIPs \? connectionsPanelId : undefined\}/)
   assert.match(chart, /<div id=\{connectionsPanelId\}/)
-  // Changing period must drop a bucket that no longer means anything.
-  assert.match(chart, /React\.useEffect\(\(\) => \{ setBucketIndex\(null\) \}, \[selected\]\)/)
+  // Changing period must drop a bucket that no longer means anything — reset
+  // where the period is chosen, not in an effect.
+  assert.match(chart, /const selectPeriod = \(opt: typeof selected\) => \{\n\s*setSelected\(opt\)\n\s*setBucketIndex\(null\)/)
+  assert.match(chart, /onSelect=\{\(\) => selectPeriod\(opt\)\}/)
 
   // A scoped list must never silently fall back to the window-wide one.
   const resolver = await importComponentModule('../components/ui/activity-chart-card.tsx')

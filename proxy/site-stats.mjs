@@ -1760,7 +1760,6 @@ function commitAuthEventsToDisk() { saveJson(AUTH_EVENTS_FILE, authEvents, 'Auth
 /** Strip control characters and bound the length before anything typed by a
  *  stranger is written to a file an admin will later read in a browser. */
 function sanitizeEventText(value, max) {
-  // eslint-disable-next-line no-control-regex
   return String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').slice(0, max)
 }
 
