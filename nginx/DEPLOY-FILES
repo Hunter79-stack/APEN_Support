@@ -13,3 +13,4 @@ admin-acl.inc
 blocked-hosts.inc
 proxy-headers.inc
 login-redirect.inc
+installer-download.inc
