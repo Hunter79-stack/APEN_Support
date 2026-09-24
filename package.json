@@ -13,7 +13,7 @@
     "stats": "node proxy/site-stats.mjs",
     "dev:all": "concurrently --names \"NEXT,STATS\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"npm run dev\" \"npm run stats\"",
     "dev:full": "concurrently --names \"NEXT,STATS,VOLTRON\" --prefix-colors \"cyan,magenta,yellow\" --kill-others-on-fail \"npm run dev\" \"npm run stats\" \"npm run proxy:voltron\"",
-    "lint": "eslint . --max-warnings 60",
+    "lint": "eslint . --max-warnings 40",
     "favicons": "node scripts/build-favicon.mjs",
     "validate:images": "node scripts/validate-image-registry.mjs",
     "notices": "node scripts/build-third-party-notices.mjs",
