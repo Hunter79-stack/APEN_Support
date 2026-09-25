@@ -1232,7 +1232,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-47. baseline-browser-mapping — 2.11.25
+47. baseline-browser-mapping — 2.11.26
 ==============================================================================
 License : Apache-2.0
 Source  : https://github.com/web-platform-dx/baseline-browser-mapping
@@ -1440,7 +1440,7 @@ Apache License
    limitations under the License.
 
 ==============================================================================
-48. caniuse-lite — 1.0.30001810
+48. caniuse-lite — 1.0.30001812
 ==============================================================================
 License : CC-BY-4.0
 Author  : Ben Briggs <beneb.info@gmail.com>
@@ -2332,7 +2332,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-55. framer-motion — 13.4.2
+55. framer-motion — 13.4.3
 ==============================================================================
 License : MIT
 Author  : Matt Perry
@@ -2418,7 +2418,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-58. lucide-react — 1.47.0
+58. lucide-react — 1.48.0
 ==============================================================================
 License : ISC
 Author  : Eric Fennis

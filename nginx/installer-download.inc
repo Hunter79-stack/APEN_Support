@@ -19,7 +19,10 @@
 #     && sudo nginx -t && sudo systemctl reload nginx
 satisfy any;
 include /etc/nginx/conf.d/apen_support/blocked-hosts.inc;
-# allow 10.0.0.0/24;    # example: replace with the enclave subnets
+allow 172.16.2.0/26;    # CUI enclave
+allow 140.32.71.0/24;   # CUI enclave
+allow 140.32.70.64/26;  # CUI enclave
+allow 140.32.70.128/27; # CUI enclave
 deny all;
 
 # A logged-out browser still lands on the login page (a curl from outside the

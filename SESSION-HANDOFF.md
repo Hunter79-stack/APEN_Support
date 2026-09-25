@@ -1,6 +1,6 @@
 # Session handoff — attribution page + code-quality pass
 
-Updated 2026-09-24 (ninth session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
+Updated 2026-09-25 (tenth session). Read this file, then act. Do not re-read SITE-REVIEW-2026-09-17.md end to end (729 KB) — use `sed -n` on line ranges.
 
 ## User request (2026-09-18, still open)
 1. Review SITE-REVIEW-2026-09-17.md. 2. Stand up /attribution listing every third-party asset class. 3. Then start the Code quality findings.
@@ -103,9 +103,14 @@ Blocked / left open:
 - #21 remainder: /dren/trellix/ens_tp/ and /dren/trellix/policy_auditor/ do not exist on the file host, so the DREN ENS and Policy Auditor guide steps still point at missing files. Real tree is installer/{el,ub}-trellix-install/{agent,ensl} plus one tarball (cui-/dren-trellix-install.tar.gz), which is what the legacy page told users to download. Needs a content decision.
 - Observation: unauthenticated curl of any /trellix or /evaluate-stig download from this box returns the 34 KB login page (HTTP 200 text/html). Check from a client workstation whether wget/curl in the guides get past the auth gate.
 
-## What is left (2026-09-24, end of ninth session)
-1. USER: run $SITEUPDATE. Ships 5f68cfb..124cf69 (lint burn-down, announcements, DREN guides, nginx include, image move, lint rules). First deploy to copy installer-download.inc and reload nginx with the five new locations.
-2. USER: supply the enclave subnets → add `allow` lines to nginx/installer-download.inc → redeploy. Until then the installer trees are login-only, and the guides' curl commands still fetch the login page.
+Tenth session (2026-09-25):
+- DEPLOYED: $SITEUPDATE ran 2026-09-24 19:07 after 837f86f (out/ mtime, pm2 restart time, installer-download.inc present in /etc/nginx/conf.d/apen_support/). Everything through 837f86f is live. The float touched only notices (baseline-browser-mapping, caniuse-lite, framer-motion 13.4.3, lucide-react 1.48.0) — committed.
+- CUI subnets applied to nginx/installer-download.inc: 172.16.2.0/26, 140.32.71.0/24, 140.32.70.64/26, 140.32.70.128/27 (`allow … # CUI enclave`, after the blocked-hosts include, before `deny all`). No real_ip/proxy_protocol anywhere, so $remote_addr is the true client. Syntax-checked with a throwaway conf; gate green (images OK, typecheck clean, 153/153, eslint 0). NOT LIVE until $SITEUPDATE or the one-shot cp + nginx -t + reload in the .inc header (sudo needs a password here).
+- The three barred CESCDREN hosts (140.32.70.38/.43/.46) sit in 140.32.70.0/26, OUTSIDE every CUI range — so the DREN enclave is a different subnet and is NOT yet allowed: the /dren/trellix/ download paths still fetch the login page for a cookie-less curl. The include is shared by all five locations; when DREN ranges arrive either append them to the same file (CUI and DREN clients can then fetch each other's bundles — harmless, same login population) or split the include if that matters.
+
+## What is left (2026-09-25, end of tenth session)
+1. USER: run $SITEUPDATE (or the one-shot cp + reload in nginx/installer-download.inc) to make the CUI allow lines live. Then verify from a CUI workstation WITHOUT a session: `curl -sI https://apensupport.blcse.mil/trellix/cui-trellix-install.tar.gz` must return 200 application/octet-stream (or gzip), not text/html.
+2. USER: supply the DREN enclave subnet(s) → same `allow` lines → redeploy. Until then /dren/trellix/ installer downloads stay login-only.
 3. USER: review review/unknown-origin-images/ (README says how to delete or restore each file).
 4. USER: decide on /var/www/html/certs/ — private keys (.key, .pfx) are served to any logged-in user via @legacy_files; and the DREN bundle's install.sh fetches the CA from /certs/ over http, which the gate blocks for a cookie-less curl.
 5. #98 second half: 27 source-text guards (~270 assertions) in tests/source-guards.test.ts; convert opportunistically (admin badge, launcher naming, admin panel guards first). Only code-quality item still open.
