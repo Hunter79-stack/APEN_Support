@@ -1,11 +1,14 @@
 # /etc/nginx/conf.d/apen_support/installer-download.inc
 #
 # Shared body of the installer-download locations in server.conf: the
-# Evaluate-STIG archives, /trellix/installer/, /dren/trellix/installer/ and the
-# two Trellix bundles. Those files are fetched by the curl/wget commands the
-# guides print, and a bare curl carries no session cookie — behind the
-# site-wide auth_request gate those commands only ever downloaded the login
-# page (200, text/html), from every workstation.
+# Evaluate-STIG archives, /trellix/installer/, the CUI Trellix bundle and the
+# two public CUI CA files (/certs/cuica.pem, /certs/cuica.crt) that the
+# bundles' install.sh curls first. Those files are fetched by the curl/wget
+# commands the guides print, and a bare curl carries no session cookie — behind
+# the site-wide auth_request gate those commands only ever downloaded the login
+# page (200, text/html), from every workstation. The DREN tree
+# (/dren/trellix/) is NOT in this set: it stays login-only by decision
+# (2026-09-25); its guide tells users to download in the browser.
 #
 # satisfy any: access is granted by EITHER the site-wide session check
 # (auth_request, inherited from the server block) OR an `allow` line below.

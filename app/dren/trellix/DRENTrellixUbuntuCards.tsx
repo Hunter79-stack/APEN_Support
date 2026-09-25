@@ -25,9 +25,9 @@ function Step({ n, text }: { n: number; text: string }) {
 function DRENNotice() {
   return (
     <Callout type="important">
-      This guide is <strong>DREN-specific</strong>. The installer is downloaded from the DREN-side server
-      and is restricted to internal DREN and OOBN addresses. Ensure your system is on the approved
-      network before proceeding.
+      This guide is <strong>DREN-specific</strong>. The installer bundle is served only to signed-in
+      APEN Support users, so download it in your browser and copy it to the target host. Ensure that
+      host is on the approved DREN network before proceeding.
     </Callout>
   )
 }
@@ -48,9 +48,9 @@ function InstallContent() {
         and ENS status at the end. Run it as root from any working directory.
       </Callout>
       <div className="space-y-2">
-        <Step n={1} text="Download the installer bundle from the DREN server (about 270 MB)." />
+        <Step n={1} text="Download the installer bundle (about 270 MB) in your browser while signed in, then copy it to the target host. A plain curl or wget is not signed in and receives the login page instead of the archive." />
         <p className="text-xs text-slate-400">For certificate trust errors see <Link href="/docs/ub/certificates" className="text-cyan-400 hover:underline">Add CA Certificate to Trusted CAs</Link>.</p>
-        <CodeBlock code={`sudo curl ${INSTALLER} -o dren-trellix-install.tar.gz`} />
+        <a href={INSTALLER} className="inline-block text-xs text-cyan-400 hover:underline">Download dren-trellix-install.tar.gz</a>
       </div>
       <div className="space-y-2">
         <Step n={2} text="Extract the bundle and remove the archive." />

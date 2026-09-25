@@ -2332,7 +2332,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-55. framer-motion — 13.4.3
+55. framer-motion — 13.4.4
 ==============================================================================
 License : MIT
 Author  : Matt Perry
@@ -2469,7 +2469,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-59. motion-dom — 13.4.2
+59. motion-dom — 13.4.4
 ==============================================================================
 License : MIT
 Author  : Matt Perry
