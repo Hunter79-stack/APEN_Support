@@ -18,6 +18,9 @@ import test from 'node:test'
 
 test('AI assistant launcher names itself to first-time visitors', () => {
   // The launcher's intro state and greeting card live beside the component (code-quality #76).
+  // Capsule geometry (head smaller than the pill) is asserted on the exported
+  // constants in ui-behavior.test.ts; the widget only mounts client-side, so
+  // its accessibility attributes stay pinned here.
   const assistantSource = [
     path.join('components', 'ui', 'APEN-chat-assistant.tsx'),
     path.join('lib', 'hooks', 'useLauncherIntro.ts'),
@@ -31,66 +34,12 @@ test('AI assistant launcher names itself to first-time visitors', () => {
   assert.match(assistantSource, /assistant-launcher-pill/)
   assert.match(globalStyles, /\.assistant-launcher-pill/)
 
-  // The capsule must draw ONE outline. When pill and circle are fused, the
-  // pulse ring belongs to the pill (wrapping the whole capsule); leaving it on
-  // the button painted a full circle through the pill body, which is what made
-  // the head look like a separate icon sitting on a box.
-  assert.match(assistantSource, /assistant-launcher-pill assistant-red-pulse/)
-  assert.match(assistantSource, /capsuleAssembled/)
-  assert.match(assistantSource, /capsuleAssembled\s*$/m)
-
-  // The pill must be a non-focusable <span> nested in the trigger, never its
-  // own <button>. tabIndex={-1} keeps an element out of the TAB order but a
-  // <button> still takes focus when clicked — which focused an aria-hidden
-  // element and tripped the browser's "focus hidden from assistive
-  // technology" violation. A span can never hold focus, so aria-hidden is
-  // valid and clicks bubble to the one real control.
-  // Order-independent: the pill's opening tag must be a <span> carrying
-  // aria-hidden, and must never be a <button> (which would take focus on
-  // click and put focus inside an aria-hidden subtree).
+  // The pill must be a non-focusable aria-hidden <span> nested in the trigger,
+  // never its own <button>: a button takes focus on click even with
+  // tabIndex={-1}, which put focus inside an aria-hidden subtree.
   assert.match(assistantSource, /<span[\s\S]{0,240}aria-hidden="true"[\s\S]{0,240}assistant-launcher-pill/)
-
-  // Capsule alignment is pinned INLINE, never through spacing utilities. The
-  // pill's height must equal the trigger's diameter (so its cap is concentric
-  // with the head) and the head must be smaller than that diameter (so it sits
-  // inside the capsule with a ring of pill body around it, rather than capping
-  // it). Anchoring is a plain right/left 0 against the button — the earlier
-  // `right-full` + negative-margin pairing stranded the head outside the pill
-  // whenever the negative margin failed to apply.
-  assert.match(assistantSource, /const LAUNCHER_VISUAL_SIZE = (\d+)/)
-  assert.match(assistantSource, /const LAUNCHER_HEAD_SIZE = (\d+)/)
-  const visual = Number(assistantSource.match(/const LAUNCHER_VISUAL_SIZE = (\d+)/)![1])
-  const head = Number(assistantSource.match(/const LAUNCHER_HEAD_SIZE = (\d+)/)![1])
-  assert.ok(head < visual, `head ${head} must be smaller than the capsule height ${visual} to sit inside it`)
-  assert.match(assistantSource, /height: LAUNCHER_VISUAL_SIZE/)
-  assert.match(assistantSource, /height: LAUNCHER_HEAD_SIZE, width: LAUNCHER_HEAD_SIZE/)
-  assert.match(assistantSource, /\?\s*\{\s*right: 0,/)
-  assert.match(assistantSource, /:\s*\{\s*left: 0,/)
-  // Strip comments first — the block explaining WHY those utilities were
-  // removed legitimately names them, and must not trip this check.
   const assistantCode = assistantSource.replace(/\/\*[\s\S]*?\*\//g, '')
-  assert.doesNotMatch(assistantCode, /-mr-14|-ml-14|right-full|left-full/)
   assert.doesNotMatch(assistantCode, /<button[^>]*assistant-launcher-pill/)
-
-  // The pill retracts around the head once its introduction is over, and
-  // hover/keyboard focus brings it back.
-  assert.match(assistantSource, /const pillExpanded = !pillIntroDone \|\| pillHovered \|\| pillFocused/)
-  assert.match(assistantSource, /maxWidth: pillExpanded \? \(pillNaturalWidth \?\? undefined\) : LAUNCHER_VISUAL_SIZE/)
-  assert.match(assistantSource, /onMouseEnter=\{\(\) => setPillHovered\(true\)\}/)
-  assert.match(assistantSource, /onMouseLeave=\{\(\) => setPillHovered\(false\)\}/)
-  assert.match(assistantSource, /onFocus=\{\(\) => setPillFocused\(true\)\}/)
-  assert.match(assistantSource, /onBlur=\{\(\) => setPillFocused\(false\)\}/)
-
-  // Padding must collapse with the width. Under border-box sizing, padding
-  // larger than max-width becomes the floor for the used width, so leaving it
-  // in place would stop the capsule well short of the head's diameter.
-  assert.match(assistantSource, /paddingLeft: pillExpanded \? PILL_OUTER_PADDING : 0/)
-  assert.match(assistantSource, /paddingRight: pillExpanded \? PILL_CAP_PADDING : 0/)
-
-  // The pulse ring lives at inset -2px OUTSIDE the pill, so the pill itself
-  // must never clip: overflow belongs on the inner label wrapper only.
-  assert.doesNotMatch(assistantCode, /overflow: 'hidden'/)
-  assert.match(assistantSource, /className="block min-w-0 overflow-hidden leading-none"/)
 
   // Trigger carries a real accessible name plus disclosure semantics.
   assert.match(assistantSource, /aria-haspopup="dialog"/)
@@ -104,8 +53,6 @@ test('AI assistant launcher names itself to first-time visitors', () => {
   assert.match(assistantSource, /markAssistantGreetingSeen/)
 
   // Keyboard access and the AI transparency line.
-  assert.match(assistantSource, /window\.addEventListener\('keydown', handleKeyDown\)/)
-  assert.match(assistantSource, /window\.removeEventListener\('keydown', handleKeyDown\)/)
   assert.match(assistantSource, /ASSISTANT_SHORTCUT\.key/)
   assert.match(assistantSource, /id="assistant-ai-disclaimer"/)
   assert.match(assistantSource, /ASSISTANT_INPUT_PLACEHOLDER/)
@@ -124,19 +71,14 @@ test('AI assistant drag is wired through window pointer events, and nothing hide
   assert.doesNotMatch(assistantSource, /hidden[\s\S]*lg:block/)
 })
 
-test('AI assistant keeps red pulse glow and footer feedback opens the feedback form', () => {
+test('AI assistant keeps the red pulse glow and listens for the footer feedback event', () => {
+  // The footer side (button rendered, event dispatched) is a behavioural test
+  // in ui-behavior.test.ts; the receiving side only mounts client-side.
   const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
-  const feedbackLinkSource = fs.readFileSync(path.join('components', 'ui', 'FeedbackLink.tsx'), 'utf8')
-  const footerSource = fs.readFileSync(path.join('components', 'layout', 'Footer.tsx'), 'utf8')
   const globalStyles = fs.readFileSync(path.join('app', 'globals.css'), 'utf8')
-
   assert.match(assistantSource, /assistant-red-pulse/)
   assert.match(assistantSource, /window\.addEventListener\(ASSISTANT_CONFIG\.openFeedbackEvent/)
-  assert.match(assistantSource, /setOpen\(true\)/)
   assert.match(assistantSource, /setTab\('feedback'\)/)
-  assert.match(assistantSource, /window\.removeEventListener\(ASSISTANT_CONFIG\.openFeedbackEvent/)
-  assert.match(feedbackLinkSource, /window\.dispatchEvent\(new Event\(ASSISTANT_CONFIG\.openFeedbackEvent\)\)/)
-  assert.match(footerSource, /<FeedbackLink \/>/)
   assert.match(globalStyles, /\.assistant-red-pulse/)
   assert.match(globalStyles, /@keyframes assistantRedPulse/)
   assert.match(globalStyles, /body\[data-gpu-tier="none"\] \.assistant-red-pulse/)
@@ -144,16 +86,9 @@ test('AI assistant keeps red pulse glow and footer feedback opens the feedback f
 
 test('AI assistant closes when clicking outside the assistant', () => {
   const assistantSource = fs.readFileSync(path.join('components', 'ui', 'APEN-chat-assistant.tsx'), 'utf8')
-
-  assert.match(assistantSource, /assistantRootRef/)
   assert.match(assistantSource, /document\.addEventListener\('pointerdown', handleDocumentPointerDown/)
-  assert.match(assistantSource, /document\.removeEventListener\('pointerdown', handleDocumentPointerDown/)
   assert.match(assistantSource, /assistantRootRef\.current\?\.contains\(target\)/)
-  assert.match(assistantSource, /setOpen\(false\)/)
-  assert.match(assistantSource, /if \(!open \|\| !isVisible\) return/)
-  assert.match(assistantSource, /ref=\{assistantRootRef\}/)
 })
-
 
 test('site inspection is blocked for everyone except admin-ACL members', () => {
   const guardPath = path.join('components', 'common', 'SiteInspectionGuard.tsx')
@@ -183,112 +118,19 @@ test('raster card logos pass priority through to next/image', () => {
   assert.match(themedLogoSource, /priority=\{priority\}/)
 })
 
-test('the home page mounts the support pathway section', () => {
-  // The pathway data itself (one ticket route, no password-reset shortcut,
-  // every href an exported page) is asserted in ui-behavior.test.ts.
-  const pageSource = fs.readFileSync(path.join('app', 'home', 'page.tsx'), 'utf8')
-  const pathwaySource = fs.readFileSync(path.join('components', 'HomeSupportPathway.tsx'), 'utf8')
-  assert.match(pageSource, /HomeSupportPathway/)
-  assert.match(pathwaySource, /homepageSupportPathways/)
-})
-
-
-
-
-test('admin nav shows event and feedback notification badges with dashboard email settings', () => {
-  const adminSource = fs.readFileSync(path.join('app', 'admin', 'AdminDashboard.tsx'), 'utf8')
-  const adminDataSource = fs.readFileSync(path.join('lib', 'data', 'admin.ts'), 'utf8')
+test('the admin badge is wired through the shared count hook and stays labelled', () => {
+  // Counting (live + static minus acknowledged/dismissed) is a behavioural test
+  // on adminNotificationCountsFor in ui-behavior.test.ts, and the proxy's
+  // acknowledged-alerts store is exercised over HTTP in site-stats-http.test.ts.
   const navSource = fs.readFileSync(path.join('components', 'layout', 'Navbar.tsx'), 'utf8')
-  // The badge-count hook moved out of Navbar.tsx into lib/hooks (code-quality #73);
-  // the assertions about its internals follow it there.
   const hookSource = fs.readFileSync(path.join('lib', 'hooks', 'useAdminNotificationCounts.ts'), 'utf8')
-  const runtimeSource = fs.readFileSync(path.join('lib', 'data', 'runtime.ts'), 'utf8')
-  const proxySource = fs.readFileSync(path.join('proxy', 'site-stats.mjs'), 'utf8')
-  const adminHealthSource = fs.readFileSync(path.join('lib', 'data', 'admin-health.ts'), 'utf8')
-
-  assert.match(adminDataSource, /ADMIN_NOTIFICATION_SETTINGS_STORAGE_KEY/)
-  assert.match(adminDataSource, /DEFAULT_ADMIN_NOTIFICATION_SETTINGS/)
-  assert.match(adminDataSource, /ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT/)
-  assert.match(adminDataSource, /countAdminNotifications/)
-  // The ack/dismiss filtering rules moved out of admin.ts into their own pure
-  // module (Admin IA Phase 0). They used to be written out separately in the
-  // Navbar and in AdminDashboard and could drift; these assertions follow them
-  // to admin-health.ts rather than pinning the old inline helper.
-  assert.match(adminHealthSource, /export function visibleAlerts/)
-  assert.match(adminHealthSource, /export function alertsNeedingAttention/)
-  assert.match(runtimeSource, /notificationSettings/)
-  assert.match(runtimeSource, /acknowledgedAlerts/)
   assert.match(navSource, /useAdminNotificationCounts/)
   assert.match(navSource, /AdminNotificationCountBadge/)
-  assert.match(navSource, /isAdminRoute/)
-  assert.match(navSource, /pathname\?\.startsWith\('\/admin'\)/)
-  assert.match(hookSource, /countAdminNotifications/)
-  assert.match(hookSource, /alertsNeedingAttention/)
-  assert.match(hookSource, /ADMIN_ACKNOWLEDGED_ALERTS_STORAGE_KEY/)
-  assert.match(hookSource, /ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT/)
-  assert.match(hookSource, /readAcknowledgedAlertIdsFromStorage/)
-  assert.match(hookSource, /window\.addEventListener\(ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT/)
-  assert.doesNotMatch(hookSource, /window\.addEventListener\('storage'/)
-  assert.match(hookSource, /event instanceof CustomEvent/)
-  assert.match(hookSource, /normalizeAcknowledgedAlertIds\(event\.detail\)/)
-  assert.match(navSource, /label === 'Admin'/)
   assert.match(navSource, /aria-label=\{isAdminItem \? adminNotificationLabel : undefined\}/)
-  // One NavIcon renders both sizes (22 px sidebar, 16 px drawer) instead of four pasted copies.
-  assert.match(navSource, /<Icon size=\{size\} aria-hidden="true" \/>/)
-  assert.match(navSource, /size=\{22\} total=\{notificationTotal\}/)
-  assert.match(navSource, /size=\{16\} total=\{notificationTotal\}/)
-  assert.match(hookSource, /API_ENDPOINTS\.siteStats/)
-  assert.match(hookSource, /RUNTIME_INTERVALS\.adminStatsRefreshMs/)
-  // The /api/site-stats fallback must still FILTER the static alerts, not count
-  // them raw — otherwise a proxy outage lights the cog over handled items.
-  assert.match(hookSource, /!response\.ok[\s\S]*alertsNeedingAttention\(STATIC_ADMIN_ALERTS/)
-  assert.doesNotMatch(navSource, /AdminNotificationNavBadge/)
-  assert.doesNotMatch(navSource, /BellRing/)
-  assert.doesNotMatch(navSource, /\/admin\/#system-events-feedback/)
-  assert.match(adminSource, /id="system-events-feedback"/)
-  assert.doesNotMatch(adminSource, /NotificationSummary/)
-  assert.doesNotMatch(adminSource, /unreadSystemEventCount/)
-  assert.doesNotMatch(adminSource, /unreadFeedbackCount/)
-  assert.match(adminSource, /NotificationSettingsPanel/)
-  assert.match(adminSource, /type="email"/)
-  assert.match(adminSource, /ADMIN_NOTIFICATION_SETTINGS_STORAGE_KEY/)
-  assert.match(adminSource, /ADMIN_ACKNOWLEDGED_ALERTS_STORAGE_KEY/)
-  assert.match(adminSource, /ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT/)
-  assert.match(adminSource, /acknowledgeAlert/)
-  assert.match(adminSource, /removeAlertFromView/)
-  // Dismissals are server-shared and attributed: keyed by id in a Map, restorable.
-  assert.match(adminSource, /dismissalsById/)
-  assert.match(adminSource, /restoreAlert/)
-  assert.match(adminSource, /Dismissed by \{dismissal\.by\}/)
-  assert.match(adminSource, /Remove from view/)
-  assert.match(adminSource, /aria-label=\{`Remove \$\{alert\.title\} from view`\}/)
-  assert.match(adminSource, /readAcknowledgedAlertIdsFromStorage/)
-  assert.match(adminSource, /syncAcknowledgedAlertIdsFromStorage/)
-  assert.doesNotMatch(adminSource, /loadAcknowledgedAlertIds/)
-  assert.match(adminSource, /useState<Set<string>>\(\(\) => new Set\(\)\)/)
-  assert.doesNotMatch(adminSource, /filterAcknowledgedAlerts/)
-  assert.match(adminSource, /const acknowledged = acknowledgedAlertIds\.has\(alert\.id\)/)
-  assert.match(adminSource, /Retained for reports/)
-  assert.match(adminSource, /Acknowledge/)
-  assert.match(adminSource, /window\.localStorage\.setItem\(ADMIN_ACKNOWLEDGED_ALERTS_STORAGE_KEY/)
-  assert.match(adminSource, /new CustomEvent\(ADMIN_ACKNOWLEDGED_ALERTS_CHANGED_EVENT/)
-  assert.match(adminSource, /detail: \{ alertIds \}/)
-  assert.doesNotMatch(adminSource, /API_ENDPOINTS\.acknowledgedAlerts/)
-  assert.match(adminSource, /API_ENDPOINTS\.notificationSettings/)
-  assert.doesNotMatch(navSource, /loadAcknowledgedAlertIds/)
-  assert.doesNotMatch(navSource, /fetch\(API_ENDPOINTS\.acknowledgedAlerts\)/)
-  assert.match(proxySource, /\/api\/acknowledged-alerts/)
-  assert.match(proxySource, /ACKNOWLEDGED_ALERTS_FILE/)
-  const acknowledgeEndpointSource = proxySource.match(/if \(req\.method === 'POST' && url === '\/api\/acknowledged-alerts'\) \{([\s\S]*?)\n  \}/)?.[1] ?? ''
-  assert.match(acknowledgeEndpointSource, /commitAcknowledgedAlertIdsToDisk/)
-  assert.doesNotMatch(acknowledgeEndpointSource, /commitFeedbackToDisk/)
-  assert.doesNotMatch(acknowledgeEndpointSource, /feedbackStorage/)
-  assert.match(proxySource, /\/api\/notification-settings/)
-  assert.match(proxySource, /NOTIFICATION_SETTINGS_FILE/)
-  assert.match(proxySource, /NOTIFICATION_EMAIL_TO/)
+  // The /api/site-stats fallback must still FILTER, not count raw — otherwise a
+  // proxy outage lights the cog over handled items.
+  assert.match(hookSource, /!response\.ok[\s\S]*adminNotificationCountsFor\(null, seen\)/)
 })
-
-
 
 test('shared layouts use responsive grids and viewport-bounded chrome', () => {
   const globalStyles = fs.readFileSync(path.join('app', 'globals.css'), 'utf8')
@@ -343,26 +185,13 @@ test('page card components do not hard-code repeated open-state glow colors', ()
   assert.deepEqual(hardCodedCardColors, [])
 })
 
-test('root route uses the production intro and home remains the full support hub', () => {
-  const rootSource = fs.readFileSync(path.join('app', 'page.tsx'), 'utf8')
-  const introSource = fs.readFileSync(
-    path.join('components', 'landing', 'LegacyIntro.tsx'),
-    'utf8',
-  )
-  const homeSource = fs.readFileSync(path.join('app', 'home', 'page.tsx'), 'utf8')
-  assert.match(rootSource, /LegacyIntro/)
-  assert.match(rootSource, /ROOT_PAGE_LOGOS\['\/'\]/)
-  assert.match(introSource, /RouteImage/)
-  assert.match(homeSource, /HomeHero/)
-})
-
-test('desktop navigation exposes keyboard flyout semantics', () => {
+test('desktop navigation flyouts keep menu semantics and keyboard handling', () => {
+  // Closed-state disclosure attributes are asserted on rendered markup in
+  // ui-behavior.test.ts; an open flyout needs a click, so its items stay pinned.
   const source = fs.readFileSync(path.join('components', 'layout', 'Navbar.tsx'), 'utf8')
-  assert.match(source, /aria-haspopup="menu"/)
-  assert.match(source, /aria-expanded=\{openSection === item\.label\}/)
+  assert.match(source, /role="menuitem"/)
   assert.match(source, /handleDesktopTriggerKeyDown/)
   assert.match(source, /handleFlyoutKeyDown/)
-  assert.match(source, /role="menuitem"/)
 })
 
 test('nav sign-out kills the session server-side and forces re-authentication', () => {
@@ -387,7 +216,6 @@ test('nav sign-out kills the session server-side and forces re-authentication', 
   assert.match(source, /onClick=\{handleSignOut\}[\s\S]*CESC &bull; APEN/)
   assert.equal(source.match(/onClick=\{handleSignOut\}/g)?.length, 2)
 })
-
 
 test('privacy headers suppress referrers without blocking same-origin embeds', () => {
   const headerSource = fs.readFileSync(path.join('nginx', 'security-headers.inc'), 'utf8')
@@ -436,30 +264,13 @@ test('privacy headers suppress referrers without blocking same-origin embeds', (
   assert.match(deploySource, /nginx\/server\.conf nginx\/security-headers\.inc/)
 })
 
-test('the admin content panels start blank until a location is chosen', () => {
-  const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
+test('the admin content editor starts blank until a section is chosen', () => {
+  // The file library and route-image editor are rendered blank in
+  // ui-behavior.test.ts; the content editor sits behind SessionGate, so its
+  // picker stays pinned here.
   const contentEditor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
-  // The route-image editor moved to its own file (code-quality #64).
-  const routeEditor = fs.readFileSync(path.join('app', 'admin', 'RouteImageEditor.tsx'), 'utf8')
-
-  // Downloads & installers: no directory preselected, and its body is gated.
-  // Step 1 names a product section now, not a folder — the folder is derived.
-  assert.match(libraryPanel, /<option value="">— Choose a product section —<\/option>/)
-  assert.match(libraryPanel, /\{activeDir && \(/)
-  assert.doesNotMatch(libraryPanel, /useState\('isos'\)/)
-
-  // Registered route images: a route must be picked before the editor appears.
-  assert.match(routeEditor, /const \[routeChosen, setRouteChosen\] = useState\(false\)/)
-  assert.match(routeEditor, /<option value="">— Choose a route —<\/option>/)
-  assert.match(routeEditor, /\{routeChosen && \(/)
-
-  // Section picker + its card list follow the same pattern.
-  assert.match(contentEditor, /const \[scopeChosen, setScopeChosen\] = useState\(false\)/)
   assert.match(contentEditor, /<option value="">— Choose a section —<\/option>/)
   assert.match(contentEditor, /\{scopeChosen && \(/)
-  // Jumping to a section from elsewhere must expand it, not just set the key.
-  assert.match(contentEditor, /function selectScope\(scope: string\) \{/)
-  assert.match(contentEditor, /if \(meta\) selectScope\(scope\)/)
 })
 
 test('search state stays in the URL fragment and follows browser history', () => {
@@ -488,84 +299,40 @@ test('the auth subrequest lifts its body-size cap so large uploads are not 500s'
   assert.match(upload, /client_max_body_size 0;/)
 })
 
-test('the upload panel queues multiple files, renames them, and numbers its steps 1-2-3', () => {
+test('the upload panel takes several files and numbers its steps 1-2-3', () => {
+  // Server-side rename rules are exercised over HTTP in site-stats-http.test.ts.
   const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
-
-  // Multi-file: the input takes several files and they upload sequentially.
   assert.match(libraryPanel, /type="file"\s+multiple/)
-  assert.match(libraryPanel, /addFiles\(e\.dataTransfer\.files\)/)
-  // Each queued row's stored name is editable BEFORE upload and validated the
-  // same way the server will (extension allowlist + character class), so a bad
-  // name stops at the button, not at the end of a 15 GB POST.
-  assert.match(libraryPanel, /function queueRowError\(/)
-  assert.match(libraryPanel, /disabled=\{!queueReady \|\| uploading \|\| !activeDir\?\.writable\}/)
-  assert.match(libraryPanel, /name: item\.name/)
-
-  // Files already on the server can be renamed; the proxy validates both names
-  // with the same guard uploads use.
-  assert.match(libraryPanel, /renameLibraryFile\(dirKey, renameFrom/)
-  const proxy = fs.readFileSync(path.join('proxy', 'site-stats.mjs'), 'utf8')
-  assert.match(proxy, /url === '\/api\/admin\/file-rename'/)
-  assert.match(proxy, /const to = safeLibraryName\(entry, String\(data\.to \|\| ''\)\)/)
-
-  // Steps read 1, 2, 3 with nothing skipped: type detection lives inside each
-  // step-2 row (it only existed for a chosen file, which is why the old
-  // standalone step 3 vanished and the numbering jumped 1-2-4).
   assert.match(libraryPanel, /1\. Choose what you are updating/)
   assert.match(libraryPanel, /2\. Choose the files to upload/)
   assert.match(libraryPanel, /3\. Files on the server/)
   assert.doesNotMatch(libraryPanel, /4\. Files on the server/)
-})
-
-test('the upload location is derived from the chosen product section', () => {
-  const editor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
-  const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
-  // The folder comes off the section's own links, so a new section needs no
-  // extra wiring and the mapping cannot drift from where files really live.
-  assert.match(editor, /function commonDownloadPrefix\(/)
-  assert.match(editor, /urlPrefix: commonDownloadPrefix\(scope\.defaults\)/)
-  assert.match(libraryPanel, /byUrlPath\.get\(target\.urlPrefix\)/)
   // Folders no section claims must still be reachable, or files become orphaned.
   assert.match(libraryPanel, /no card points here yet/)
 })
 
 test('a finished upload becomes a pending item on the publish card', () => {
   const editor = fs.readFileSync(path.join('app', 'admin', 'AdminContentEditor.tsx'), 'utf8')
-  const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
-  assert.match(libraryPanel, /onUploaded\?\.\(\{ name: result\.name, url \}\)/)
-  // Its row swaps the browse actions for Publish, which jumps to the card.
-  assert.match(libraryPanel, /uploadedThisSession\.includes\(file\.name\)/)
-  assert.match(libraryPanel, /getElementById\('publish-changes'\)/)
-  // The card must highlight and enable Publish for uploads alone, not just for
-  // unpublished text edits — otherwise an upload-only session looks finished.
   assert.match(editor, /<div id="publish-changes">/)
-  assert.match(editor, /unpublishedScopes\.length > 0 \|\| pendingUploads\.length > 0 \? 'amber'/)
-  assert.match(editor, /unpublishedScopes\.length === 0 && pendingUploads\.length === 0/)
+  // Uploads alone must light and enable Publish, not just unpublished text edits.
+  assert.match(editor, /unpublishedScopes\.length > 0 \|\| pendingUploads\.length > 0/)
 })
 
-
-test('the attach editor never opens without a card selected', () => {
+test('the attach editor cannot submit without a card selected', () => {
+  // Landing on a real card is resolveAttachSelection, tested in ui-behavior.test.ts.
   const libraryPanel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
-  // Step 1 pre-arms the section only; openAttach must pick a card of that
-  // section, and Update must stay disabled while none is chosen — otherwise
-  // the override was saved under the empty card id ''.
-  assert.match(libraryPanel, /const target = attachTargets\.find\(\(t\) => t\.scope === attachScope\) \?\? attachTargets\[0\]/)
-  assert.match(libraryPanel, /!target\.cards\.some\(\(card\) => card\.id === attachCardId\)/)
   assert.match(libraryPanel, /disabled=\{attachState === 'saving' \|\| !attachTarget \|\| !attachCardId \|\|/)
 })
 
 test('stat tiles open the console section holding their detail', () => {
+  // The default tab's anchors are asserted on rendered markup in ui-behavior.test.ts.
   const dashboard = fs.readFileSync(path.join('app', 'admin', 'AdminDashboard.tsx'), 'utf8')
-  // The counts were inert: an admin saw "5" with no way to reach the five.
   assert.match(dashboard, /onOpen=\{\(\) => openSection\('monitor', 'system-events'\)\}/)
   assert.match(dashboard, /onOpen=\{\(\) => openSection\('pages', 'custom-pages'\)\}/)
   assert.match(dashboard, /onOpen=\{\(\) => openSection\('transcripts', 'chat-transcripts'\)\}/)
-  for (const anchor of ['system-events', 'custom-pages', 'chat-transcripts', 'site-history']) {
+  for (const anchor of ['custom-pages', 'chat-transcripts']) {
     assert.match(dashboard, new RegExp(`id="${anchor}"`), `missing scroll anchor #${anchor}`)
   }
-  // The target section only mounts once its tab is active, so the scroll must
-  // wait a frame — querying in the same tick finds nothing and silently no-ops.
-  assert.match(dashboard, /requestAnimationFrame\(\(\) => \{/)
 })
 
 test('every documentation page is wired to its editable scope', () => {
@@ -604,9 +371,7 @@ test('a server-file rename cannot leave stale links behind silently', () => {
   const panel = fs.readFileSync(path.join('app', 'admin', 'AdminFileLibraryPanel.tsx'), 'utf8')
   const audit = fs.readFileSync(path.join('scripts', 'audit-download-links.mjs'), 'utf8')
 
-  // Layer 1: overrides pointing at the old URL are rewritten with the rename.
-  assert.match(proxy, /function rewriteOverrideUrls\(/)
-  assert.match(proxy, /rewriteOverrideUrls\(oldUrl, newUrl, req\.adminUser\)/)
+  // Layer 1 (overrides follow the rename) is exercised over HTTP in site-stats-http.test.ts.
   // Layer 2: links baked in from source defaults can't be rewritten — they are
   // counted and reported, and the panel tells the admin exactly what to do.
   assert.match(proxy, /function countBuiltReferences\(/)

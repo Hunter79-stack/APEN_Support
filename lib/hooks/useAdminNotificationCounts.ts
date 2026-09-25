@@ -22,6 +22,16 @@ import { API_ENDPOINTS, RUNTIME_INTERVALS } from '@/lib/data/runtime'
 
 const DEFAULT_ADMIN_NOTIFICATION_COUNTS = countAdminNotifications(STATIC_ADMIN_ALERTS)
 
+/** Badge counts for the alerts still needing attention: the live alerts (none
+ *  when the proxy is unreachable) plus the static ones, minus everything
+ *  acknowledged or dismissed. Exported so the rule is tested, not grepped. */
+export function adminNotificationCountsFor(
+  liveAlerts: readonly AdminAlertItem[] | null,
+  seen: { acknowledged: string[]; dismissed: string[] },
+): AdminNotificationCounts {
+  return countAdminNotifications(alertsNeedingAttention([...(liveAlerts ?? []), ...STATIC_ADMIN_ALERTS], seen))
+}
+
 function readAcknowledgedAlertIdsFromStorage() {
   if (typeof window === 'undefined') return []
 
@@ -88,16 +98,16 @@ export function useAdminNotificationCounts(active: boolean) {
       try {
         const response = await fetch(API_ENDPOINTS.siteStats)
         if (!response.ok) {
-          if (!cancelled) setCounts(countAdminNotifications(alertsNeedingAttention(STATIC_ADMIN_ALERTS, seen)))
+          if (!cancelled) setCounts(adminNotificationCountsFor(null, seen))
           return
         }
         const json = await response.json()
         const liveAlerts: AdminAlertItem[] = Array.isArray(json.alerts) ? json.alerts : []
         if (!cancelled) {
-          setCounts(countAdminNotifications(alertsNeedingAttention([...liveAlerts, ...STATIC_ADMIN_ALERTS], seen)))
+          setCounts(adminNotificationCountsFor(liveAlerts, seen))
         }
       } catch {
-        if (!cancelled) setCounts(countAdminNotifications(alertsNeedingAttention(STATIC_ADMIN_ALERTS, seen)))
+        if (!cancelled) setCounts(adminNotificationCountsFor(null, seen))
       }
     }
 

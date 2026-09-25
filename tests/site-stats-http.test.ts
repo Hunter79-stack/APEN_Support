@@ -22,6 +22,18 @@ before(async () => {
   process.env.SITE_STATS_NO_AUTOSTART = '1'
   process.env.ADMIN_API_TOKEN = TOKEN
   delete process.env.ADMIN_AUTH_DISABLED
+  // A download library rooted in a temp dir, plus one admin override pointing
+  // at a file in it, for the rename round-trip below.
+  const libraryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'site-stats-library-'))
+  fs.mkdirSync(path.join(libraryRoot, 'renames'))
+  fs.writeFileSync(path.join(libraryRoot, 'renames', 'old.zip'), 'zip')
+  fs.writeFileSync(
+    path.join(stateDir, 'library-dirs.json'),
+    JSON.stringify({ dirs: [{ key: 'renames', family: 'Other', label: 'Renames', hint: '', dir: 'renames', extensions: ['zip'] }] }),
+  )
+  fs.writeFileSync(path.join(stateDir, 'content-overrides.json'), JSON.stringify({ 'docs/x/cards': { card: { href: '/renames/old.zip' } } }))
+  process.env.DOWNLOAD_LIBRARY_ROOT = libraryRoot
+  process.env.DOWNLOAD_LIBRARY_REGISTRY = path.join(stateDir, 'library-dirs.json')
   const mod = await import('../proxy/site-stats.mjs')
   server = mod.start({ port: 0, host: '127.0.0.1', probes: false })
   await new Promise<void>((resolve) => server.once('listening', () => resolve()))
@@ -32,6 +44,7 @@ before(async () => {
 after(() => {
   server?.close()
   fs.rmSync(stateDir, { recursive: true, force: true })
+  if (process.env.DOWNLOAD_LIBRARY_ROOT) fs.rmSync(process.env.DOWNLOAD_LIBRARY_ROOT, { recursive: true, force: true })
 })
 
 const host = () => new URL(base).host
@@ -80,4 +93,40 @@ test('notification settings never claim delivery works (no mail transport exists
   assert.equal(res.status, 200)
   assert.equal((await res.json()).deliveryConfigured, false)
   assert.ok(host())
+})
+
+test('acknowledged alerts refuse barred workstations, accept both body shapes, and persist to disk', async () => {
+  // nginx gates this route with admin-acl.inc; the proxy adds its own refusal
+  // for the barred workstations in blocked-hosts.inc, whatever nginx says.
+  const barred = /^deny\s+([\d.]+);/m.exec(fs.readFileSync(path.join('nginx', 'blocked-hosts.inc'), 'utf8'))?.[1]
+  assert.ok(barred, 'blocked-hosts.inc must list at least one barred workstation')
+  assert.equal((await fetch(`${base}/api/acknowledged-alerts`, { headers: { 'x-real-ip': barred } })).status, 403)
+  const admin = { 'x-admin-token': TOKEN }
+  const one = await post('/api/acknowledged-alerts', { alertId: 'ev-1' }, admin)
+  assert.equal(one.status, 200)
+  assert.deepEqual((await one.json()).alertIds, ['ev-1'])
+  const more = await post('/api/acknowledged-alerts', ['ev-2', 'ev-1'], admin)
+  assert.deepEqual([...(await more.json()).alertIds].sort(), ['ev-1', 'ev-2'])
+  const listed = await (await fetch(`${base}/api/acknowledged-alerts`, { headers: admin })).json()
+  assert.deepEqual([...listed.alertIds].sort(), ['ev-1', 'ev-2'])
+  const onDisk = JSON.parse(fs.readFileSync(path.join(stateDir, 'acknowledged-alerts.json'), 'utf8'))
+  const ids: string[] = Array.isArray(onDisk) ? onDisk : onDisk.alertIds
+  assert.deepEqual([...ids].sort(), ['ev-1', 'ev-2'])
+})
+
+test('renaming a library file moves it on disk, rewrites overrides, and rejects unsafe names', async () => {
+  const admin = { 'x-admin-token': TOKEN }
+  const root = process.env.DOWNLOAD_LIBRARY_ROOT as string
+  assert.equal((await post('/api/admin/file-rename', { dir: 'renames', from: 'old.zip', to: 'bad name.zip' }, admin)).status, 400)
+  assert.equal((await post('/api/admin/file-rename', { dir: 'renames', from: 'old.zip', to: 'old.exe' }, admin)).status, 400)
+  assert.equal((await post('/api/admin/file-rename', { dir: 'renames', from: 'nope.zip', to: 'x.zip' }, admin)).status, 404)
+  const ok = await post('/api/admin/file-rename', { dir: 'renames', from: 'old.zip', to: 'new.zip' }, admin)
+  assert.equal(ok.status, 200)
+  const body = await ok.json()
+  assert.equal(body.url, '/renames/new.zip')
+  assert.equal(body.updatedOverrides, 1)
+  assert.ok(fs.existsSync(path.join(root, 'renames', 'new.zip')))
+  assert.ok(!fs.existsSync(path.join(root, 'renames', 'old.zip')))
+  const overrides = fs.readFileSync(path.join(stateDir, 'content-overrides.json'), 'utf8')
+  assert.ok(overrides.includes('/renames/new.zip') && !overrides.includes('/renames/old.zip'), 'overrides must follow the rename')
 })

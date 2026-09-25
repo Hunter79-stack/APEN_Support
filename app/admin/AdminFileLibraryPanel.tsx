@@ -80,6 +80,22 @@ function formatDuration(seconds: number): string {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
 }
 
+/** Where the attach editor lands: a real card of the section that is open.
+ *  Step 1 may pre-arm a section without a card, or the section may have changed
+ *  since a card was picked — the override must never be saved under card id ''. */
+export function resolveAttachSelection(
+  attachTargets: readonly AttachTarget[],
+  attachScope: string,
+  attachCardId: string,
+): { target: AttachTarget; cardId: string } | null {
+  const target = attachTargets.find((t) => t.scope === attachScope) ?? attachTargets[0]
+  if (!target) return null
+  const cardId = attachCardId === '__new__' || target.cards.some((card) => card.id === attachCardId)
+    ? attachCardId
+    : (target.cards[0]?.id ?? '__new__')
+  return { target, cardId }
+}
+
 export function AdminFileLibraryPanel({
   attachTargets,
   onAttach,
@@ -454,12 +470,10 @@ export function AdminFileLibraryPanel({
     // Step 1 may have pre-armed the section without a card, or the section
     // may have changed since a card was picked — always land on a real card
     // of the section that is actually open.
-    const target = attachTargets.find((t) => t.scope === attachScope) ?? attachTargets[0]
-    if (!target) return
-    setAttachScope(target.scope)
-    if (attachCardId !== '__new__' && !target.cards.some((card) => card.id === attachCardId)) {
-      setAttachCardId(target.cards[0]?.id ?? '__new__')
-    }
+    const selection = resolveAttachSelection(attachTargets, attachScope, attachCardId)
+    if (!selection) return
+    setAttachScope(selection.target.scope)
+    if (selection.cardId !== attachCardId) setAttachCardId(selection.cardId)
   }
 
   async function submitAttach() {

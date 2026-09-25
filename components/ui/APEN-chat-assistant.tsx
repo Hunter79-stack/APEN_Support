@@ -138,8 +138,8 @@ export { ASSISTANT_MESSAGES_STORAGE_KEY, ASSISTANT_RATINGS_STORAGE_KEY }
    the same height, so its cap radius (28) is the button's radius, and the two
    silhouettes fuse. HEAD_SIZE is smaller so the head sits INSIDE the capsule
    with an even (56-40)/2 = 8px ring of pill body around it. */
-const LAUNCHER_VISUAL_SIZE = 56
-const LAUNCHER_HEAD_SIZE = 40
+export const LAUNCHER_VISUAL_SIZE = 56
+export const LAUNCHER_HEAD_SIZE = 40
 /* Padding on the capped side must clear the head plus a breathing gap. */
 const PILL_CAP_PADDING = LAUNCHER_VISUAL_SIZE + 8
 const PILL_OUTER_PADDING = 20

@@ -886,3 +886,142 @@ test('the launcher and greeting name the assistant, and the greeting is remember
   assert.equal(greeting.storageKey, 'apen-ai-assistant-greeting-seen')
   assert.ok(greeting.autoHideMs > greeting.delayMs, 'the card must stay long enough to be read')
 })
+
+/* ── Converted from tests/source-guards.test.ts (code-quality #98) ──────────
+ * Rendered markup and exported helpers replace source-text regexes. */
+
+/** Server-render under a fixed pathname, the way next/navigation's usePathname sees it. */
+async function renderAt(pathname: string, component: unknown, props: Record<string, unknown> = {}): Promise<string> {
+  const { renderToStaticMarkup } = await import('react-dom/server')
+  const { createElement } = await import('react')
+  const contextPath = 'next/dist/shared/lib/hooks-client-context.shared-runtime.js'
+  const { PathnameContext } = (await import(contextPath)) as { PathnameContext: import('react').Context<string | null> }
+  return renderToStaticMarkup(
+    createElement(PathnameContext.Provider, { value: pathname }, createElement(component as ComponentType<Record<string, unknown>>, props)),
+  )
+}
+
+test('AI assistant launcher head sits inside the capsule', async () => {
+  const assistant = await importComponentModule('../components/ui/APEN-chat-assistant.tsx')
+  const visual = assistant.LAUNCHER_VISUAL_SIZE as number
+  const head = assistant.LAUNCHER_HEAD_SIZE as number
+  assert.ok(Number.isInteger(visual) && Number.isInteger(head))
+  assert.ok(head < visual, `head ${head} must be smaller than the capsule height ${visual} to sit inside it`)
+})
+
+test('the admin badge counts live and static alerts minus everything acknowledged or dismissed', async () => {
+  const hook = await importComponentModule('../lib/hooks/useAdminNotificationCounts.ts')
+  const countsFor = hook.adminNotificationCountsFor as (
+    live: unknown[] | null,
+    seen: { acknowledged: string[]; dismissed: string[] },
+  ) => { systemEvents: number; feedback: number }
+  const live = [
+    { id: 'ev-1', category: 'system', title: 'a' },
+    { id: 'fb-1', category: 'feedback', title: 'b' },
+    { id: 'ev-2', category: 'system', title: 'c' },
+  ]
+  assert.deepEqual(countsFor(live, { acknowledged: [], dismissed: [] }), { systemEvents: 2, feedback: 1 })
+  assert.deepEqual(countsFor(live, { acknowledged: ['ev-1'], dismissed: ['fb-1'] }), { systemEvents: 1, feedback: 0 })
+  // Proxy unreachable: only the static alerts remain, and they are still filtered.
+  const admin = await importComponentModule('../lib/data/admin.ts')
+  const staticIds = (admin.STATIC_ADMIN_ALERTS as Array<{ id: string }>).map((alert) => alert.id)
+  assert.deepEqual(countsFor(null, { acknowledged: staticIds, dismissed: [] }), { systemEvents: 0, feedback: 0 })
+})
+
+test('desktop navigation triggers expose closed menu disclosure semantics', async () => {
+  const nav = await importComponentModule('../components/layout/Navbar.tsx')
+  const html = await renderAt('/home', nav.Navbar)
+  const triggers = html.match(/<a [^>]*aria-haspopup="menu"[^>]*>/g) ?? []
+  assert.ok(triggers.length > 0, 'the section triggers must render as menu-owning links')
+  for (const trigger of triggers) {
+    assert.match(trigger, /aria-expanded="false"/)
+    assert.match(trigger, /aria-controls="desktop-nav-menu-/)
+  }
+  assert.doesNotMatch(html, /role="menuitem"/, 'no flyout is open before a click')
+})
+
+test('the admin console renders the notification settings and its default-tab anchors', async () => {
+  const html = await renderAt('/admin', await importDefault('../app/admin/AdminDashboard.tsx'))
+  assert.match(html, /<input[^>]*type="email"/)
+  assert.match(html, /id="system-events-feedback"/)
+  assert.match(html, /id="system-events"/)
+  assert.match(html, /id="site-history"/)
+})
+
+test('the file library and route-image editors start blank until a location is chosen', async () => {
+  const library = await importComponentModule('../app/admin/AdminFileLibraryPanel.tsx')
+  const panel = await renderStatic(library.AdminFileLibraryPanel, {
+    attachTargets: [],
+    onAttach: async () => ({ ok: true }),
+    onCreateCard: async () => ({ ok: true }),
+  })
+  assert.match(panel, /— Choose a product section —/)
+  assert.match(panel, /1\. Choose what you are updating/)
+  assert.doesNotMatch(panel, /type="file"|2\. Choose the files to upload|Files on the server/)
+
+  const routes = await importComponentModule('../app/admin/RouteImageEditor.tsx')
+  const editor = await renderStatic(routes.RegisteredRouteImageEditor, { overrides: {}, published: {}, onSaved() {} })
+  assert.match(editor, /— Choose a route —/)
+  assert.doesNotMatch(editor, /<img/)
+})
+
+test('the attach editor always lands on a real card of the open section', async () => {
+  const library = await importComponentModule('../app/admin/AdminFileLibraryPanel.tsx')
+  const resolve = library.resolveAttachSelection as (
+    targets: unknown[],
+    scope: string,
+    cardId: string,
+  ) => { target: unknown; cardId: string } | null
+  const targets = [
+    { scope: 'iso', cards: [{ id: 'ubuntu' }, { id: 'rocky' }] },
+    { scope: 'vmware', cards: [{ id: 'vcsa' }] },
+  ]
+  assert.equal(resolve([], 'iso', ''), null)
+  // Section pre-armed without a card: its first card, never ''.
+  assert.deepEqual(resolve(targets, 'iso', ''), { target: targets[0], cardId: 'ubuntu' })
+  // Card picked under another section: falls to the open section's first card.
+  assert.deepEqual(resolve(targets, 'vmware', 'rocky'), { target: targets[1], cardId: 'vcsa' })
+  // Unknown section: the first section, keeping a card that really belongs to it.
+  assert.deepEqual(resolve(targets, 'gone', 'rocky'), { target: targets[0], cardId: 'rocky' })
+  // "New card" survives, and a section with no cards offers it.
+  assert.equal(resolve(targets, 'iso', '__new__')?.cardId, '__new__')
+  assert.equal(resolve([{ scope: 'empty', cards: [] }], 'empty', 'x')?.cardId, '__new__')
+})
+
+test('the home page mounts the support pathway and hero, and the root route shows the intro logo', async () => {
+  const homeHtml = await renderAt('/home', await importDefault('../app/home/page.tsx'))
+  const text = visibleText(homeHtml)
+  const data = await importComponentModule('../lib/data/homepage.ts')
+  assert.ok(text.includes('Where should I start?'))
+  for (const pathway of data.homepageSupportPathways as Array<{ title: string; href: string }>) {
+    assert.ok(text.includes(pathway.title), `${pathway.title} is not rendered`)
+    assert.ok(homeHtml.includes(`href="${pathway.href}"`), `${pathway.href} is not linked`)
+  }
+  assert.ok(text.includes('APEN Service & Support'), 'the hero heading is missing')
+
+  const logos = await importComponentModule('../lib/data/logos.ts')
+  const rootLogo = (logos.ROOT_PAGE_LOGOS as Record<string, string>)['/']
+  const rootHtml = await renderAt('/', await importDefault('../app/page.tsx'))
+  assert.ok(rootHtml.includes(rootLogo), 'the root intro must show the registered root logo')
+})
+
+test('the footer feedback link opens the assistant feedback form through the shared event', async () => {
+  const footer = await importComponentModule('../components/layout/Footer.tsx')
+  assert.match(await renderStatic(footer.Footer), /<button[^>]*aria-label="Open site feedback form"[^>]*>Feedback<\/button>/)
+
+  const link = await importComponentModule('../components/ui/FeedbackLink.tsx')
+  const config = await importComponentModule('../lib/data/assistant.ts')
+  const element = (link.FeedbackLink as () => { props: { onClick: () => void } })()
+  const dispatched: string[] = []
+  const globals = globalThis as { window?: unknown }
+  const hadWindow = 'window' in globals
+  const saved = globals.window
+  globals.window = { dispatchEvent: (event: { type: string }) => { dispatched.push(event.type); return true } }
+  try {
+    element.props.onClick()
+  } finally {
+    if (hadWindow) globals.window = saved
+    else delete globals.window
+  }
+  assert.deepEqual(dispatched, [(config.ASSISTANT_CONFIG as { openFeedbackEvent: string }).openFeedbackEvent])
+})
