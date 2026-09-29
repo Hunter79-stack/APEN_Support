@@ -495,7 +495,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-12. @img/sharp-libvips-linux-x64 — 1.3.3
+12. @img/sharp-libvips-linux-x64 — 1.3.4
 ==============================================================================
 License : LGPL-3.0-or-later
 Author  : Lovell Fuller <npm@lovell.info>
@@ -505,7 +505,7 @@ Source  : https://github.com/lovell/sharp-libvips
  The licence text is the standard LGPL-3.0-or-later text reproduced elsewhere in this file.)
 
 ==============================================================================
-13. @img/sharp-linux-x64 — 0.35.4
+13. @img/sharp-linux-x64 — 0.35.5
 ==============================================================================
 License : Apache-2.0
 Author  : Lovell Fuller <npm@lovell.info>
@@ -704,7 +704,7 @@ third-party archives.
    limitations under the License.
 
 ==============================================================================
-14. @next/env — 16.3.6
+14. @next/env — 16.3.7
 ==============================================================================
 License : MIT
 Author  : Next.js Team <support@vercel.com>
@@ -714,7 +714,7 @@ Source  : https://github.com/vercel/next.js
  The licence text is the standard MIT text reproduced elsewhere in this file.)
 
 ==============================================================================
-15. @next/swc-linux-x64-gnu — 16.3.6
+15. @next/swc-linux-x64-gnu — 16.3.7
 ==============================================================================
 License : MIT
 Source  : https://github.com/vercel/next.js
@@ -1440,7 +1440,7 @@ Apache License
    limitations under the License.
 
 ==============================================================================
-48. caniuse-lite — 1.0.30001812
+48. caniuse-lite — 1.0.30001813
 ==============================================================================
 License : CC-BY-4.0
 Author  : Ben Briggs <beneb.info@gmail.com>
@@ -2332,7 +2332,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-55. framer-motion — 13.4.4
+55. framer-motion — 13.4.5
 ==============================================================================
 License : MIT
 Author  : Matt Perry
@@ -2469,7 +2469,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-59. motion-dom — 13.4.4
+59. motion-dom — 13.4.5
 ==============================================================================
 License : MIT
 Author  : Matt Perry
@@ -2535,7 +2535,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-62. next — 16.3.6
+62. next — 16.3.7
 ==============================================================================
 License : MIT
 Source  : https://github.com/vercel/next.js
@@ -2709,7 +2709,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
 IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ==============================================================================
-72. sharp — 0.35.4
+72. sharp — 0.35.5
 ==============================================================================
 License : Apache-2.0
 Author  : Lovell Fuller <npm@lovell.info>
@@ -2896,7 +2896,7 @@ served to browsers, but it IS inside the node_modules directory shipped in the
 air-gap bundle) is licensed LGPL-3.0-or-later and bundles fribidi, glib,
 libexif, libheif, librsvg, pango and proxy-libintl under LGPLv3. Complete
 corresponding source for that library is published at
-https://github.com/lovell/sharp-libvips (tag v1.3.3), which also carries
+https://github.com/lovell/sharp-libvips (tag v1.3.4), which also carries
 the licence text of every bundled component. Recipients of an air-gap bundle
 who cannot reach that repository may request the source from the FCC CESC
 Helpdesk (cesc@army.mil). The package's own table of bundled components and
@@ -2909,7 +2909,7 @@ used under the terms of the following licenses:
 | Library       | Used under the terms of                                                                                   |
 |---------------|-----------------------------------------------------------------------------------------------------------|
 | aom           | BSD 2-Clause + [Alliance for Open Media Patent License 1.0](https://aomedia.org/license/patent-license/)  |
-| cairo         | Mozilla Public License 2.0                                                                                |
+| cairo         | Mozilla Public License 1.1                                                                                |
 | cgif          | MIT License                                                                                               |
 | expat         | MIT License                                                                                               |
 | fontconfig    | [fontconfig License](https://gitlab.freedesktop.org/fontconfig/fontconfig/blob/main/COPYING) (BSD-like)   |
