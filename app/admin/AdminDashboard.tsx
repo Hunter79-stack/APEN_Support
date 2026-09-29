@@ -23,8 +23,8 @@ import {
 import { visibleAlerts, summarizeAlerts } from '@/lib/data/admin-health'
 import { API_ENDPOINTS, RUNTIME_INTERVALS } from '@/lib/data/runtime'
 import { SITE_HISTORY_ANNOUNCEMENTS } from '@/lib/data/announcements'
-import { ADMIN_SECTIONS, isAdminTab, type AdminTab } from '@/lib/data/admin-sections'
-import { adminContentClient, type AdminWhoami } from '@/lib/data/admin-content'
+import { ADMIN_SECTIONS, ADMIN_SECTION_GROUPS, isAdminTab, type AdminTab } from '@/lib/data/admin-sections'
+import { adminContentClient, adminAuthHeaders, type AdminWhoami } from '@/lib/data/admin-content'
 import {
   CheckCircle2, ChevronRight, Clock, LogOut, Mail, Save, Shield, Trash2, FileEdit, FolderTree, Wand2, Activity,
   Boxes, Package, ExternalLink, Undo2, UserX, MessageSquarePlus, MessageSquareText, Server, AlertTriangle,
@@ -122,7 +122,9 @@ function NotificationSettingsPanel({
     try {
       const response = await fetch(API_ENDPOINTS.notificationSettings, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // The proxy now requires an admin (CSRF token or legacy admin token)
+        // on this write; a general session on an admin workstation gets 401.
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders({ write: true }) },
         body: JSON.stringify(nextSettings),
       })
 
@@ -351,6 +353,108 @@ const ADMIN_SECTION_DESCRIPTIONS: Record<AdminTab, string> = {
   pages: 'Audit and delete pages published via the wizard.',
   transcripts: "Browse and export every signed-in user's chat history.",
   security: 'Refused sign-ins: spoofed domain claims and malformed names.',
+}
+
+// Mirror control panels: separate apps behind their own paths, so plain links
+// in the side nav rather than console sections.
+const REPOSITORY_CONTROLS = [
+  { label: 'CRAN Control', href: 'https://apensupport.blcse.mil/cran-control/', icon: Boxes },
+  { label: 'PIP Control', href: 'https://apensupport.blcse.mil/pip-control/', icon: Package },
+  { label: 'ISO Control', href: 'https://apensupport.blcse.mil/iso-control/', icon: Boxes },
+  { label: 'Winget Repo', href: 'https://apenwingetrepo.blcse.mil/', icon: Boxes },
+] as const
+
+const NAV_GROUP_HEADING = 'hidden lg:block px-3 pb-1 text-[10px] font-black uppercase tracking-widest text-slate-400'
+const NAV_ITEM_BASE = 'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider transition-colors lg:mb-0.5 lg:w-full'
+const NAV_ITEM_IDLE = 'border-transparent text-slate-400 hover:border-white/10 hover:bg-white/5 hover:text-white'
+const NAV_ITEM_ACTIVE = 'border-cyan-400/40 bg-cyan-400/10 text-cyan-200'
+
+/**
+ * Console navigation. A grouped side rail on desktop; on smaller screens a
+ * scrollable pill strip pinned under the site's top bar. Sticky either way, so
+ * switching sections never means scrolling back up past a long panel — which
+ * is what the old card grid above the content forced.
+ */
+function ConsoleNav({ tab, onSelect, alertCount }: {
+  tab: AdminTab
+  onSelect: (id: AdminTab) => void
+  /** Active (unacknowledged, undismissed) alerts — badged on Monitoring. */
+  alertCount: number
+}) {
+  return (
+    <nav
+      aria-label="Console sections"
+      className="sticky top-14 z-20 -mx-4 border-b border-white/5 bg-[#060b18]/90 px-4 py-2 backdrop-blur-md lg:top-6 lg:mx-0 lg:self-start lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none"
+    >
+      <div className="flex gap-1.5 overflow-x-auto pb-1 lg:block lg:overflow-visible lg:pb-0">
+        {ADMIN_SECTION_GROUPS.map((group, groupIndex) => (
+          <div key={group} className={`flex gap-1.5 lg:block ${groupIndex > 0 ? 'lg:pt-4' : ''}`}>
+            <p className={NAV_GROUP_HEADING}>{group}</p>
+            {ADMIN_SECTIONS.filter((section) => section.group === group).map(({ id, label }) => {
+              const Icon = ADMIN_SECTION_ICONS[id]
+              const active = tab === id
+              const badge = id === 'monitor' ? alertCount : 0
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onSelect(id)}
+                  aria-current={active ? 'page' : undefined}
+                  title={ADMIN_SECTION_DESCRIPTIONS[id]}
+                  className={`${NAV_ITEM_BASE} ${active ? NAV_ITEM_ACTIVE : NAV_ITEM_IDLE}`}
+                >
+                  <Icon size={14} aria-hidden="true" className="shrink-0" />
+                  {label}
+                  {badge > 0 && (
+                    <span className="ml-auto rounded-full bg-amber-400/20 px-1.5 text-[10px] font-black text-amber-300">
+                      {badge}<span className="sr-only"> active alerts</span>
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ))}
+        <div className="flex gap-1.5 lg:block lg:pt-4">
+          <p className={NAV_GROUP_HEADING}>External panels</p>
+          {REPOSITORY_CONTROLS.map(({ label, href, icon: Icon }) => (
+            <a key={href} href={href} target="_blank" rel="noopener noreferrer" className={`${NAV_ITEM_BASE} ${NAV_ITEM_IDLE}`}>
+              <Icon size={14} aria-hidden="true" className="shrink-0" />
+              {label}
+              <ExternalLink size={11} className="ml-auto shrink-0 opacity-60" aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+      </div>
+    </nav>
+  )
+}
+
+// The Monitoring section is six panels long; this row jumps between them.
+// Ids double as scroll anchors (scroll-mt-24 keeps them clear of the strip).
+const MONITOR_ANCHORS = [
+  ['traffic', 'Traffic'],
+  ['notification-routing', 'Notifications'],
+  ['site-history', 'Site history'],
+  ['system-events', 'Events & feedback'],
+  ['infrastructure-nodes', 'Nodes'],
+  ['announcement-roots', 'Scan roots'],
+] as const
+
+function MonitorJumpLinks() {
+  return (
+    <nav aria-label="On this page" className="flex flex-wrap gap-2">
+      {MONITOR_ANCHORS.map(([id, label]) => (
+        <a
+          key={id}
+          href={`#${id}`}
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:border-cyan-400/40 hover:text-cyan-200"
+        >
+          {label}
+        </a>
+      ))}
+    </nav>
+  )
 }
 
 function StatTile({
@@ -648,8 +752,8 @@ export default function AdminDashboard() {
   const feedbackCount = activeAlerts.filter((a) => a.category === 'feedback').length
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 space-y-16">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2 text-cyan-500 mb-2">
             <Shield size={16} />
@@ -677,7 +781,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* At-a-glance stats — visible immediately, no tab click required. */}
-      <section>
+      <section className="mt-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {/* Alerts and Feedback share the monitor tab's one feed, so both tiles
               open it — the feed's own filter separates them. */}
@@ -688,78 +792,15 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Repository Controls — external management panels, placed above the
-          section tabs. */}
-      <section>
-        <SectionHeader label="Repository Controls" hint="External Management Panels" />
-        <div className="flex flex-wrap items-center gap-3">
-          <a
-            href="https://apensupport.blcse.mil/cran-control/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-cyan-200 hover:bg-cyan-400/20"
-          >
-            <Boxes size={14} /> CRAN Control <ExternalLink size={11} className="opacity-60" />
-          </a>
-          <a
-            href="https://apensupport.blcse.mil/pip-control/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-indigo-400/30 bg-indigo-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-indigo-200 hover:bg-indigo-400/20"
-          >
-            <Package size={14} /> PIP Control <ExternalLink size={11} className="opacity-60" />
-          </a>
-          <a
-            href="https://apensupport.blcse.mil/iso-control/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-yellow-200 hover:bg-yellow-400/20"
-          >
-            <Boxes size={14} /> ISO Control <ExternalLink size={11} className="opacity-60" />
-          </a>
-          <a
-            href="https://apenwingetrepo.blcse.mil/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-red-200 hover:bg-red-400/20"
-          >
-            <Boxes size={14} /> Winget Repo <ExternalLink size={11} className="opacity-60" />
-          </a>
-        </div>
-      </section>
-
-      {/* Console sections — switch between admin panels. Card grid (not a
-          plain tab strip) so each section's purpose is visible at a glance,
-          matching the /home and /applications hub visual language. */}
-      <section>
-        <SectionHeader label="Console Sections" hint="Select an admin panel" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {ADMIN_SECTIONS.map(({ id, label }) => {
-            const Icon = ADMIN_SECTION_ICONS[id]
-            const active = tab === id
-            return (
-              <button key={id} onClick={() => selectTab(id)} className="text-left">
-                <GlowCard
-                  glowColor={active ? 'cyan' : 'indigo'}
-                  className={`h-full p-4 transition-colors ${active ? 'border-cyan-400/40' : ''}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${active ? 'bg-cyan-400/15 text-cyan-300' : 'bg-white/5 text-slate-400'}`}>
-                      <Icon size={15} aria-hidden="true" />
-                    </div>
-                    <p className={`text-xs font-black uppercase tracking-widest ${active ? 'text-cyan-200' : 'text-white'}`}>{label}</p>
-                  </div>
-                  <p className="mt-2 text-[11px] leading-relaxed text-slate-400">{ADMIN_SECTION_DESCRIPTIONS[id]}</p>
-                </GlowCard>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
+      {/* Side nav + the open section. The nav is sticky in its column, so the
+          section switcher stays in reach however long the panel beside it is. */}
+      <div className="mt-6 lg:mt-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+        <ConsoleNav tab={tab} onSelect={selectTab} alertCount={activeAlertCount} />
+        <div className="min-w-0 space-y-16 pt-6 lg:pt-0">
       {tab === 'monitor' && (
         <>
-          <section>
+          <MonitorJumpLinks />
+          <section id="traffic" className="scroll-mt-24">
             <SectionHeader label="Real-Time Traffic" hint="Nginx Edge Stats" />
             <div className="space-y-6">
               <ActivityChartCard title="Site Activity" apiEndpoint={API_ENDPOINTS.siteStats} showTopIPs />
@@ -767,7 +808,7 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          <section>
+          <section id="notification-routing" className="scroll-mt-24">
             <SectionHeader label="Notification Routing" hint="Preferences only — no mail transport is connected on this host" />
             <NotificationSettingsPanel settings={notificationSettings} onSettingsChange={setNotificationSettings} />
           </section>
@@ -791,7 +832,7 @@ export default function AdminDashboard() {
             />
           </section>
 
-          <section>
+          <section id="infrastructure-nodes" className="scroll-mt-24">
             <SectionHeader label="Infrastructure Nodes" hint="Live Endpoint Monitoring" />
             <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
               Each card represents a real endpoint the site-stats proxy probes on a recurring interval.
@@ -802,7 +843,7 @@ export default function AdminDashboard() {
             <InfrastructureNodesPanel services={data.services} />
           </section>
 
-          <section>
+          <section id="announcement-roots" className="scroll-mt-24">
             <SectionHeader label="Live Announcement Scan Roots" hint="Home-page upload feed" />
             <p className="text-xs text-slate-400 -mt-3 mb-6 max-w-3xl leading-relaxed">
               These are the folders the site scans for newly uploaded files to surface in the
@@ -925,6 +966,8 @@ export default function AdminDashboard() {
           <AuthEventsPanel />
         </section>
       )}
+        </div>
+      </div>
     </div>
   )
 }

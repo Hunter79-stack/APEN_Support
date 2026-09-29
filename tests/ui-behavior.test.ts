@@ -948,6 +948,25 @@ test('the admin console renders the notification settings and its default-tab an
   assert.match(html, /id="site-history"/)
 })
 
+test('the admin console side nav lists every section, marks the open one, and links the monitor sub-panels', async () => {
+  const html = await renderAt('/admin', await importDefault('../app/admin/AdminDashboard.tsx'))
+  const sections = await importComponentModule('../lib/data/admin-sections.ts')
+  const nav = /<nav aria-label="Console sections"[\s\S]*?<\/nav>/.exec(html)?.[0]
+  assert.ok(nav, 'the console nav must render')
+  for (const { label } of sections.ADMIN_SECTIONS as ReadonlyArray<{ label: string }>) {
+    assert.ok(nav.includes(label.replace(/&/g, '&amp;')), `${label} is not in the nav`)
+  }
+  const current = nav.match(/<button[^>]*aria-current="page"[^>]*>/g) ?? []
+  assert.equal(current.length, 1, 'exactly one section is current')
+  const currentText = nav.slice(nav.indexOf(current[0])).replace(/<[^>]+>/g, ' ').trim()
+  assert.ok(currentText.startsWith('Monitoring'), `Monitoring opens by default, got "${currentText.slice(0, 40)}"`)
+  // The monitoring panel is six sections long; every jump link has a target.
+  for (const id of ['traffic', 'notification-routing', 'site-history', 'system-events', 'infrastructure-nodes', 'announcement-roots']) {
+    assert.ok(html.includes(`href="#${id}"`), `no jump link to #${id}`)
+    assert.ok(html.includes(`id="${id}"`), `no anchor #${id}`)
+  }
+})
+
 test('the file library and route-image editors start blank until a location is chosen', async () => {
   const library = await importComponentModule('../app/admin/AdminFileLibraryPanel.tsx')
   const panel = await renderStatic(library.AdminFileLibraryPanel, {

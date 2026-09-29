@@ -277,15 +277,17 @@ test('the login form states the accepted forms and drops the realm picker', () =
   assert.doesNotMatch(markup.replace(/\{\/\*[\s\S]*?\*\/\}/g, ''), /blcse\.mil/i)
 })
 
-test('the admin console surfaces spoof attempts on their own', () => {
+test('the admin console surfaces spoof attempts on their own', async () => {
   const panel = readFileSync(join('app', 'admin', 'AuthEventsPanel.tsx'), 'utf8')
   assert.match(panel, /fetchAuthEvents\(\)/)
   // Spoof-only is the default view; typos must not bury real attempts.
   assert.match(panel, /useState<'spoof' \| 'all'>\('spoof'\)/)
   assert.match(panel, /spoofCount/)
 
-  const sections = readFileSync(join('lib', 'data', 'admin-sections.ts'), 'utf8')
-  assert.match(sections, /\{ id: 'security', label: 'Sign-in security' \}/)
+  // Through a variable: a literal '.ts' specifier in import() is a TS5097 error.
+  const sectionsModule = '../lib/data/admin-sections.ts'
+  const { ADMIN_SECTIONS } = (await import(sectionsModule)) as { ADMIN_SECTIONS: ReadonlyArray<{ id: string; label: string }> }
+  assert.equal(ADMIN_SECTIONS.find((s) => s.id === 'security')?.label, 'Sign-in security', 'the console must list a Sign-in security section')
   const dashboard = readFileSync(join('app', 'admin', 'AdminDashboard.tsx'), 'utf8')
   assert.match(dashboard, /tab === 'security'/)
   assert.match(dashboard, /<AuthEventsPanel \/>/)
