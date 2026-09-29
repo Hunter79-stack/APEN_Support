@@ -114,6 +114,29 @@ test('acknowledged alerts refuse barred workstations, accept both body shapes, a
   assert.deepEqual([...ids].sort(), ['ev-1', 'ev-2'])
 })
 
+test('notification settings are readable on an admin workstation but written only by an admin', async () => {
+  // nginx admits any session from an admin IP; a general (non-admin) session
+  // there must still not be able to change the settings.
+  assert.equal((await post('/api/notification-settings', { enabled: false })).status, 401)
+  const saved = await post('/api/notification-settings', { enabled: false, emailAddress: 'ops@example.mil' }, { 'x-admin-token': TOKEN })
+  assert.equal(saved.status, 200)
+  assert.equal((await saved.json()).settings.emailAddress, 'ops@example.mil')
+})
+
+test('a generated custom-page source keeps quotes, newlines and template characters intact', async () => {
+  const mod = await import('../proxy/site-stats.mjs')
+  const page = {
+    slug: 'q',
+    title: 'Say "hi"',
+    category: 'general',
+    cards: [{ id: 'a', title: 'A', description: 'line 1\nline 2', body: 'cost: $5 `x` \\ back' }],
+  }
+  const source = mod.renderCustomPageSource(page)
+  const literal = /const PAGE_DATA: CustomPage = ([\s\S]*?)\n\nexport const metadata/.exec(source)?.[1]
+  assert.ok(literal, 'PAGE_DATA literal not found in the generated source')
+  assert.deepEqual(JSON.parse(literal), page)
+})
+
 test('renaming a library file moves it on disk, rewrites overrides, and rejects unsafe names', async () => {
   const admin = { 'x-admin-token': TOKEN }
   const root = process.env.DOWNLOAD_LIBRARY_ROOT as string
