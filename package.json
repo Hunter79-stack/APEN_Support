@@ -4,7 +4,7 @@
   "private": true,
   "author": "FCC CESC (cesc@army.mil)",
   "license": "UNLICENSED",
-  "packageManager": "npm@12.0.2",
+  "packageManager": "npm@12.2.1",
   "scripts": {
     "dev": "next dev",
     "build": "npm run validate:images && npm run notices && NEXT_TELEMETRY_DISABLED=1 next build && node scripts/build-search-index.mjs",
@@ -34,9 +34,9 @@
     "framer-motion": "^13.1.1",
     "ldapts": "^9.0.0",
     "lucide-react": "^1.33.0",
-    "next": "^16.3.2",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
@@ -52,14 +52,14 @@
     "@types/react-dom": "^19.2.4",
     "concurrently": "^10.0.5",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.2",
+    "eslint-config-next": "^16.4.2",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3"
   },
   "engines": {
-    "node": ">=24.18.0",
-    "npm": ">=12.0.0"
+    "node": ">=24.22.1",
+    "npm": ">=12.2.1"
   },
   "browserslist": [
     "Chrome >= 100",

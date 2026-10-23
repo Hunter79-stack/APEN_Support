@@ -120,7 +120,7 @@ probe targets and every self-referencing URL need no change.
 
 ## Node and pm2
 
-Node ≥ 24.18 must already be installed (`package.json` engines). It is not in
+Node ≥ 24.22.1 must already be installed (`package.json` engines). It is not in
 the bundle — install it from the enclave's own apt/dnf mirror, which the site
 itself serves. pm2 **is** bundled (`vendor/pm2`) and installed automatically if
 missing.

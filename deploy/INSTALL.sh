@@ -88,9 +88,11 @@ else
   warn "no SHA256SUMS in this bundle — integrity NOT verified."
 fi
 
-command -v node >/dev/null 2>&1 || die "node is not installed. Install nodejs >= 24.18 from this enclave's own apt/dnf mirror, then re-run."
-NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-(( NODE_MAJOR >= 24 )) || die "node $(node -v) is too old — need >= 24.18.0 (package.json engines)."
+NODE_FLOOR="$(sed -n 's/.*"node": ">=\([0-9.]*\)".*/\1/p' "$HERE/site/package.json")"
+command -v node >/dev/null 2>&1 || die "node is not installed. Install nodejs >= $NODE_FLOOR from this enclave's own apt/dnf mirror, then re-run."
+NODE_HAVE="$(node -p 'process.versions.node')"
+[[ "$(printf '%s\n' "$NODE_FLOOR" "$NODE_HAVE" | sort -V | head -1)" == "$NODE_FLOOR" ]] \
+  || die "node v$NODE_HAVE is too old — need >= $NODE_FLOOR (package.json engines; earlier releases carry known CVEs)."
 info "node $(node -v)  npm $(npm -v 2>/dev/null || echo 'not found')  as user: $RUN_USER"
 
 command -v nginx >/dev/null 2>&1 || die "nginx is not installed."

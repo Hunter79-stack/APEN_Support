@@ -102,7 +102,7 @@ the live server, so behavior and performance match.
 ```bash
 # Node 24 (needed only to run the PM2 backends and to rebuild; NOT to serve out/)
 #   install from your internal mirror or a bundled tarball — see nodejs.org/dist/v24.x
-node -v            # expect v24+
+node -v            # expect v24.22.1+ (Oct 2026 security release)
 sudo npm i -g pm2  # from internal registry / offline bundle
 
 sudo mkdir -p /var/www/apen_support_nextjs

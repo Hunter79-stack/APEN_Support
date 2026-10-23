@@ -20,7 +20,7 @@ How to stand this project up on a new server from the backup archive
   rebuilt** on the new server (see `proxy/NGINX_VTS_RUNBOOK.md`).
 
 ## Prerequisites on the new server
-- Node.js **≥ 24**, npm **≥ 11** (see `package.json` engines).
+- Node.js **≥ 24.22.1**, npm **≥ 12.2.1** (see `package.json` engines).
 - nginx (open-source) — same major as the source if you want the VTS module.
 - PM2 (`sudo npm i -g pm2`).
 

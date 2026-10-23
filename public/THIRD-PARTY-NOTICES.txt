@@ -704,7 +704,7 @@ third-party archives.
    limitations under the License.
 
 ==============================================================================
-14. @next/env — 16.3.7
+14. @next/env — 16.4.2
 ==============================================================================
 License : MIT
 Author  : Next.js Team <support@vercel.com>
@@ -714,7 +714,7 @@ Source  : https://github.com/vercel/next.js
  The licence text is the standard MIT text reproduced elsewhere in this file.)
 
 ==============================================================================
-15. @next/swc-linux-x64-gnu — 16.3.7
+15. @next/swc-linux-x64-gnu — 16.4.2
 ==============================================================================
 License : MIT
 Source  : https://github.com/vercel/next.js
@@ -2535,7 +2535,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-62. next — 16.3.7
+62. next — 16.4.2
 ==============================================================================
 License : MIT
 Source  : https://github.com/vercel/next.js
@@ -2614,7 +2614,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-65. react — 19.3.0
+65. react — 19.3.1
 ==============================================================================
 License : MIT
 Source  : https://github.com/react/react
@@ -2642,7 +2642,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-66. react-dom — 19.3.0
+66. react-dom — 19.3.1
 ==============================================================================
 License : MIT
 Source  : https://github.com/react/react
@@ -2718,7 +2718,7 @@ Source  : https://github.com/lovell/sharp
 Licence text: identical to the text reproduced under "@img/sharp-linux-x64".
 
 ==============================================================================
-73. source-map-js — 1.2.1
+73. source-map-js — 1.2.2
 ==============================================================================
 License : BSD-3-Clause
 Author  : Valentin 7rulnik Semirulnik <v7rulnik@gmail.com>

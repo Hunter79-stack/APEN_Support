@@ -86,7 +86,7 @@ APEN_Support_NextJS/
 
 ### Prerequisites
 
-- **Node.js** v24 or later (`engines` in `package.json` requires Node >=24, npm >=11)
+- **Node.js** v24.22.1 or later (`engines` in `package.json` requires Node >=24.22.1, npm >=12.2.1)
 
 ---
 

@@ -125,7 +125,7 @@ copy these into the repo:
 ## Build & deploy
 
 ### Prerequisites
-- **Node.js ≥ 24, npm ≥ 11** (see `package.json` engines). Next 16 will not build
+- **Node.js ≥ 24.22.1, npm ≥ 12.2.1** (see `package.json` engines). Next 16 will not build
   on older Node — note: this repo's build was verified structurally on Node 22 in
   the authoring sandbox, so **run the actual build on a Node 24+ host.**
 
